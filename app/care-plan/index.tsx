@@ -705,7 +705,7 @@ export default function CarePlanHomeScreen() {
               : enabledBucketSet.has(row as BucketType);
             const isExpanded = expandedBucket === row;
             const name = window
-              ? `${window.charAt(0).toUpperCase()}${window.slice(1)} Check-in`
+              ? `${window.charAt(0).toUpperCase()}${window.slice(1)} Wellness Check-in`
               : BUCKET_META[row as BucketType].name;
             const icon: React.ComponentProps<typeof Ionicons>['name'] = window
               ? (window === 'morning' ? 'sunny-outline' : 'moon-outline')

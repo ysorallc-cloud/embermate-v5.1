@@ -54,41 +54,41 @@ function tabsScreenBlock(name: string): string {
   return STRIPPED.slice(startIdx, endIdx);
 }
 
-describe('Phase 33b Scope 2 — bottom nav uniform sage-active (Phase 26 F1 lavender retired)', () => {
-  it('contract 1: the support Tabs.Screen does NOT override tabBarActiveTintColor', () => {
-    // Phase 26 F1 set this to colors.caregiverAccent; Phase 33b Scope 2
-    // retired the override. Support tab inherits the global sage-active
-    // tint set in screenOptions.
+describe('Bottom nav active-tint contract — F7 C6c-A Option D reframe', () => {
+  // F7 C6c-A (2026-06-12) retired Phase 33b Scope 2's "no per-tab
+  // override on support" rule. Per Option D, the You tab gets its own
+  // dusty-blue (#6b8cae) active tint via a tabBarActiveTintColor
+  // override; the operational triplet (now / journal / understand)
+  // stays on colors.accent (sage). The You-lane caregiver palette
+  // explicitly lives in this nav slot under F7 — distinct from the
+  // lavender-retire that the broader Phase 33b Scope 2 enforced
+  // elsewhere.
+
+  it('contract 1 [F7 C6c-A]: the support Tabs.Screen overrides tabBarActiveTintColor to dusty blue', () => {
     const block = tabsScreenBlock('support');
     expect(block).toBeTruthy();
-    expect(block).not.toMatch(/tabBarActiveTintColor:/);
+    expect(block).toMatch(/tabBarActiveTintColor:\s*DUSTY/);
   });
 
   it('contract 2: the support Tabs.Screen does NOT override tabBarInactiveTintColor', () => {
-    // Phase 26 F1 set this to a muted lavender; Phase 33b Scope 2 retired
-    // the override. Support tab inherits the global colors.textMuted
-    // inactive tint set in screenOptions.
+    // Inactive label still inherits the global colors.textMuted — only
+    // the active tint flips under Option D.
     const block = tabsScreenBlock('support');
     expect(block).toBeTruthy();
     expect(block).not.toMatch(/tabBarInactiveTintColor:/);
   });
 
-  it('contract 3: the support TabIcon passes colors.accent (sage) as the accent prop', () => {
-    // Phase 26 F1 passed colors.caregiverAccent for the active dot;
-    // Phase 33b Scope 2 unified all 4 TabIcons on colors.accent. The
-    // active dot under the icon now sages along with the operational
-    // tabs.
+  it('contract 3 [F7 C6c-A]: the support tab uses YouTabIcon (not the shared TabIcon component)', () => {
+    // Option D replaces the heart-glyph TabIcon with an avatar circle
+    // that carries the caregiver initial in dusty blue. The shared
+    // TabIcon stays on the operational triplet.
     const block = tabsScreenBlock('support');
-    expect(block).toMatch(/accent=\{colors\.accent\}/);
-    // Negative pin: must not still hardcode lavender accent.
-    expect(block).not.toMatch(/accent=\{colors\.caregiverAccent\}/);
+    expect(block).toMatch(/<YouTabIcon\b/);
+    expect(block).not.toMatch(/<TabIcon\s+name="support"/);
   });
 
-  it('contract 4: all 4 tabs (including support) inherit the global tint pattern', () => {
-    // Phase 26 F1 split the support tab off; Phase 33b Scope 2 brought
-    // it back under the uniform inheritance pattern. No per-screen tint
-    // overrides on any tab.
-    for (const name of ['now', 'journal', 'understand', 'support']) {
+  it('contract 4 [F7 C6c-A]: only the support tab overrides activeTintColor; the operational triplet inherits the global sage', () => {
+    for (const name of ['now', 'journal', 'understand']) {
       const block = tabsScreenBlock(name);
       expect(block).toBeTruthy();
       expect(block).not.toMatch(/tabBarActiveTintColor:/);
@@ -96,18 +96,19 @@ describe('Phase 33b Scope 2 — bottom nav uniform sage-active (Phase 26 F1 lave
     }
   });
 
-  it('contract 5: all 4 tabs pass colors.accent (sage) to TabIcon — no lavender-leak in nav', () => {
-    for (const name of ['now', 'journal', 'understand', 'support']) {
+  it('contract 5: the operational triplet passes colors.accent (sage) to TabIcon — no per-tab tint leak', () => {
+    for (const name of ['now', 'journal', 'understand']) {
       const block = tabsScreenBlock(name);
       expect(block).toMatch(/accent=\{colors\.accent\}/);
       expect(block).not.toMatch(/accent=\{colors\.caregiverAccent\}/);
     }
   });
 
-  it('contract 6 (NEW): no bare colors.caregiverAccent reference remains in the tab-layout source', () => {
-    // Cross-axis pin defending against Phase 26 F1 style drift back.
-    // The lavender garnish on the You lane lives at content-chrome
-    // scale (caregiver chip, eyebrows) — not nav-chrome scale.
+  it('contract 6: no bare colors.caregiverAccent reference remains in the tab-layout source', () => {
+    // Cross-axis pin: post-F7-purple-retirement, caregiverAccent token
+    // is dusty-valued, but the nav layout intentionally uses the
+    // DUSTY local constant for clarity. The token name should not
+    // appear in this file.
     expect(STRIPPED).not.toMatch(/colors\.caregiverAccent\b/);
   });
 });

@@ -119,11 +119,14 @@ describe('Repo — setWellnessWindowEnabled membership semantics', () => {
 describe('Wizard confirm — wellness routes through window membership, not plain enabled', () => {
   const src = readFileSync(CONFIRM_PATH, 'utf8');
 
-  it('renders Morning Check-in and Evening Check-in rows', () => {
+  it('renders Morning Wellness Check-in and Evening Wellness Check-in rows (F7 C6c-A rename)', () => {
+    // F7 C6c-A (2026-06-12) — the wellness rows acquired the
+    // "Wellness" qualifier in their display name so the rows read
+    // as a distinct category from in-app medication check-ins.
     expect(src).toMatch(/wellness-morning/);
     expect(src).toMatch(/wellness-evening/);
-    expect(src).toMatch(/Morning Check-in/i);
-    expect(src).toMatch(/Evening Check-in/i);
+    expect(src).toMatch(/Morning Wellness Check-in/i);
+    expect(src).toMatch(/Evening Wellness Check-in/i);
   });
 
   it('wires wellness toggles to the shared membership helper', () => {

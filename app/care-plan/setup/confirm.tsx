@@ -237,8 +237,8 @@ export default function WizardStepConfirm() {
                 Morning Check-in / Evening Check-in / Meals). */}
             {(
               [
-                { window: 'morning' as const, key: 'wellness-morning', name: 'Morning Check-in', emoji: '🌅' },
-                { window: 'evening' as const, key: 'wellness-evening', name: 'Evening Check-in', emoji: '🌙' },
+                { window: 'morning' as const, key: 'wellness-morning', name: 'Morning Wellness Check-in', emoji: '🌅' },
+                { window: 'evening' as const, key: 'wellness-evening', name: 'Evening Wellness Check-in', emoji: '🌙' },
               ]
             ).map((r) => (
               <View

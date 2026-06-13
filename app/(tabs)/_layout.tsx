@@ -19,10 +19,69 @@
 // ============================================================================
 
 import { Tabs } from 'expo-router';
-import { View, Platform } from 'react-native';
+import { View, Text, Platform } from 'react-native';
+import { useEffect, useState } from 'react';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
+import { getCaregiverProfile } from '../../storage/caregiverProfileRepo';
+
+// F7 C6c-A — Option D dusty active color for the You tab. Other tabs
+// stay on the sage accent.
+const DUSTY = '#6b8cae';
+
+// F7 C6c-A — caregiver-avatar TabIcon for the You tab. Renders a 22px
+// circle with the caregiver's initial letter in dusty blue, or a heart
+// glyph fallback when no caregiver name is set.
+function YouTabIcon({ focused, caregiverInitial }: { focused: boolean; caregiverInitial: string | null }) {
+  const baseStyle = {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  };
+  const activeStyle = {
+    backgroundColor: 'rgba(107, 140, 174, 0.15)',
+    borderColor: DUSTY,
+  };
+  const inactiveStyle = {
+    backgroundColor: 'rgba(107, 140, 174, 0.06)',
+    borderColor: 'rgba(107, 140, 174, 0.20)',
+  };
+  const activeLetter = { color: DUSTY, fontSize: 11, fontWeight: '500' as const };
+  const inactiveLetter = { color: 'rgba(107, 140, 174, 0.40)', fontSize: 11, fontWeight: '500' as const };
+
+  return (
+    <View
+      style={{ alignItems: 'center' }}
+      accessible={false}
+      importantForAccessibility="no-hide-descendants"
+    >
+      <View style={[baseStyle, focused ? activeStyle : inactiveStyle]}>
+        {caregiverInitial ? (
+          <Text style={focused ? activeLetter : inactiveLetter}>{caregiverInitial}</Text>
+        ) : (
+          <Ionicons
+            name={focused ? 'heart' : 'heart-outline'}
+            size={12}
+            color={focused ? DUSTY : 'rgba(107, 140, 174, 0.40)'}
+          />
+        )}
+      </View>
+      {focused && (
+        <View style={{
+          width: 4,
+          height: 4,
+          borderRadius: 2,
+          backgroundColor: DUSTY,
+          marginTop: 4,
+        }} />
+      )}
+    </View>
+  );
+}
 
 type TabName = 'now' | 'journal' | 'support' | 'understand';
 
@@ -69,6 +128,21 @@ const TabIcon = ({
 export default function TabLayout() {
   const { colors, resolvedTheme } = useTheme();
 
+  // F7 C6c-A — caregiver name feeds the You tab's avatar circle.
+  // Fallback to null → heart-glyph icon (per Option D spec).
+  const [caregiverInitial, setCaregiverInitial] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getCaregiverProfile()
+      .then((profile) => {
+        if (cancelled) return;
+        const name = profile?.name?.trim() ?? '';
+        setCaregiverInitial(name.length > 0 ? name.charAt(0).toUpperCase() : null);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   return (
     <Tabs
       screenOptions={{
@@ -103,6 +177,15 @@ export default function TabLayout() {
                 style={{ flex: 1, backgroundColor: resolvedTheme === 'light' ? 'rgba(248, 255, 254, 0.85)' : 'rgba(0, 0, 0, 0.92)' }}
               />
             ) : null}
+            {/* F7 C6c-A — Option D separator. 32pt height, vertically
+                centered in the visible bar region (~52pt tall after
+                paddingTop:8 / paddingBottom:28 on the 80pt outer).
+                Color lifts from the prior glassHover (alpha 0.06) →
+                glassBorder (alpha 0.10) per Option D's "rgba(244,221,
+                184,0.1)" rule — visually equivalent to the literal
+                spec value, routed through the canonical glass-family
+                token so the divider stays a structural marker, not a
+                brand color. Always visible regardless of active tab. */}
             <View
               testID="tab-bar-divider"
               accessible={false}
@@ -111,10 +194,10 @@ export default function TabLayout() {
               style={{
                 position: 'absolute',
                 left: '75%',
-                top: 8,
-                bottom: 28,
+                top: 18, // allow: centers 32pt rule in the visible region
                 width: 1,
-                backgroundColor: colors.glassHover,
+                height: 32, // allow: F7 C6c-A Option D separator height
+                backgroundColor: colors.glassBorder,
               }}
             />
           </View>
@@ -158,11 +241,19 @@ export default function TabLayout() {
         name="support"
         options={{
           title: 'You',
-          // Phase 33b Scope 2 — Support tab no longer overrides nav
-          // tints. Inherits screenOptions default (sage active /
-          // cream-muted inactive) like the other 3 tabs. Phase 26 F1
-          // lavender-active override retired per Q-33b.6 lock (a).
-          tabBarIcon: ({ focused }) => <TabIcon name="support" focused={focused} accent={colors.accent} inactive={colors.textMuted} />,
+          // F7 C6c-A Option D — the You tab gets a per-tab active
+          // tint override (dusty blue #6b8cae) so the active label
+          // reads in the caregiver-lane color, distinct from the sage
+          // operational triplet. tabBarIcon is the new YouTabIcon
+          // (avatar circle with caregiver initial or heart fallback).
+          //
+          // Phase 33b Scope 2's "no nav-tint override" rule
+          // (Q-33b.6 lock a) intentionally relaxes here for Option D —
+          // the You tab is the caregiver-self space and the F7
+          // canon-dusty palette explicitly carries the caregiver lane
+          // on this surface.
+          tabBarActiveTintColor: DUSTY,
+          tabBarIcon: ({ focused }) => <YouTabIcon focused={focused} caregiverInitial={caregiverInitial} />,
           tabBarAccessibilityLabel: 'You tab. Your wellness and self-care',
           tabBarButtonTestID: 'tab-support',
         }}

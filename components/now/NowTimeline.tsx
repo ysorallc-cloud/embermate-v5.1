@@ -19,6 +19,7 @@ import { type TodayStats, type TimeWindow } from '../../utils/nowHelpers';
 // for its own batch-confirm CTA inside the schedule.
 import { TimelineSection } from './TimelineSection';
 import { ScheduleCard, type ScheduleWindow } from './ScheduleCard';
+import { FlatTimelineFeed } from './FlatTimelineFeed';
 
 // ============================================================================
 // TYPES
@@ -193,30 +194,18 @@ export function NowTimeline({
         />
       ) : (
         <View style={s.sectionCard}>
-          {/* Phase 15.3 — MorningMedsBanner moved to now.tsx (renders
-              above StatRings now). The banner's medication-count
-              derivation moved with it; this card opens directly with
-              the timeline section. */}
-          <TimelineSection
+          {/* F7 C6c-A — TimelineSection (period-grouped accordion)
+              retired in favor of FlatTimelineFeed (flat chronological
+              feed sorted by scheduledTime asc). The legacy
+              TimelineSection.tsx stays in tree to preserve the
+              Phase 27 / 32A / 35 source-level test coverage; only the
+              mount point flips. The expanded scope (DAD TODAY zone,
+              row hierarchy refinements, period dot anchors per the
+              C6c device-walk spec) banks for post-F7 design pass. */}
+          <FlatTimelineFeed
             allPending={allPending}
             completed={completed}
-            hasRegimenInstances={hasRegimenInstances}
-            selectedCategory={selectedCategory}
-            onClearCategory={onClearCategory}
             onItemPress={onItemPress}
-            onBatchMedConfirm={onBatchMedConfirm}
-            onQuickConfirm={onQuickConfirm}
-            onQuickLog={onQuickLog}
-            onQuickSkip={onQuickSkip}
-            onUndoCompleted={onUndoCompleted}
-            onAddCup={onAddCup}
-            onWellnessTap={onWellnessTap}
-            todayStats={todayStats}
-            enabledBuckets={enabledBuckets}
-            waterGlasses={waterGlasses}
-            waterGoal={waterGoal}
-            onWaterUpdate={onWaterUpdate}
-            onStartRoutine={onStartRoutine}
           />
 
           {!hasRegimenInstances && !hasBucketCarePlan && !hasCarePlan && (
