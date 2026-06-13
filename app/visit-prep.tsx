@@ -1,5 +1,42 @@
 // ============================================================================
 // VISIT PREP — Configuration screen for generating a care summary PDF
+//
+// F7 C7 (2026-06-12) — 4-state redesign deferred to v1.1 per the
+// pre-launch audit-first rule. Audit findings preserved here so the
+// next pass starts with full context.
+//
+// Audit findings (no new services allowed pre-launch):
+//   • State 3 (flagged-items sheet) — the existing buildRedFlags
+//     helper in services/redFlags.ts produces a RedFlag[] with shape
+//     { severity: 'critical'|'attention', text: string }. Wiring
+//     it to a State 3 sheet requires exposing the input pipeline
+//     (adherence + vitals + notesInRange + symptomChanges +
+//     sleepDelta + refusedByMed) that today lives inside
+//     services/visitPrepPdf.ts and is constructed there before
+//     PDF rendering. Refactoring that pipeline to expose a
+//     buildable preview is new service work.
+//   • State 2 (single-list data migration) — replacing the three
+//     string[3] arrays in CaregiverNotesBlock + the
+//     visitPrepCaregiverNotesRepo with a single string[] keyed at
+//     '@embermate_visit_prep_items' is a load-bearing data-model
+//     migration that cascades through ~10 test suites
+//     (visitPrepPdfCaregiverFillable16_2.test.ts asserts the
+//     Triple shape; PDF generator + preview also consume the
+//     existing fields). Deferred to a dedicated v1.1 commit so
+//     the migration ships with full coverage.
+//   • State 1 (sparse-data coral card) — requires a daysOfData
+//     fetch at page mount that the screen does not currently do.
+//     Adding the fetch is straightforward but ships better
+//     alongside States 2-3 as part of the unified redesign.
+//   • State 4 (PDF preview card) — the existing
+//     generateAndShareVisitPrep path already produces a sharable
+//     PDF. The F7 preview-card UX layer ships better as part of
+//     the unified redesign.
+//
+// F7 token-level changes already in place via the broader caregiver
+// Accent → dusty migration (the Phase 33b Scope 2 lavender eyebrow
+// on this screen automatically reads in dusty blue post-token-remap
+// commit deb3e595).
 // ============================================================================
 
 import React, { useState, useMemo, useCallback } from 'react';
