@@ -73,6 +73,42 @@ jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn() },
 }));
 
+// Wellness-merge F3 (post-8f27238d) — the live Care Plan home screen
+// now mounts WellnessWindowsDrawer when the wellness row is enabled +
+// expanded, which imports `@react-native-community/datetimepicker`.
+// The native module uses ES module syntax that babel-jest can't
+// transform; stub it so the smoke test parses + mounts.
+jest.mock('@react-native-community/datetimepicker', () => {
+  const React = require('react');
+  return {
+    __esModule: true,
+    default: ({ onChange, value, testID }: any) =>
+      React.createElement(
+        'DateTimePicker',
+        {
+          testID: testID ?? 'time-picker',
+          value,
+          onChange: (e: any, d: any) => onChange?.(e, d),
+        },
+        null,
+      ),
+  };
+});
+
+// Notification scheduler — fire-and-forget from the drawer's reminder +
+// time-edit handlers. Stub to a no-op.
+jest.mock('../../utils/notificationService', () => ({
+  rescheduleAllNotifications: jest.fn().mockResolvedValue(undefined),
+}));
+
+// services/carePlanGenerator's ensureDailyInstances is invoked inside
+// the wellness drawer's time-edit handler; smoke test never triggers
+// the edit so a plain stub suffices.
+jest.mock('../../services/carePlanGenerator', () => ({
+  ensureDailyInstances: jest.fn().mockResolvedValue(undefined),
+  getTodayDateString: () => '2026-06-13',
+}));
+
 jest.mock('expo-linear-gradient', () => {
   const React = require('react');
   return {

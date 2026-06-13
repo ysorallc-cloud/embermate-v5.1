@@ -99,6 +99,41 @@ jest.mock('@expo/vector-icons', () => {
   };
 });
 
+// DateTimePicker is mounted by the live WellnessWindowsDrawer (F3) when
+// the user taps the time chip. Stub it so the home screen mount doesn't
+// fail to load the native module.
+jest.mock('@react-native-community/datetimepicker', () => {
+  const React = require('react');
+  return {
+    __esModule: true,
+    default: ({ onChange, value, testID }: any) =>
+      React.createElement(
+        'DateTimePicker',
+        {
+          testID: testID ?? 'time-picker',
+          value,
+          onChange: (e: any, d: any) => onChange?.(e, d),
+        },
+        null,
+      ),
+  };
+});
+
+// notificationService.rescheduleAllNotifications is fire-and-forget
+// in the drawer's reminder + time-edit handlers. Stub to a no-op so
+// the mount doesn't pull in the full scheduler module.
+jest.mock('../../utils/notificationService', () => ({
+  rescheduleAllNotifications: jest.fn().mockResolvedValue(undefined),
+}));
+
+// services/carePlanGenerator's ensureDailyInstances is called inside
+// the time-edit handler; in this test it's never reached (no time
+// edit fired), so a plain stub suffices.
+jest.mock('../../services/carePlanGenerator', () => ({
+  ensureDailyInstances: jest.fn().mockResolvedValue(undefined),
+  getTodayDateString: () => '2026-06-13',
+}));
+
 jest.mock('../../contexts/ThemeContext', () => ({
   useTheme: () => ({
     colors: new Proxy({}, { get: () => '#000' }),
@@ -311,11 +346,10 @@ describe('Wellness merge — F1 merged-row mount test (RED before F2/F3 collapse
     expect(queryByTestId('drawer-wellness')).toBeNull();
   });
 
-  // ── Contract 7 — PER-WINDOW WRITE WIRING (F3) ──────────────────────────────
-  // Re-pinned for the compact-row drawer (Decision 2): the merged
-  // row's drawer is a single drawer with one compact row per active
-  // window — window name, time (tap to edit), reminder bell (tap to
-  // toggle), enable toggle. The three write wirings the drawer must
+  // ── Contract 7 — PER-WINDOW WRITE WIRING (F3, now LIVE) ───────────────────
+  // The merged row's drawer is a single drawer with one compact row per
+  // active window — window name, time (tap to edit), reminder bell (tap
+  // to toggle), enable toggle. The three write wirings the drawer must
   // satisfy, asserted at the data layer (NOT against which component
   // mounts):
   //    • enable toggle  → wellness.timesOfDay membership (updateBucket)
@@ -324,19 +358,20 @@ describe('Wellness merge — F1 merged-row mount test (RED before F2/F3 collapse
   // Decision 1: a row renders for EVERY period in timesOfDay (legacy
   // included), not just morning/evening.
   //
-  // SKIPPED until F3 builds the drawer to the forthcoming mock. The
-  // mock dictates the control handles, so this contract is expected to
-  // cascade then (testIDs below are provisional). The enable→membership
-  // write itself is decision-locked and already proven at the storage
-  // layer by wellnessSplitRoundTripF5_3 rt-3.
-  it.skip('contract 7 (F3 — PER-WINDOW ENABLE WRITE): toggling the morning window OFF in the drawer writes wellness {timesOfDay:["evening"], enabled:true} with NO field churn', () => {
+  // The drawer's own mount-test
+  // (__tests__/components/wellnessWindowsDrawerF3.test.tsx) pins each
+  // write at the component-isolation layer. These F1 cases re-prove the
+  // wiring through the Care Plan home screen mount so the parent's
+  // updateBucket route stays connected end-to-end.
+
+  it('contract 7a (PER-WINDOW ENABLE WRITE): toggling morning OFF in the drawer writes wellness {timesOfDay:["evening"], enabled:true} with NO field churn', () => {
     setWellness({ enabled: true, timesOfDay: ['morning', 'evening'] });
     const { getByTestId } = render(<CarePlanHomeScreen />);
 
-    // Expand the single merged row, then flip the morning window OFF
-    // via its compact-row enable control (handle provisional — F3).
+    // Expand the merged row, then flip morning's enable Switch off via
+    // the compact-row Switch's valueChange event.
     fireEvent.press(getByTestId('category-row-wellness'));
-    fireEvent.press(getByTestId('wellness-window-morning-enable'));
+    fireEvent(getByTestId('wellness-window-morning-enable'), 'valueChange', false);
 
     expect(mockUpdateBucket).toHaveBeenCalledWith('wellness', {
       timesOfDay: ['evening'],
@@ -347,5 +382,39 @@ describe('Wellness merge — F1 merged-row mount test (RED before F2/F3 collapse
     expect(Object.keys(updates).sort()).toEqual(['enabled', 'timesOfDay']);
     // Enable wiring must not bleed into the per-period settings store.
     expect(mockUpdateSettings).not.toHaveBeenCalled();
+  });
+
+  it('contract 7b (PER-WINDOW REMINDER WRITE): tapping morning reminder routes to wellnessSettings.morning.reminderEnabled, NOT the bucket', () => {
+    setWellness({ enabled: true, timesOfDay: ['morning', 'evening'] });
+    const { getByTestId } = render(<CarePlanHomeScreen />);
+
+    fireEvent.press(getByTestId('category-row-wellness'));
+    fireEvent.press(getByTestId('wellness-window-morning-reminder'));
+
+    expect(mockUpdateSettings).toHaveBeenCalledTimes(1);
+    const patch = mockUpdateSettings.mock.calls[0][0];
+    // Pre-state: morning.reminderEnabled = true → expect false after tap.
+    expect(patch.morning.reminderEnabled).toBe(false);
+    expect(patch.evening.reminderEnabled).toBe(true);
+    // The reminder write must NOT touch the bucket.
+    expect(mockUpdateBucket).not.toHaveBeenCalled();
+  });
+
+  it('contract 7c (PER-WINDOW INDEPENDENCE): with timesOfDay=["morning"], the evening Switch is OFF — and toggling it ON writes ["morning","evening"]', () => {
+    setWellness({ enabled: true, timesOfDay: ['morning'] });
+    const { getByTestId } = render(<CarePlanHomeScreen />);
+
+    fireEvent.press(getByTestId('category-row-wellness'));
+    // Evening row still renders (standard always-shown); enable Switch
+    // reads off.
+    const eveningSwitch = getByTestId('wellness-window-evening-enable');
+    expect(eveningSwitch.props.value).toBe(false);
+
+    // Flipping it on extends the membership.
+    fireEvent(eveningSwitch, 'valueChange', true);
+    expect(mockUpdateBucket).toHaveBeenCalledWith('wellness', {
+      timesOfDay: ['morning', 'evening'],
+      enabled: true,
+    });
   });
 });

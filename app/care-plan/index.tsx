@@ -61,6 +61,7 @@ import { SleepDrawer } from '../../components/careplan/drawers/SleepDrawer';
 import { MealsDrawer } from '../../components/careplan/drawers/MealsDrawer';
 import { AppointmentsDrawer } from '../../components/careplan/drawers/AppointmentsDrawer';
 import { VitalsDrawer } from '../../components/careplan/drawers/VitalsDrawer';
+import { WellnessWindowsDrawer } from '../../components/careplan/drawers/WellnessWindowsDrawer';
 // Wellness merge (F2/F3) — the combined row's drawer (compact
 // per-window rows) is built in F3 to a forthcoming mock. F2 collapses
 // the row + subtitle only, so no wellness-drawer component is
@@ -714,13 +715,23 @@ export default function CarePlanHomeScreen() {
                         onToggleEnabled={(val) => handleToggleBucket('vitals', val)}
                       />
                     )}
-                    {/* Wellness merge (F3) — the compact per-window
-                        rows (window name · time · reminder bell ·
-                        enable toggle, one per period in timesOfDay)
-                        render here, built to the forthcoming mock. F2
-                        lands the row collapse + subtitle; the drawer
-                        body is intentionally empty until F3 so this
-                        slice stays atomic. */}
+                    {/* Wellness merge (F3) — compact per-window rows
+                        live behind the merged "Wellness Check-in" row.
+                        WellnessWindowsDrawer renders one row per
+                        period in timesOfDay (morning + evening always;
+                        plus any legacy midday / night), each with its
+                        own time + reminder bell + enable Switch. The
+                        enable Switch writes timesOfDay membership +
+                        the bucket enabled flag atomically through
+                        updateBucket; the time + reminder writes route
+                        to the wellnessSettings store via the drawer's
+                        own useWellnessSettings hook. */}
+                    {row === 'wellness' && (
+                      <WellnessWindowsDrawer
+                        timesOfDay={(config.wellness?.timesOfDay as string[] | undefined) ?? []}
+                        onUpdate={(updates) => updateBucket('wellness', updates as any)}
+                      />
+                    )}
                     {row === 'meals' && (
                       <MealsDrawer
                         config={config.meals}
