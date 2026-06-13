@@ -1,0 +1,333 @@
+// ============================================================================
+// WELLNESS MERGE — F1 mount-test scaffold (RED-first).
+//
+// Pins the MERGED "Wellness Check-in" row behavior on the Care Plan
+// home screen BEFORE the collapse is built. This test is RED on
+// purpose: the screen currently renders TWO pseudo-key rows
+// ('wellness-morning' / 'wellness-evening'), so every contract that
+// asks for the single 'wellness' row fails until F2 collapses the
+// DAILY_TRACKING_ROWS pseudo-keys back to one real row.
+//
+// AUDIT CONFIRMED (re-run against current code, not the brief):
+//   • Storage is UNCHANGED. One `wellness` bucket with a `timesOfDay`
+//     array already drives both windows (carePlanConfig.wellness +
+//     the P5 wellnessSettings store). DAILY_TRACKING_BUCKETS keeps
+//     'wellness' as the real BucketType (index.tsx:103); only the UI
+//     row list (DAILY_TRACKING_ROWS, 109-114) splits it. So this is a
+//     UI-only merge — no migration. The storage round-trip contracts
+//     in __tests__/integration/wellnessSplitRoundTripF5_3.test.ts
+//     (rt-1..rt-5) stay GREEN through this change and are the proof
+//     that the membership write is unaffected.
+//
+// SCOPE NOTES / DECISIONS THIS TEST ENCODES (flagged for review):
+//   • SUBTITLE FORMAT (copy choice): the merged row's subtitle is
+//     formatted from wellness.timesOfDay using capitalized window
+//     names joined with ", " — mirroring the meals convention
+//     (getBucketStatusText, carePlanConfig.ts:664). Both windows →
+//     "Morning, Evening"; morning-only → "Morning"; evening-only →
+//     "Evening"; off → no subtitle. F2 implements the formatter.
+//   • DRAWER COMPOSITION (assumed, pending the F3 mock): the single
+//     merged row's drawer mounts the EXISTING WellnessCheckInDrawer
+//     once per active window (morning + evening) under one expand.
+//     This reuses the existing, decision-locked `onToggleEnabled`
+//     prop (no new drawer API invented) and matches the F5 note that
+//     drawer-component tests are "likely unchanged." The drawer's
+//     VISUAL layout is deferred to F3's mock (Decision #2). Contract
+//     6 only asserts the per-window toggle WIRING (membership write),
+//     not layout. If the forthcoming mock changes the composition,
+//     F5 cascades this contract.
+//
+// Mirrors the mock scaffold in
+// __tests__/app/carePlanHomeScreenSmoke.test.tsx (the F5.3.1
+// smoke-mount pattern) but makes the wellness config mutable so the
+// four canonical shapes can be seeded per-test.
+// ============================================================================
+
+jest.mock('react-native', () => {
+  const React = require('react');
+  const make = (name: string) =>
+    React.forwardRef((props: any, ref: any) =>
+      React.createElement(name, { ...props, ref }, props.children),
+    );
+  return {
+    View: make('View'),
+    Text: make('Text'),
+    ScrollView: make('ScrollView'),
+    TouchableOpacity: make('TouchableOpacity'),
+    Switch: make('Switch'),
+    StyleSheet: { create: (s: any) => s, flatten: (s: any) => s },
+    Platform: { OS: 'ios', select: (o: any) => o.ios || o.default },
+    ActivityIndicator: make('ActivityIndicator'),
+    Animated: {
+      View: make('Animated.View'),
+      Value: class { setValue() {} },
+      timing: () => ({ start: jest.fn() }),
+    },
+    PanResponder: { create: () => ({ panHandlers: {} }) },
+    Alert: { alert: jest.fn() },
+  };
+});
+
+jest.mock('react-native-safe-area-context', () => {
+  const React = require('react');
+  return {
+    SafeAreaView: ({ children }: any) =>
+      React.createElement('SafeAreaView', null, children),
+    useSafeAreaInsets: () => ({ top: 44, bottom: 34, left: 0, right: 0 }),
+    SafeAreaProvider: ({ children }: any) => children,
+  };
+});
+
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
+  router: { push: jest.fn(), back: jest.fn() },
+}));
+
+jest.mock('expo-linear-gradient', () => {
+  const React = require('react');
+  return {
+    LinearGradient: ({ children }: any) =>
+      React.createElement('LinearGradient', null, children),
+  };
+});
+
+jest.mock('@expo/vector-icons', () => {
+  const React = require('react');
+  return {
+    Ionicons: ({ name }: any) =>
+      React.createElement('Ionicons', { name }, null),
+  };
+});
+
+jest.mock('../../contexts/ThemeContext', () => ({
+  useTheme: () => ({
+    colors: new Proxy({}, { get: () => '#000' }),
+  }),
+}));
+
+jest.mock('../../theme/theme-tokens', () => ({
+  Colors: new Proxy({}, { get: () => '#000' }),
+  Spacing: { xxs: 2, xs: 4, sm: 8, md: 12, lg: 16, xl: 24 },
+  Sizing: { cardRadius: 14, cardInternalPadding: 12 },
+  Fonts: { serif: 'SourceSerif4_400Regular' },
+  BorderRadius: { sm: 4, md: 8, lg: 12 },
+}));
+
+jest.mock('../../contexts/PatientContext', () => ({
+  usePatient: () => ({
+    activePatient: { id: 'default', name: 'Mom' },
+    patients: [{ id: 'default', name: 'Mom' }],
+  }),
+}));
+
+// ── Mutable wellness config — set per-test to seed the four shapes.
+// The `mock` name prefix lets the jest.mock factory close over it
+// despite hoisting (babel-jest allowlists mock-prefixed identifiers).
+let mockWellness: { enabled: boolean; timesOfDay: string[] } = {
+  enabled: true,
+  timesOfDay: ['morning', 'evening'],
+};
+const mockUpdateBucket = jest.fn();
+
+jest.mock('../../hooks/useCarePlanConfig', () => {
+  return {
+    useCarePlanConfig: () => {
+      const wellnessEnabled = mockWellness.enabled;
+      const config = {
+        id: 'cp-test',
+        patientId: 'default',
+        schemaVersion: 1,
+        version: 1,
+        meds: { enabled: true, medications: [] },
+        vitals: { enabled: true, vitalTypes: ['bp'], timesOfDay: ['morning'] },
+        wellness: { enabled: wellnessEnabled, timesOfDay: mockWellness.timesOfDay },
+        meals: { enabled: true, timesOfDay: ['morning', 'midday', 'evening'] },
+        water: { enabled: false },
+        sleep: { enabled: false },
+        activity: { enabled: false },
+        appointments: { enabled: false },
+        errands: { enabled: false },
+        shifts: { enabled: false },
+        self_care: { enabled: false },
+      };
+      const enabledBuckets = ['meds', 'vitals', 'meals'];
+      if (wellnessEnabled) enabledBuckets.push('wellness');
+      return {
+        config,
+        enabledBuckets,
+        loading: false,
+        toggleBucket: jest.fn(),
+        updateBucket: mockUpdateBucket,
+        getBucketStatus: jest.fn(() => null),
+        initializeConfig: jest.fn(),
+      };
+    },
+  };
+});
+
+jest.mock('../../hooks/useWellnessSettings', () => ({
+  useWellnessSettings: () => ({
+    settings: {
+      morning: { enabled: true, time: '07:00', checks: ['sleep', 'mood', 'energy'], reminderEnabled: true, optionalChecks: {} },
+      evening: { enabled: true, time: '20:00', checks: ['mood'], reminderEnabled: true, optionalChecks: {} },
+      afternoon: { enabled: true, time: '13:00', checks: [], reminderEnabled: false, optionalChecks: {} },
+      vitals: { enabled: false, time: '08:30', types: [], reminderEnabled: false },
+    },
+    updateSettings: jest.fn(),
+  }),
+}));
+
+// ── Heavy children ─────────────────────────────────────────────────────────
+jest.mock('../../components/careplan/drawers/ActivityDrawer', () => ({
+  ActivityDrawer: () => null,
+}));
+jest.mock('../../components/careplan/drawers/WaterDrawer', () => ({
+  WaterDrawer: () => null,
+}));
+jest.mock('../../components/careplan/drawers/SleepDrawer', () => ({
+  SleepDrawer: () => null,
+}));
+jest.mock('../../components/careplan/drawers/MealsDrawer', () => {
+  const React = require('react');
+  return {
+    MealsDrawer: () => React.createElement('Text', { testID: 'drawer-meals-body' }, '[MealsDrawer]'),
+  };
+});
+jest.mock('../../components/careplan/drawers/AppointmentsDrawer', () => ({
+  AppointmentsDrawer: () => null,
+}));
+jest.mock('../../components/careplan/drawers/VitalsDrawer', () => {
+  const React = require('react');
+  return {
+    VitalsDrawer: () => React.createElement('Text', { testID: 'drawer-vitals-body' }, '[VitalsDrawer]'),
+  };
+});
+// Merged-drawer composition assumption (see header): each active
+// window mounts a WellnessCheckInDrawer. The mock exposes a press
+// target per period that fires the EXISTING onToggleEnabled prop so
+// contract 6 can pin the per-window membership-write WIRING without
+// depending on the (deferred) F3 visual layout.
+jest.mock('../../components/careplan/drawers/WellnessCheckInDrawer', () => {
+  const React = require('react');
+  return {
+    WellnessCheckInDrawer: ({ period, onToggleEnabled }: any) =>
+      React.createElement(
+        'TouchableOpacity',
+        {
+          testID: `wellness-window-toggle-${period}`,
+          onPress: () => onToggleEnabled(false),
+        },
+        `[WellnessCheckInDrawer ${period}]`,
+      ),
+  };
+});
+jest.mock('../../components/careplan/drawers/MedicationsDrawer', () => {
+  const React = require('react');
+  return {
+    MedicationsDrawer: () => React.createElement('Text', { testID: 'drawer-meds-body' }, '[MedicationsDrawer]'),
+  };
+});
+
+jest.mock('../../components/common/InfoModal', () => {
+  const React = require('react');
+  return {
+    InfoModal: () => null,
+    InfoIconButton: ({ onPress }: any) =>
+      React.createElement('TouchableOpacity', { testID: 'info-icon', onPress }, null),
+  };
+});
+jest.mock('../../components/SubScreenHeader', () => {
+  const React = require('react');
+  return {
+    SubScreenHeader: ({ title }: any) =>
+      React.createElement('Text', { testID: 'sub-screen-header' }, title),
+  };
+});
+jest.mock('../../components/SectionEyebrow', () => {
+  const React = require('react');
+  return {
+    SectionEyebrow: ({ text }: any) =>
+      React.createElement('Text', null, text),
+  };
+});
+jest.mock('../../components/careplan/AddItemSheet', () => ({
+  AddItemSheet: () => null,
+}));
+
+jest.mock('../../lib/navigate', () => ({ navigate: jest.fn() }));
+
+import React from 'react';
+import { render, fireEvent, within } from '@testing-library/react-native';
+import CarePlanHomeScreen from '../../app/care-plan/index';
+
+function setWellness(shape: { enabled: boolean; timesOfDay: string[] }) {
+  mockWellness = shape;
+}
+
+describe('Wellness merge — F1 merged-row mount test (RED before F2/F3 collapse)', () => {
+  beforeEach(() => {
+    mockUpdateBucket.mockClear();
+    setWellness({ enabled: true, timesOfDay: ['morning', 'evening'] });
+  });
+
+  it('contract 1 (ONE MERGED ROW): a single category-row-wellness renders, and NEITHER pseudo-key row survives', () => {
+    const { getByTestId, queryByTestId } = render(<CarePlanHomeScreen />);
+    expect(getByTestId('category-row-wellness')).toBeTruthy();
+    expect(queryByTestId('category-row-wellness-morning')).toBeNull();
+    expect(queryByTestId('category-row-wellness-evening')).toBeNull();
+  });
+
+  it('contract 2 (LABEL): the merged row is labeled "Wellness Check-in" (no "Morning"/"Evening" prefix)', () => {
+    const { getByTestId } = render(<CarePlanHomeScreen />);
+    const row = getByTestId('category-row-wellness');
+    expect(within(row).getByText('Wellness Check-in')).toBeTruthy();
+  });
+
+  it('contract 3 (SUBTITLE — BOTH WINDOWS): timesOfDay ["morning","evening"] formats to "Morning, Evening"', () => {
+    setWellness({ enabled: true, timesOfDay: ['morning', 'evening'] });
+    const { getByTestId } = render(<CarePlanHomeScreen />);
+    const row = getByTestId('category-row-wellness');
+    expect(within(row).getByText('Morning, Evening')).toBeTruthy();
+  });
+
+  it('contract 4 (SUBTITLE — MORNING ONLY): timesOfDay ["morning"] formats to "Morning"', () => {
+    setWellness({ enabled: true, timesOfDay: ['morning'] });
+    const { getByTestId } = render(<CarePlanHomeScreen />);
+    const row = getByTestId('category-row-wellness');
+    expect(within(row).getByText('Morning')).toBeTruthy();
+  });
+
+  it('contract 5 (SUBTITLE — EVENING ONLY): timesOfDay ["evening"] formats to "Evening"', () => {
+    setWellness({ enabled: true, timesOfDay: ['evening'] });
+    const { getByTestId } = render(<CarePlanHomeScreen />);
+    const row = getByTestId('category-row-wellness');
+    expect(within(row).getByText('Evening')).toBeTruthy();
+  });
+
+  it('contract 6 (OFF SHAPE): disabled wellness still renders one merged row, with no subtitle and no expanded drawer', () => {
+    setWellness({ enabled: false, timesOfDay: [] });
+    const { getByTestId, queryByText, queryByTestId } = render(<CarePlanHomeScreen />);
+    expect(getByTestId('category-row-wellness')).toBeTruthy();
+    expect(queryByText('Morning, Evening')).toBeNull();
+    expect(queryByText('Morning')).toBeNull();
+    expect(queryByText('Evening')).toBeNull();
+    expect(queryByTestId('drawer-wellness')).toBeNull();
+  });
+
+  it('contract 7 (PER-WINDOW WRITE — MORNING OFF): expanding the merged row and toggling the morning window OFF writes wellness {timesOfDay:["evening"], enabled:true} with NO field churn', () => {
+    setWellness({ enabled: true, timesOfDay: ['morning', 'evening'] });
+    const { getByTestId } = render(<CarePlanHomeScreen />);
+
+    // Expand the single merged row, then flip the morning window OFF.
+    fireEvent.press(getByTestId('category-row-wellness'));
+    fireEvent.press(getByTestId('wellness-window-toggle-morning'));
+
+    expect(mockUpdateBucket).toHaveBeenCalledWith('wellness', {
+      timesOfDay: ['evening'],
+      enabled: true,
+    });
+    // No-field-churn guard: the write touches ONLY timesOfDay + enabled.
+    const [, updates] = mockUpdateBucket.mock.calls[0];
+    expect(Object.keys(updates).sort()).toEqual(['enabled', 'timesOfDay']);
+  });
+});
