@@ -131,7 +131,7 @@ export function HealthZoneNow() {
   });
 
   return (
-    <Zone icon="♥" label="TODAY'S HEALTH" verb="review" tint="none" testID="health-zone-now">
+    <Zone icon="♥" label="TODAY'S HEALTH" verb="review" tint="none" accent="green" testID="health-zone-now">
       {/* VITALS */}
       <HealthRow
         styles={styles}

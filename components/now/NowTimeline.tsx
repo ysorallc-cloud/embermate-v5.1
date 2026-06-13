@@ -167,11 +167,12 @@ export function NowTimeline({
   return (
     <>
       <SectionHeaderRow
-        // UX-2 pre-launch — header `+` retired. The QuickLogFAB on Now
-        // is the canonical quick-add entry; the duplicate header icon
-        // adds nothing and clutters the schedule chrome. Care Plan →
-        // action stays as the bucket-config drilldown.
-        title="Today's Schedule"
+        // Phase C (2026-06-13) — schedule header harmonized to caps-eyebrow
+        // form with gold accent (c.amber). Matches HealthZoneNow's caps
+        // form (label="TODAY'S HEALTH" in green) and ReflectionZoneNow's
+        // (REFLECTION in coral). The "Care Plan →" action stays as a
+        // live affordance to the Care Plan home screen.
+        title="TODAY'S SCHEDULE"
         action="Care Plan"
         onAction={() => navigate('/care-plan')}
         collapsed={timelineCollapsed}
@@ -250,10 +251,14 @@ const createStyles = (c: any) => StyleSheet.create({
     paddingBottom: 10,
   },
   sectionHeaderTitle: {
-    fontSize: 12,
-    fontWeight: '500',
-    letterSpacing: 0.5,
-    color: c.textTertiary,
+    // Phase C (2026-06-13) — caps eyebrow with gold accent. textTransform
+    // 'uppercase' is forward-guard against a future title prop that loses
+    // the pre-uppercased literal; both layers carry the caps form.
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: c.amber,
   },
   sectionHeaderAction: {
     fontSize: 11,

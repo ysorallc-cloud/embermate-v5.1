@@ -180,7 +180,10 @@ const createStyles = (c: typeof Colors) =>
       marginBottom: 14, // allow: zone-eyebrow rhythm matches Zone primitive
     },
     eyebrowLabel: {
-      color: c.textPrimary,
+      // Phase C (2026-06-13) — Reflection takes the coral accent on its
+      // caps eyebrow. Matches Schedule's gold (c.amber) and Health's
+      // green (c.accent) per-zone signal.
+      color: c.coral,
     },
     eyebrowVerb: {
       color: c.textTertiary,

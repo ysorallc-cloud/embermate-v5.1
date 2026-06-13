@@ -30,6 +30,13 @@ import {
 
 export type ZoneTintName = 'z1' | 'z2' | 'none';
 
+/** Phase C (2026-06-13) — per-zone caps-eyebrow accent. Each Now zone
+ *  signals its role through the label color: gold (Schedule), green
+ *  (Health), coral (Reflection). When omitted, the label falls back
+ *  to textPrimary (pre-Phase-C default, preserved for non-Now consumers
+ *  that haven't opted in). */
+export type ZoneAccentName = 'gold' | 'green' | 'coral';
+
 export interface ZoneProps {
   /** Single emoji or unicode glyph for the zone's leading icon. */
   icon: string;
@@ -40,15 +47,17 @@ export interface ZoneProps {
   verb: string;
   /** Zone background tint. */
   tint: ZoneTintName;
+  /** Per-zone label-color accent (Phase C). */
+  accent?: ZoneAccentName;
   /** Zone body — rows or cards. */
   children: React.ReactNode;
   /** Test affordance. */
   testID?: string;
 }
 
-export function Zone({ icon, label, verb, tint, children, testID }: ZoneProps) {
+export function Zone({ icon, label, verb, tint, accent, children, testID }: ZoneProps) {
   const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors, tint), [colors, tint]);
+  const styles = useMemo(() => createStyles(colors, tint, accent), [colors, tint, accent]);
 
   return (
     <View style={styles.zone} testID={testID}>
@@ -63,7 +72,17 @@ export function Zone({ icon, label, verb, tint, children, testID }: ZoneProps) {
   );
 }
 
-const createStyles = (c: typeof Colors, tint: ZoneTintName) =>
+// Phase C accent → label color map. Gold = c.amber, green = c.accent,
+// coral = c.coral. When accent is undefined, label falls back to
+// c.textPrimary (legacy behavior).
+function accentColor(c: typeof Colors, accent?: ZoneAccentName): string {
+  if (accent === 'gold') return c.amber;
+  if (accent === 'green') return c.accent;
+  if (accent === 'coral') return c.coral;
+  return c.textPrimary;
+}
+
+const createStyles = (c: typeof Colors, tint: ZoneTintName, accent?: ZoneAccentName) =>
   StyleSheet.create({
     zone: {
       backgroundColor: tint === 'none' ? 'transparent' : ZoneTint[tint],
@@ -78,7 +97,7 @@ const createStyles = (c: typeof Colors, tint: ZoneTintName) =>
       marginBottom: TITLE_CLEARANCE - CARD_PADDING_V, // allow: zone-eyebrow-to-body rhythm
     },
     eyebrowLabel: {
-      color: c.textPrimary,
+      color: accentColor(c, accent),
     },
     eyebrowVerb: {
       color: c.textTertiary,
