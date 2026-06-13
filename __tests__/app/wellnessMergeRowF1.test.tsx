@@ -165,6 +165,7 @@ jest.mock('../../hooks/useCarePlanConfig', () => {
   };
 });
 
+const mockUpdateSettings = jest.fn();
 jest.mock('../../hooks/useWellnessSettings', () => ({
   useWellnessSettings: () => ({
     settings: {
@@ -173,7 +174,7 @@ jest.mock('../../hooks/useWellnessSettings', () => ({
       afternoon: { enabled: true, time: '13:00', checks: [], reminderEnabled: false, optionalChecks: {} },
       vitals: { enabled: false, time: '08:30', types: [], reminderEnabled: false },
     },
-    updateSettings: jest.fn(),
+    updateSettings: mockUpdateSettings,
   }),
 }));
 
@@ -202,25 +203,9 @@ jest.mock('../../components/careplan/drawers/VitalsDrawer', () => {
     VitalsDrawer: () => React.createElement('Text', { testID: 'drawer-vitals-body' }, '[VitalsDrawer]'),
   };
 });
-// Merged-drawer composition assumption (see header): each active
-// window mounts a WellnessCheckInDrawer. The mock exposes a press
-// target per period that fires the EXISTING onToggleEnabled prop so
-// contract 6 can pin the per-window membership-write WIRING without
-// depending on the (deferred) F3 visual layout.
-jest.mock('../../components/careplan/drawers/WellnessCheckInDrawer', () => {
-  const React = require('react');
-  return {
-    WellnessCheckInDrawer: ({ period, onToggleEnabled }: any) =>
-      React.createElement(
-        'TouchableOpacity',
-        {
-          testID: `wellness-window-toggle-${period}`,
-          onPress: () => onToggleEnabled(false),
-        },
-        `[WellnessCheckInDrawer ${period}]`,
-      ),
-  };
-});
+// NOTE: the merged row's drawer (compact per-window rows) is F3,
+// built to a forthcoming mock — F2's drawer body is intentionally
+// empty, so no wellness-drawer component is mounted here.
 jest.mock('../../components/careplan/drawers/MedicationsDrawer', () => {
   const React = require('react');
   return {
@@ -283,11 +268,11 @@ describe('Wellness merge — F1 merged-row mount test (RED before F2/F3 collapse
     expect(within(row).getByText('Wellness Check-in')).toBeTruthy();
   });
 
-  it('contract 3 (SUBTITLE — BOTH WINDOWS): timesOfDay ["morning","evening"] formats to "Morning, Evening"', () => {
+  it('contract 3 (SUBTITLE — BOTH WINDOWS): timesOfDay ["morning","evening"] formats to "Morning & Evening" (ampersand, capitalized)', () => {
     setWellness({ enabled: true, timesOfDay: ['morning', 'evening'] });
     const { getByTestId } = render(<CarePlanHomeScreen />);
     const row = getByTestId('category-row-wellness');
-    expect(within(row).getByText('Morning, Evening')).toBeTruthy();
+    expect(within(row).getByText('Morning & Evening')).toBeTruthy();
   });
 
   it('contract 4 (SUBTITLE — MORNING ONLY): timesOfDay ["morning"] formats to "Morning"', () => {
@@ -304,6 +289,18 @@ describe('Wellness merge — F1 merged-row mount test (RED before F2/F3 collapse
     expect(within(row).getByText('Evening')).toBeTruthy();
   });
 
+  it('contract 5b (SUBTITLE — LEGACY 3 PERIODS, Decision 1): timesOfDay ["morning","midday","evening"] formats to "Morning, Afternoon & Evening" — legacy periods stay visible', () => {
+    // Decision 1: a pre-F5.3 user may carry 'midday' (or 'night') in
+    // timesOfDay. The merged subtitle must surface every period
+    // present (comma list + "&" before the last) so nothing active is
+    // invisible. 'midday' renders as "Afternoon" per the canon
+    // (carePlanUnifiedTimeModel34F1 contract 11 bans "Midday").
+    setWellness({ enabled: true, timesOfDay: ['morning', 'midday', 'evening'] });
+    const { getByTestId } = render(<CarePlanHomeScreen />);
+    const row = getByTestId('category-row-wellness');
+    expect(within(row).getByText('Morning, Afternoon & Evening')).toBeTruthy();
+  });
+
   it('contract 6 (OFF SHAPE): disabled wellness still renders one merged row, with no subtitle and no expanded drawer', () => {
     setWellness({ enabled: false, timesOfDay: [] });
     const { getByTestId, queryByText, queryByTestId } = render(<CarePlanHomeScreen />);
@@ -314,13 +311,32 @@ describe('Wellness merge — F1 merged-row mount test (RED before F2/F3 collapse
     expect(queryByTestId('drawer-wellness')).toBeNull();
   });
 
-  it('contract 7 (PER-WINDOW WRITE — MORNING OFF): expanding the merged row and toggling the morning window OFF writes wellness {timesOfDay:["evening"], enabled:true} with NO field churn', () => {
+  // ── Contract 7 — PER-WINDOW WRITE WIRING (F3) ──────────────────────────────
+  // Re-pinned for the compact-row drawer (Decision 2): the merged
+  // row's drawer is a single drawer with one compact row per active
+  // window — window name, time (tap to edit), reminder bell (tap to
+  // toggle), enable toggle. The three write wirings the drawer must
+  // satisfy, asserted at the data layer (NOT against which component
+  // mounts):
+  //    • enable toggle  → wellness.timesOfDay membership (updateBucket)
+  //    • time edit      → wellnessSettings.{period}.time (updateSettings)
+  //    • reminder bell  → wellnessSettings.{period}.reminderEnabled (updateSettings)
+  // Decision 1: a row renders for EVERY period in timesOfDay (legacy
+  // included), not just morning/evening.
+  //
+  // SKIPPED until F3 builds the drawer to the forthcoming mock. The
+  // mock dictates the control handles, so this contract is expected to
+  // cascade then (testIDs below are provisional). The enable→membership
+  // write itself is decision-locked and already proven at the storage
+  // layer by wellnessSplitRoundTripF5_3 rt-3.
+  it.skip('contract 7 (F3 — PER-WINDOW ENABLE WRITE): toggling the morning window OFF in the drawer writes wellness {timesOfDay:["evening"], enabled:true} with NO field churn', () => {
     setWellness({ enabled: true, timesOfDay: ['morning', 'evening'] });
     const { getByTestId } = render(<CarePlanHomeScreen />);
 
-    // Expand the single merged row, then flip the morning window OFF.
+    // Expand the single merged row, then flip the morning window OFF
+    // via its compact-row enable control (handle provisional — F3).
     fireEvent.press(getByTestId('category-row-wellness'));
-    fireEvent.press(getByTestId('wellness-window-toggle-morning'));
+    fireEvent.press(getByTestId('wellness-window-morning-enable'));
 
     expect(mockUpdateBucket).toHaveBeenCalledWith('wellness', {
       timesOfDay: ['evening'],
@@ -329,5 +345,7 @@ describe('Wellness merge — F1 merged-row mount test (RED before F2/F3 collapse
     // No-field-churn guard: the write touches ONLY timesOfDay + enabled.
     const [, updates] = mockUpdateBucket.mock.calls[0];
     expect(Object.keys(updates).sort()).toEqual(['enabled', 'timesOfDay']);
+    // Enable wiring must not bleed into the per-period settings store.
+    expect(mockUpdateSettings).not.toHaveBeenCalled();
   });
 });
