@@ -245,13 +245,17 @@ describe('CarePlanHomeScreen — render smoke test (F5.3.1 — closes the F5.3 w
     expect(getByTestId('section-zone-daily-tracking')).toBeTruthy();
   });
 
-  it('contract 3 (WELLNESS SPLIT — TWO PSEUDO-KEY ROWS): both wellness-morning and wellness-evening rows render in the daily-tracking zone', () => {
-    // Q-34.F5.A Option C lock: the combined wellness row is replaced
-    // by two sibling pseudo-key rows. Forward-guard against a future
-    // refactor that accidentally collapses them back.
-    const { getByTestId } = render(<CarePlanHomeScreen />);
-    expect(getByTestId('category-row-wellness-morning')).toBeTruthy();
-    expect(getByTestId('category-row-wellness-evening')).toBeTruthy();
+  it('contract 3 (WELLNESS MERGE — ONE WELLNESS CHECK-IN ROW): the merged wellness row renders in the daily-tracking zone, with no pseudo-key siblings', () => {
+    // Wellness-merge supersession of Q-34.F5.A Option C — the F5.3
+    // pseudo-key split (wellness-morning / wellness-evening) was
+    // collapsed back to a single bucket-level 'wellness' row at
+    // 8f27238d. Storage shape is unchanged; the per-window enable +
+    // time + reminder editing moves into the row's drawer. Forward-
+    // guard against a future refactor reintroducing the pseudo-keys.
+    const { getByTestId, queryByTestId } = render(<CarePlanHomeScreen />);
+    expect(getByTestId('category-row-wellness')).toBeTruthy();
+    expect(queryByTestId('category-row-wellness-morning')).toBeNull();
+    expect(queryByTestId('category-row-wellness-evening')).toBeNull();
   });
 
   it('contract 4 (REAL BUCKET ROWS PRESERVED): vitals + meals rows still render alongside the wellness split', () => {
