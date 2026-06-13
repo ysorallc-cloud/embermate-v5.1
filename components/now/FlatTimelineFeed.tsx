@@ -91,6 +91,24 @@ function rowStatusOf(item: any): RowStatus {
   return 'pending';
 }
 
+// F7 fix (2026-06-13) — wellness rows display per-window names per the
+// C6c-A rename. The underlying CarePlanItem.name is the generic
+// 'Wellness check'; the per-instance display name is derived at render
+// time from windowLabel so the timeline reads as
+// "Morning Wellness Check-in" / "Evening Wellness Check-in" without
+// requiring a storage migration. Other itemTypes fall through to the
+// existing instance.itemName.
+function displayNameFor(item: any): string {
+  if (item.itemType === 'wellness') {
+    const window = String(item.windowLabel ?? '').toLowerCase();
+    if (window === 'morning') return 'Morning Wellness Check-in';
+    if (window === 'evening') return 'Evening Wellness Check-in';
+    if (window === 'afternoon') return 'Afternoon Wellness Check-in';
+    if (window === 'night') return 'Night Wellness Check-in';
+  }
+  return item.itemName ?? '';
+}
+
 interface FlatItem {
   item: any;
   status: RowStatus;
@@ -253,7 +271,7 @@ export function FlatTimelineFeed({ allPending, completed, onItemPress }: FlatTim
                   <Text style={styles.spineMarkerCheck}>{'✓'}</Text>
                 </View>
                 <View style={styles.itemBody}>
-                  <Text style={styles.itemTitle} numberOfLines={1}>{flat.item.itemName}</Text>
+                  <Text style={styles.itemTitle} numberOfLines={1}>{displayNameFor(flat.item)}</Text>
                 </View>
                 <View style={styles.checkboxDone}>
                   <Text style={styles.checkboxDoneCheck}>{'✓'}</Text>
@@ -270,7 +288,7 @@ export function FlatTimelineFeed({ allPending, completed, onItemPress }: FlatTim
                 onPress={() => onItemPress(flat.item)}
                 activeOpacity={0.75}
                 accessibilityRole="button"
-                accessibilityLabel={`${flat.item.itemName}, overdue at ${flat.timeShort}. Tap to log.`}
+                accessibilityLabel={`${displayNameFor(flat.item)}, overdue at ${flat.timeShort}. Tap to log.`}
                 testID={`flat-row-${flat.item.id}`}
               >
                 <View style={styles.leftRail}>
@@ -279,7 +297,7 @@ export function FlatTimelineFeed({ allPending, completed, onItemPress }: FlatTim
                 <View style={styles.spineMarkerOverdue} />
                 <View style={styles.itemBody}>
                   <Text style={styles.overdueEyebrow}>{`OVERDUE · ${flat.timeShort}`}</Text>
-                  <Text style={styles.itemTitleOverdue} numberOfLines={1}>{flat.item.itemName}</Text>
+                  <Text style={styles.itemTitleOverdue} numberOfLines={1}>{displayNameFor(flat.item)}</Text>
                 </View>
                 <View style={styles.checkboxOverdue} />
               </TouchableOpacity>
@@ -294,7 +312,7 @@ export function FlatTimelineFeed({ allPending, completed, onItemPress }: FlatTim
               onPress={() => onItemPress(flat.item)}
               activeOpacity={0.75}
               accessibilityRole="button"
-              accessibilityLabel={`${flat.item.itemName}, scheduled ${flat.timeShort}. Tap to log.`}
+              accessibilityLabel={`${displayNameFor(flat.item)}, scheduled ${flat.timeShort}. Tap to log.`}
               testID={`flat-row-${flat.item.id}`}
             >
               <View style={styles.leftRail}>
@@ -302,7 +320,7 @@ export function FlatTimelineFeed({ allPending, completed, onItemPress }: FlatTim
               </View>
               <View style={styles.spineMarkerPending} />
               <View style={styles.itemBody}>
-                <Text style={styles.itemTitlePending} numberOfLines={1}>{flat.item.itemName}</Text>
+                <Text style={styles.itemTitlePending} numberOfLines={1}>{displayNameFor(flat.item)}</Text>
               </View>
               <View style={styles.checkboxPending} />
             </TouchableOpacity>

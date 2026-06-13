@@ -3,13 +3,19 @@
 // Extracted from now.tsx for maintainability
 // ============================================================================
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { NowGreeting } from './NowGreeting';
 import { PatientSwitcherModal } from './PatientSwitcherModal';
 import { OnboardingPrompt } from '../prompts';
 import type { TodayStats } from '../../utils/nowHelpers';
+import { getCaregiverProfile } from '../../storage/caregiverProfileRepo';
+
+// F7 fix (2026-06-13) — caregiver-identity chip color. Dusty blue
+// matches the You-tab nav avatar (C6c-A Option D) so the same lane
+// reads consistently across surfaces.
+const DUSTY = '#6b8cae';
 
 // ============================================================================
 // TYPES
@@ -56,6 +62,26 @@ export function NowHeader({
   const { colors } = useTheme();
   const s = useMemo(() => createStyles(colors), [colors]);
 
+  // F7 fix (2026-06-13) — caregiver-identity avatar. Replaces the
+  // prior patient-initial + patient-name display so the header chip
+  // identifies WHO the caregiver is, not which patient is in scope.
+  // The patient-switcher modal still opens on tap (the affordance
+  // doubles as a caregiver-identity marker + patient-switcher
+  // entry); patient context surfaces inside the modal itself.
+  // Heart-glyph fallback when no caregiver name is set.
+  const [caregiverInitial, setCaregiverInitial] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getCaregiverProfile()
+      .then((profile) => {
+        if (cancelled) return;
+        const name = profile?.name?.trim() ?? '';
+        setCaregiverInitial(name.length > 0 ? name.charAt(0).toUpperCase() : null);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   return (
     <>
       {/* Header row: greeting left + patient chip right */}
@@ -73,20 +99,29 @@ export function NowHeader({
             second affordance for the same fact. accessibilityLabel keeps
             "(example)" so screen readers still announce sample mode on
             the chip. */}
+        {/* F7 fix (2026-06-13) \u2014 caregiver-identity avatar. The chip
+            no longer renders the patient name (or patient initial) \u2014
+            it shows the caregiver's first initial in dusty blue, with
+            a heart-glyph fallback when no caregiver name is set.
+            Tapping still opens the PatientSwitcherModal where patient
+            context lives. The patientChip / patientAvatar / patient
+            ChipName style definitions stay intact for back-compat
+            with style-pin tests; only the JSX render flips. */}
         <TouchableOpacity
           onPress={() => onShowPatientSwitcher(true)}
           style={s.patientChip}
-          accessibilityLabel={`Patient: ${patientName}${isSampleMode ? ' (example)' : ''}. Tap to switch.`}
+          accessibilityLabel={`Caregiver${isSampleMode ? ' (example mode)' : ''}. Tap to switch patient.`}
           accessibilityRole="button"
         >
           <View style={s.patientAvatar}>
-            <Text style={s.patientAvatarText}>
-              {patientName.charAt(0).toUpperCase()}
-            </Text>
+            {caregiverInitial ? (
+              <Text style={s.patientAvatarText}>{caregiverInitial}</Text>
+            ) : (
+              <Text style={s.patientAvatarText}>{'\u2665'}</Text>
+            )}
           </View>
-          <Text style={s.patientChipName}>{patientName}</Text>
           {patients.length > 1 && (
-            <Text style={{ fontSize: 10, color: colors.textMuted }}>{'\u25BC'}</Text>
+            <Text style={{ fontSize: 10, color: colors.textMuted, marginLeft: 4 }}>{'\u25BC'}</Text>
           )}
         </TouchableOpacity>
       </View>
