@@ -71,6 +71,7 @@
           "sounds": []
         }
       ],
+      "./plugins/withNoApsEntitlement",
       [
         "expo-image-picker",
         {
