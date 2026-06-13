@@ -8,7 +8,7 @@
     "scheme": "embermate",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "description": "Secure personal health companion for medication management, appointment tracking, and family care coordination. All your health data stays private on your device.",
+    "description": "Private, on-device companion for medication reminders, vitals and wellness tracking, appointment prep, and caregiver handoff notes. Your health data stays on your device.",
     "primaryColor": "#4A6B5D",
     "backgroundColor": "#111318",
     "splash": {
@@ -145,7 +145,7 @@
       "features": [
         "medication-tracking",
         "appointment-management",
-        "family-care-coordination",
+        "caregiver-handoff-notes",
         "biometric-security",
         "encrypted-storage",
         "local-only-data",
