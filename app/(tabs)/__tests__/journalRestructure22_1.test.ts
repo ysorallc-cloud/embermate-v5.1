@@ -145,11 +145,15 @@ describe('Phase 22.1 — Journal restructured as handoff document', () => {
       expect(notesCode).not.toMatch(/['"]TODAY['’]S NOTES['"]/);
     });
 
-    it('contract 9: legacy "Anything to pass along?" prompt is gone', () => {
-      // Reframed to "Anything to pass to the next caregiver, or to
-      // flag for {provider}?" (provider name resolves via
-      // appointmentLookahead.ts; falls back to "for the next visit").
-      expect(notesCode).not.toMatch(/Anything to pass along\?/);
+    it('contract 9 [device-walk fix 2026-06-13]: "Anything to pass along?" is the placeholder copy (Phase 22.1 retire was reversed)', () => {
+      // Phase 22.1 retired the short "Anything to pass along?" copy in
+      // favor of the verbose "Anything to pass to the next caregiver,
+      // or to flag at the next appointment?" prompt. The 2026-06-13
+      // device walk reversed that decision: the long prompt read as
+      // a verbose form header, and the short F7 handoff voice fits
+      // the dusty card chrome better. Pin restored as a presence
+      // assertion.
+      expect(notesCode).toMatch(/Anything to pass along\?/);
     });
 
     it('contract 10: caregiverName is threaded to the notes card', () => {

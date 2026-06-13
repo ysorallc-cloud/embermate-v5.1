@@ -204,18 +204,16 @@ describe('F7 reshape — Journal structural contract (was Phase 27 F8 SOAP redes
     expect(journalStripped).toMatch(/<MealsNarrative[\s\S]{0,200}loggedOnly/);
   });
 
-  it('invariant 4 [F7]: Section 4 STILL PENDING sub-block still renders inside the dusty card (pending content surfaces here, not in Section 2)', () => {
-    // F7: Section 4's SoapSectionFrame retired; the dusty card now
-    // owns the chrome. STILL PENDING + TodayStillPending mount must
-    // stay — the dedup direction is unchanged.
+  it('invariant 4 [device-walk fix 2026-06-13]: Section 4 dusty card retires STILL PENDING + TodayStillPending', () => {
+    // Pre-fix Section 4 carried a STILL PENDING sub-eyebrow + the
+    // TodayStillPending list. The 2026-06-13 device walk retired
+    // both — Section 4 is the caregiver's free-text handoff note
+    // ("Anything to pass along?"), not a task tracker.
     const s4Open = journalStripped.indexOf('s.section4DustyCard');
     expect(s4Open).toBeGreaterThan(-1);
-    // Scan forward to the closing </View> of the dusty card. Section
-    // 4 is the last main block in the SOAP IIFE so a generous window
-    // catches its full body.
     const s4Body = journalStripped.slice(s4Open, s4Open + 4000);
-    expect(s4Body).toMatch(/<TodayStillPending\b/);
-    expect(s4Body).toMatch(/STILL PENDING/);
+    expect(s4Body).not.toMatch(/<TodayStillPending\b/);
+    expect(s4Body).not.toMatch(/STILL PENDING/);
   });
 
   // --------------------------------------------------------------------------

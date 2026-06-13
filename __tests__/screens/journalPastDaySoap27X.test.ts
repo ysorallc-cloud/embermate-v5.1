@@ -102,16 +102,17 @@ describe('Phase 27.X — past-day SOAP layout', () => {
     expect(around).toMatch(/!isViewingPast\b|isViewingToday\b/);
   });
 
-  it('contract 4 [F7]: Section 4 STILL PENDING sub-block (inside dusty card) is gated to !isViewingPast', () => {
+  it('contract 4 [device-walk fix 2026-06-13]: Section 4 STILL PENDING sub-block + TodayStillPending retired entirely', () => {
+    // Pre-fix the !isViewingPast gate hid STILL PENDING on past days
+    // while showing it on today. The 2026-06-13 device walk retired
+    // the sub-block + the list on BOTH today and past — Section 4
+    // is the caregiver's free-text handoff note, not a task tracker.
+    // The gate question becomes moot: STILL PENDING simply doesn't
+    // render anywhere in Section 4.
     const section4 = findSection4Body();
     expect(section4).toBeTruthy();
-    const stillPendingIdx = section4!.body.indexOf('STILL PENDING');
-    expect(stillPendingIdx).toBeGreaterThan(-1);
-    const before = section4!.body.slice(
-      Math.max(0, stillPendingIdx - 400),
-      stillPendingIdx,
-    );
-    expect(before).toMatch(/!isViewingPast\b|isViewingToday\b/);
+    expect(section4!.body).not.toMatch(/STILL PENDING/);
+    expect(section4!.body).not.toMatch(/<TodayStillPending\b/);
   });
 
   it('contract 5 [F7]: Section 4 eyebrow conditionally surfaces "Notes from that day" on past days (inside dusty card)', () => {

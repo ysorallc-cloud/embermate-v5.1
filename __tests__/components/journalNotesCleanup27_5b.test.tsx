@@ -149,22 +149,19 @@ const baseProps = {
 };
 
 describe('Phase 27.5b F5 — JournalNotesCard notes cleanup', () => {
-  it('contract 1: non-readOnly placeholder is the Q-31 prompt copy (Phase 31 F2 — reframed from the pre-F2 "A note for the next caregiver" interpolated copy)', () => {
+  it('contract 1 [device-walk fix 2026-06-13]: bare-mode placeholder is "Anything to pass along?" (Q-31 verbose prompt reframed)', () => {
     // Phase 27.5b F5 originally pinned the bare-mode placeholder as
-    // a provider-interpolated observational statement ("A note for
-    // the next caregiver or ${provider}…"). Phase 31 F2 (2026-05-21)
-    // collapsed Notes + handoff tone into one consolidated input
-    // and locked the prompt to a single Q-31 string with no
-    // interpolation — "Anything to pass to the next caregiver, or
-    // to flag at the next appointment?" The structural intent of
-    // contract 1 is preserved (placeholder is a meaningful statement,
-    // not empty / not ellipsis-only); the literal pin updates to the
-    // Q-31 lock.
+    // a provider-interpolated observational statement. Phase 31 F2
+    // locked it to the verbose Q-31 prompt. The 2026-06-13 device
+    // walk reframed THAT to the concise F7 handoff voice — the
+    // verbose prompt read as a form header, not a single open
+    // question. The structural intent of contract 1 is preserved
+    // (placeholder is a meaningful statement, not empty / not
+    // ellipsis-only); the literal pin updates to the F7 handoff
+    // copy.
     const tree = render({ ...baseProps, bare: true });
     const ti = tree.root.findByType('TextInput' as any);
-    expect(ti.props.placeholder).toBe(
-      'Anything to pass to the next caregiver, or to flag at the next appointment?',
-    );
+    expect(ti.props.placeholder).toBe('Anything to pass along?');
     expect(ti.props.placeholder).not.toBe('');
     expect(ti.props.placeholder).not.toMatch(/^…$/);
   });
@@ -268,7 +265,11 @@ describe('Phase 27.5b F5 — Section 4 inner sub-eyebrows', () => {
     expect(stripped).not.toMatch(/section4SubEyebrowNotes/);
   });
 
-  it('contract 8 corollary: Section 4 body still renders the STILL PENDING sub-eyebrow', () => {
-    expect(stripped).toMatch(/>\s*STILL PENDING\s*</);
+  it('contract 8 corollary [device-walk fix 2026-06-13]: Section 4 STILL PENDING sub-eyebrow is RETIRED alongside the TodayStillPending list', () => {
+    // The 2026-06-13 device walk retired both STILL PENDING + the
+    // TodayStillPending list from Section 4 — the section is the
+    // caregiver's free-text handoff note, not a task tracker. The
+    // sub-eyebrow Text element must NOT render.
+    expect(stripped).not.toMatch(/>\s*STILL PENDING\s*</);
   });
 });

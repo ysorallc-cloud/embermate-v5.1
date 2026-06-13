@@ -177,8 +177,12 @@ export function JournalNotesCard({
   // retires — "appointment" is generic enough to read sensibly with
   // or without a known upcoming visit, which aligns with the Section
   // 4 lavender lane's caregiver-to-clinician handoff voice.
-  const barePlaceholder =
-    'Anything to pass to the next caregiver, or to flag at the next appointment?';
+  // Device-walk fix (2026-06-13) — placeholder shortened to the F7
+  // handoff copy. The pre-F7 prompt ("Anything to pass to the next
+  // caregiver, or to flag at the next appointment?") tried to do two
+  // jobs (handoff + appointment-flag) and read as a verbose form
+  // header; the shorter version reads as a single open prompt.
+  const barePlaceholder = 'Anything to pass along?';
 
   // Phase 27 F6 / 27.5b F5 — bare mode for Section 4 (Plan) nesting.
   // Section 4 owns the lavender card chrome. In bare mode this

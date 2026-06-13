@@ -79,11 +79,15 @@ describe('Section 4 (Plan) wired into journal.tsx — F7 reshape', () => {
     expect(STRIPPED).toContain('Notes from that day');
   });
 
-  it('contract 3 [F7]: Section 4 body contains <TodayStillPending bare ... and <JournalNotesCard bare ...', () => {
+  it('contract 3 [device-walk fix 2026-06-13]: Section 4 body contains <JournalNotesCard bare ... and NOT <TodayStillPending', () => {
+    // Device-walk fix retired the pending-task list from Section 4
+    // (the section is the caregiver's free-text handoff note, not a
+    // task tracker). The JournalNotesCard free-text input stays;
+    // TodayStillPending is gone from this surface.
     const section4 = findSection4Body();
     expect(section4).toBeTruthy();
-    expect(section4!.body).toMatch(/<TodayStillPending[^>]*\bbare\b/);
     expect(section4!.body).toMatch(/<JournalNotesCard[^>]*\bbare\b/);
+    expect(section4!.body).not.toMatch(/<TodayStillPending\b/);
   });
 
   it('contract 4 [F7]: JournalNotesCard inside the dusty card is passed the focus-ref', () => {
@@ -94,10 +98,22 @@ describe('Section 4 (Plan) wired into journal.tsx — F7 reshape', () => {
     expect(notesTagMatch![0]).toMatch(/\b(?:inputRef|ref)=\{(?:notesCardRef|notesRef|notesInputRef)\}/);
   });
 
-  it('contract 5 [F7]: Section 4 references a "Still pending" sub-eyebrow string', () => {
+  it('contract 5 [device-walk fix 2026-06-13]: Section 4 dusty-card JSX does NOT render a STILL PENDING sub-eyebrow Text element', () => {
+    // Pre-fix Section 4 carried a STILL PENDING sub-eyebrow + the
+    // TodayStillPending list. The 2026-06-13 device walk retired
+    // both — Section 4 is the caregiver's free-text handoff note,
+    // not a task tracker. The Text node carrying the STILL PENDING
+    // label must NOT render. (We intentionally pin the JSX shape
+    // here, not the bare lowercase "still pending" string — the
+    // surrounding gestalt-narrative builder code legitimately
+    // reuses the phrase in its own pending-medication / pending-
+    // wellness summary lines.)
     const section4 = findSection4Body();
     expect(section4).toBeTruthy();
-    expect(section4!.body.toLowerCase()).toContain('still pending');
+    expect(section4!.body).not.toMatch(/>\s*STILL PENDING\s*</);
+    // Defense-in-depth: section4SubEyebrow style ref also retires
+    // (the STILL PENDING Text was the sole consumer).
+    expect(section4!.body).not.toMatch(/section4SubEyebrow\b/);
   });
 
   it('contract 6 (retired Phase 27.5b F5): Section 4 does NOT render an inner "NOTES" sub-eyebrow', () => {

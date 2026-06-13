@@ -1140,21 +1140,17 @@ export default function JournalTab() {
                   state copy at this layer. Always rendering the
                   SoapSectionFrame on past days surfaces ANY content
                   that exists in either store. */}
+              {/* Device-walk fix (2026-06-13) — the pre-fix pending-task
+                  sub-eyebrow + the pending-list mount both retired from
+                  Section 4. The section is the caregiver's free-text
+                  handoff note ("Anything to pass along?"), not a task
+                  tracker; scheduled-item state belongs in the timeline
+                  + Care Plan, not duplicated here. */}
               <View style={{ height: SECTION_GAP }} />
               <View style={s.section4DustyCard}>
                 <Text style={s.section4DustyEyebrow}>
                   {(isViewingPast ? 'Notes from that day' : 'For the next caregiver').toUpperCase()}
                 </Text>
-                {!isViewingPast && stillPendingCount > 0 && (
-                  <Text style={s.section4SubEyebrow}>STILL PENDING</Text>
-                )}
-                {!isViewingPast && (
-                  <TodayStillPending
-                    dateKey={selectedDate}
-                    bare
-                    onLoaded={setStillPendingCount}
-                  />
-                )}
                 {/* Phase 35 Slice 3-A — OBSERVATIONS FROM LOGGING sub-section.
                     Reads LogEntry rows for the selected date, filters to those
                     with non-empty notes, renders chronologically. Hidden when

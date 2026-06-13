@@ -48,8 +48,11 @@ function strip(src: string): string {
 const journalStripped = strip(journalSrc);
 const notesCardStripped = strip(notesCardSrc);
 
-const Q31_PROMPT =
-  'Anything to pass to the next caregiver, or to flag at the next appointment?';
+// Device-walk fix (2026-06-13) — placeholder shortened to the F7
+// handoff copy. The Q-31 lock's verbose prompt was reframed to the
+// concise "Anything to pass along?" question after the device walk
+// surfaced that the longer copy read as a verbose form header.
+const HANDOFF_PROMPT = 'Anything to pass along?';
 
 describe('Phase 31 F2 — Section 4 consolidated notes wire-up + Q-31 prompt', () => {
   // --------------------------------------------------------------------------
@@ -107,8 +110,8 @@ describe('Phase 31 F2 — Section 4 consolidated notes wire-up + Q-31 prompt', (
   // Prompt copy — Q-31 lock
   // --------------------------------------------------------------------------
 
-  it('contract 7: JournalNotesCard bare-mode placeholder is the verbatim Q-31 prompt copy', () => {
-    expect(notesCardStripped).toContain(Q31_PROMPT);
+  it('contract 7 [device-walk fix 2026-06-13]: JournalNotesCard bare-mode placeholder is "Anything to pass along?"', () => {
+    expect(notesCardStripped).toContain(HANDOFF_PROMPT);
   });
 
   it('contract 8: the pre-F2 "A note for the next caregiver" copy retires (absence pin)', () => {
@@ -119,18 +122,15 @@ describe('Phase 31 F2 — Section 4 consolidated notes wire-up + Q-31 prompt', (
     expect(notesCardStripped).not.toMatch(/A note for the next caregiver/);
   });
 
-  it('contract 9: no persistent prompt above the bare-mode input (Q-31 Q4 lock — placeholder only)', () => {
+  it('contract 9 [device-walk fix 2026-06-13]: no persistent prompt above the bare-mode input (placeholder only)', () => {
     // The redesigned Section 4 carries the prompt inside the input
     // as the placeholder; no separate persistent label above. The
     // bare-mode branch in JournalNotesCard renders a single
-    // <TextInput> with the Q-31 placeholder — no preceding <Text>
-    // node carrying the same prompt copy.
-    //
-    // Source pin: the Q-31 prompt string appears EXACTLY ONCE in the
-    // component source (only as the placeholder value). If a future
-    // contributor adds an above-input <Text>{barePlaceholder}</Text>,
-    // the string would appear twice and this assertion would fail.
-    const occurrences = notesCardStripped.split(Q31_PROMPT).length - 1;
+    // <TextInput> with the handoff placeholder — no preceding <Text>
+    // node carrying the same prompt copy. The handoff prompt string
+    // must appear EXACTLY ONCE in the component source (only as the
+    // placeholder value).
+    const occurrences = notesCardStripped.split(HANDOFF_PROMPT).length - 1;
     expect(occurrences).toBe(1);
   });
 });
