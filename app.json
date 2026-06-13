@@ -125,15 +125,15 @@
       "router": {
         "origin": false
       },
-      "privacyPolicyUrl": "https://ysorallc.org/privacy",
-      "termsOfServiceUrl": "https://ysorallc.org/terms",
-      "supportUrl": "https://ysorallc.org/support",
-      "helpUrl": "https://ysorallc.org/support",
+      "privacyPolicyUrl": "https://embermate.app/privacy",
+      "termsOfServiceUrl": "https://embermate.app/terms",
+      "supportUrl": "https://embermate.app/support",
+      "helpUrl": "https://embermate.app/support",
       "legalUrls": {
-        "privacy": "https://ysorallc.org/privacy",
-        "terms": "https://ysorallc.org/terms",
-        "dataRequest": "https://ysorallc.org/data-request",
-        "dataDeletion": "https://ysorallc.org/data-deletion"
+        "privacy": "https://embermate.app/privacy",
+        "terms": "https://embermate.app/terms",
+        "dataRequest": "https://embermate.app/data-request",
+        "dataDeletion": "https://embermate.app/data-deletion"
       },
       "security": {
         "encryption": "AES-256",

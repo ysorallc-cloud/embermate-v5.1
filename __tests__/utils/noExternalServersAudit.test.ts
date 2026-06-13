@@ -46,8 +46,17 @@ const APPROVED_API_HOSTS = ['u.expo.dev', 'expo.dev', 'apple.com', 'anthropic.co
 
 // Hosts we hand to Linking.openURL or store as legal-URL metadata in
 // app.json. These are user-initiated browser opens, not app-initiated
-// network requests, so they don't conflict with the noExternalServers claim.
+// network requests, so they don't conflict with the noExternalServers
+// claim.
+//
+// 2026-06-13 — embermate.app is the canonical legal-URL host;
+// ysorallc.org retired. The legacy host stays on the allowlist as
+// defense-in-depth so any future doc / FAQ / migrated bookmark that
+// still references it doesn't trip the audit, but no production
+// source or app.json field points there anymore (see
+// legalUrlsEmbermate.test.ts for the absence pin).
 const USER_BROWSER_OPEN_HOSTS = [
+  'embermate.app',
   'ysorallc.org',
   'caregiveraction.org',
   'play.google.com',

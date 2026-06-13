@@ -137,9 +137,16 @@ export const PrivacyDisclaimerScreen: React.FC<Props> = ({
               I understand and accept the{' '}
               <Text
                 style={styles.link}
-                onPress={() => Linking.openURL('https://ysorallc.org/terms')}
+                onPress={() => Linking.openURL('https://embermate.app/terms')}
               >
                 terms of use
+              </Text>
+              {' and '}
+              <Text
+                style={styles.link}
+                onPress={() => Linking.openURL('https://embermate.app/privacy')}
+              >
+                privacy policy
               </Text>
             </Text>
           </TouchableOpacity>
