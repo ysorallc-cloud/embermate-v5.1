@@ -19,6 +19,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { getEventsByDateRange } from '../storage/eventRepo';
 import { logError } from '../utils/devLog';
 import { Colors, Fonts } from '../theme/theme-tokens';
+import { SECTION_GAP } from '../theme/spacing';
+import { GuidanceTiles } from '../components/wellness/GuidanceTiles';
 import type { CareEvent } from '../types/event';
 import { composeWellnessOpening, type MoodLevel } from '../utils/text/composers/wellnessOpening';
 import { composeWeekRecap, type WeekRecapDay } from '../utils/text/composers/weekRecap';
@@ -383,6 +385,13 @@ export default function CaregiverWellnessScreen() {
               </View>
             </LinearGradient>
           )}
+
+          {/* F7 C6b — Guidance tiles. Four accordion tiles below the
+              gentle nudge card. Always render regardless of data state
+              (empty-state surface gets them too) so guidance is
+              available from day one. */}
+          <View style={{ height: SECTION_GAP }} />
+          <GuidanceTiles />
 
           {/* Bottom padding */}
           <View style={{ height: 40 }} />

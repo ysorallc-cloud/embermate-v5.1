@@ -1,5 +1,13 @@
 // ============================================================================
-// composeWeekRecap — bottom-of-timeline single-sentence recap.
+// composeWeekRecap — F7 C6b 3-bucket contract.
+//
+// F7 (2026-06-12) collapsed the pre-F7 7-branch recap library (weekend
+// pattern, tough run, single bright spot, balanced mix, etc.) into 3
+// warm outcomes:
+//   All positive   → "A good week."
+//   Mostly low     → "A hard week. That's allowed."
+//   Mixed          → "A rougher [day/stretch]. You still showed up."
+// Empty-days fallback is preserved.
 // ============================================================================
 
 import { composeWeekRecap, type WeekRecapDay } from '../../../../utils/text/composers/weekRecap';
@@ -7,12 +15,12 @@ import { composeWeekRecap, type WeekRecapDay } from '../../../../utils/text/comp
 const day = (date: string, weekday: number, mood?: number): WeekRecapDay =>
   ({ date, weekday, mood: mood as any });
 
-describe('composeWeekRecap', () => {
+describe('composeWeekRecap — F7 C6b 3-bucket voice', () => {
   it('returns "" for an empty input', () => {
     expect(composeWeekRecap([])).toBe('');
   });
 
-  it('all empty days → empathic acknowledgement', () => {
+  it('all empty days → empathic acknowledgement (preserved from pre-F7)', () => {
     const days = [
       day('2026-04-23', 4),
       day('2026-04-24', 5),
@@ -26,68 +34,44 @@ describe('composeWeekRecap', () => {
     );
   });
 
-  it('single bright spot (good day, rest empty) → names the day', () => {
+  it('all positive (every filled day is good or okay) → "A good week."', () => {
     const days = [
-      day('2026-04-23', 4),
-      day('2026-04-24', 5, 5),
-      day('2026-04-25', 6),
-      day('2026-04-26', 0),
-    ];
-    expect(composeWeekRecap(days)).toBe('Friday felt good.');
-  });
-
-  it('single tough spot → adds "not lost" framing', () => {
-    const days = [
-      day('2026-04-22', 3),
-      day('2026-04-23', 4, 2),
-      day('2026-04-24', 5),
-    ];
-    expect(composeWeekRecap(days)).toBe(
-      'Thursday felt tough. The other days are unmarked, not unimportant.',
-    );
-  });
-
-  it('tough run (3+ in a row) → calm "noted" framing', () => {
-    const days = [
-      day('2026-04-22', 3, 2),
-      day('2026-04-23', 4, 1),
-      day('2026-04-24', 5, 2),
-      day('2026-04-25', 6, 4),
-    ];
-    expect(composeWeekRecap(days)).toBe(
-      'A few tough days in a row. They’re not lost — they’re noted.',
-    );
-  });
-
-  it('weekend brighter than weekdays → "Weekend felt lighter than the week."', () => {
-    const days = [
-      day('2026-04-20', 1, 3),
-      day('2026-04-21', 2, 3),
-      day('2026-04-22', 3, 2),
-      day('2026-04-23', 4, 3),
+      day('2026-04-23', 4, 5),
+      day('2026-04-24', 5, 4),
       day('2026-04-25', 6, 5),
-      day('2026-04-26', 0, 4),
     ];
-    expect(composeWeekRecap(days)).toBe('Weekend felt lighter than the week.');
+    expect(composeWeekRecap(days)).toBe('A good week.');
   });
 
-  it('mostly heavy mix → "More heavy than light this stretch."', () => {
+  it('mostly low (toughCount ≥ half) → "A hard week. That\'s allowed."', () => {
     const days = [
       day('2026-04-20', 1, 2),
       day('2026-04-21', 2, 3),
       day('2026-04-22', 3, 2),
       day('2026-04-23', 4, 4),
     ];
-    expect(composeWeekRecap(days)).toBe('More heavy than light this stretch.');
+    expect(composeWeekRecap(days)).toBe("A hard week. That’s allowed.");
   });
 
-  it('balanced mix → "A mix — some lighter days, some harder."', () => {
+  it('mixed multi-day → "A rougher stretch. You still showed up."', () => {
     const days = [
-      day('2026-04-22', 3, 2),
+      day('2026-04-22', 3, 3),
       day('2026-04-23', 4, 5),
       day('2026-04-24', 5, 4),
     ];
-    expect(composeWeekRecap(days)).toBe('A mix — some lighter days, some harder.');
+    expect(composeWeekRecap(days)).toBe('A rougher stretch. You still showed up.');
+  });
+
+  it('mixed single-day → "A rougher day. You still showed up."', () => {
+    // Single filled day that doesn't qualify as positive (getting-by,
+    // mood 3) falls into the mixed bucket with "day" instead of
+    // "stretch".
+    const days = [
+      day('2026-04-22', 3, 3),
+      day('2026-04-23', 4),
+      day('2026-04-24', 5),
+    ];
+    expect(composeWeekRecap(days)).toBe('A rougher day. You still showed up.');
   });
 
   it('does not contain coach or failure vocabulary', () => {

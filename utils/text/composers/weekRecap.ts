@@ -2,8 +2,21 @@
 // composeWeekRecap
 //
 // One-sentence summary at the bottom of the "How the week felt" timeline
-// card. Reads the last N days of mood check-ins and produces honest,
-// non-judgmental copy. Returns "" when there's nothing meaningful to say.
+// card on caregiver-wellness, and on the MoodStrip on the You tab.
+// Reads the last N days of mood check-ins and produces honest, warm,
+// non-judgmental copy. Returns "" when there is nothing meaningful to say.
+//
+// F7 C6b (2026-06-12) reframe — the prior recap library carried 7+ branches
+// (weekend pattern, tough run, single bright spot, balanced mix, etc.).
+// The F7 spec collapsed the voice to 3 warm outcomes:
+//
+//   All positive   → "A good week."
+//   Mixed          → "A rougher [day/stretch]. You still showed up."
+//   Mostly low     → "A hard week. That's allowed."
+//
+// Empty-days branch is preserved (the prior empathic acknowledgement still
+// fits the warm register). Single-day phrasing falls into the same 3-bucket
+// shape with "day" instead of "stretch" in the mixed outcome.
 // ============================================================================
 
 import type { MoodLevel } from './wellnessOpening';
@@ -17,8 +30,6 @@ export interface WeekRecapDay {
   weekday: number;
 }
 
-const WEEKDAY_NAME = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
 function moodWord(m: MoodLevel): 'tough' | 'getting-by' | 'okay' | 'good' {
   if (m <= 2) return 'tough';
   if (m === 3) return 'getting-by';
@@ -29,52 +40,30 @@ function moodWord(m: MoodLevel): 'tough' | 'getting-by' | 'okay' | 'good' {
 export function composeWeekRecap(days: WeekRecapDay[]): string {
   if (days.length === 0) return '';
   const filled = days.filter((d) => d.mood != null);
-  const empty = days.length - filled.length;
 
+  // Empty-days fallback — preserved from the pre-F7 voice.
   if (filled.length === 0) {
-    return `${empty} empty days. That’s normal during stretches when you’re carrying a lot.`;
+    return `${days.length} empty days. That’s normal during stretches when you’re carrying a lot.`;
   }
 
-  // Single bright spot inside an otherwise-empty week.
-  if (filled.length === 1) {
-    const [only] = filled;
-    const word = moodWord(only.mood!);
-    if (word === 'good' || word === 'okay') {
-      return `${WEEKDAY_NAME[only.weekday]} felt ${word}.`;
-    }
-    return `${WEEKDAY_NAME[only.weekday]} felt ${word}. The other days are unmarked, not unimportant.`;
-  }
-
-  // Tough run — three+ tough days in a row anywhere in the window.
-  let run = 0;
-  let maxRun = 0;
-  for (const d of days) {
-    if (d.mood != null && moodWord(d.mood) === 'tough') {
-      run += 1;
-      if (run > maxRun) maxRun = run;
-    } else {
-      run = 0;
-    }
-  }
-  if (maxRun >= 3) {
-    return 'A few tough days in a row. They’re not lost — they’re noted.';
-  }
-
-  // Bright weekend pattern — Sat/Sun mood >= 4 while weekday avg <= 3.
-  const weekend = filled.filter((d) => d.weekday === 0 || d.weekday === 6);
-  const weekday = filled.filter((d) => d.weekday !== 0 && d.weekday !== 6);
-  if (weekend.length > 0 && weekday.length > 0) {
-    const wAvg = weekend.reduce((s, d) => s + d.mood!, 0) / weekend.length;
-    const dAvg = weekday.reduce((s, d) => s + d.mood!, 0) / weekday.length;
-    if (wAvg >= 4 && dAvg <= 3) {
-      return 'Weekend felt lighter than the week.';
-    }
-  }
-
-  // Otherwise return a calm summary based on overall mix.
   const toughCount = filled.filter((d) => moodWord(d.mood!) === 'tough').length;
-  if (toughCount >= filled.length / 2) {
-    return 'More heavy than light this stretch.';
+  const positiveCount = filled.filter((d) => {
+    const w = moodWord(d.mood!);
+    return w === 'good' || w === 'okay';
+  }).length;
+
+  // Mostly low — at least half the filled days were tough.
+  if (toughCount >= filled.length / 2 && toughCount > 0) {
+    return "A hard week. That’s allowed.";
   }
-  return 'A mix — some lighter days, some harder.';
+
+  // All positive — every filled day reads as good or okay (no tough,
+  // no getting-by). The strictest of the three buckets.
+  if (positiveCount === filled.length) {
+    return 'A good week.';
+  }
+
+  // Mixed — some tough or getting-by, some good/okay.
+  const noun = filled.length === 1 ? 'day' : 'stretch';
+  return `A rougher ${noun}. You still showed up.`;
 }
