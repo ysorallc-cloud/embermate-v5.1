@@ -10,7 +10,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Switch,
   Platform,
   ActivityIndicator,
 } from 'react-native';
@@ -35,6 +34,7 @@ import {
   MVP_HIDDEN_BUCKETS,
 } from '../../types/carePlanConfig';
 import { InfoModal, InfoIconButton } from '../../components/common/InfoModal';
+import { ThemedSwitch } from '../../components/common/ThemedSwitch';
 import { SubScreenHeader } from '../../components/SubScreenHeader';
 import { SectionEyebrow } from '../../components/SectionEyebrow';
 import {
@@ -247,19 +247,14 @@ function CategoryRow({ rowKey, name, detail, enabled, icon, onToggle, onPress }:
       </View>
       {/* Right: toggle + chevron — fixed width column */}
       <View style={styles.categoryRight}>
-        {/* Phase 33 F3 — muted toggle ON state. trackColor.true was
-            colors.accent (saturated sage #5fb88a, loud against the
-            cream-on-warm-charcoal palette when 5 rows light up at
-            once); now colors.accentMuted (same sage at 50% alpha)
-            so ON reads quiet but clearly sage. ON thumb / OFF track
-            / OFF thumb / iOS background all unchanged — single
-            token swap. Behavior unchanged (visual only). */}
-        <Switch
+        {/* Phase 33 F3 — muted toggle ON state (accentMuted track /
+            cream knob). The themed palette now lives in the shared
+            ThemedSwitch (components/common/ThemedSwitch) so it can't
+            drift back to saturated/iOS-green; this row + the wellness
+            per-window rows both consume it. Visual unchanged. */}
+        <ThemedSwitch
           value={enabled}
           onValueChange={onToggle}
-          trackColor={{ false: colors.glassStrong, true: colors.accentMuted }}
-          thumbColor={enabled ? colors.textPrimary : colors.switchThumbOff}
-          ios_backgroundColor={colors.glassStrong}
         />
         {enabled ? (
           <Text style={styles.categoryChevron}>{'\u203A'}</Text>

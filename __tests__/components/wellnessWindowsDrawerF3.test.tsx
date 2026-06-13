@@ -61,11 +61,25 @@ jest.mock('react-native', () => {
   };
 });
 
+// Theme mock returns the token KEY as its value (e.g. colors.accent →
+// 'accent') so the polish contracts can distinguish the muted-sage
+// toggle (accentMuted) from the saturated one (accent), the active
+// sage bell (accent) from the dim off bell (textMuted), and the gold
+// time chip (gold). Existing contracts don't assert colors, so this
+// is backward-compatible.
 jest.mock('../../contexts/ThemeContext', () => ({
   useTheme: () => ({
-    colors: new Proxy({}, { get: () => '#000' }),
+    colors: new Proxy({}, { get: (_t, key) => key }),
   }),
 }));
+
+jest.mock('@expo/vector-icons', () => {
+  const React = require('react');
+  return {
+    Ionicons: ({ name, color, testID }: any) =>
+      React.createElement('Ionicons', { name, color, testID }, null),
+  };
+});
 
 jest.mock('../../theme/theme-tokens', () => ({
   Colors: new Proxy({}, { get: () => '#000' }),
@@ -127,8 +141,12 @@ jest.mock('../../hooks/useWellnessSettings', () => ({
 }));
 
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render, fireEvent, within } from '@testing-library/react-native';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { WellnessWindowsDrawer } from '../../components/careplan/drawers/WellnessWindowsDrawer';
+
+const ROOT = join(__dirname, '..', '..');
 
 function setSettings(next: any) {
   mockSettings = { ...mockSettings, ...next };
@@ -301,6 +319,79 @@ describe('WellnessWindowsDrawer — F3 compact per-window rows', () => {
       expect(patch.morning.reminderEnabled).toBe(false);
       expect(patch.evening.reminderEnabled).toBe(true);
       expect(onUpdate).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── E. F3 POLISH — on-dictionary toggle + bell ──────────────────────────────
+  // The raw <Switch> rendered iOS-green/white (off-dictionary, clashing
+  // with the sage-track / cream-knob category-row toggle) and the
+  // reminder used a 🔔 emoji. Polish: the enable control is the shared
+  // themed toggle (accentMuted track / textPrimary knob, NOT the
+  // saturated accent), and the reminder is an Ionicons line-glyph bell
+  // — ACTIVE = sage (accent), OFF = dim (textMuted). Gold is reserved
+  // for the time chip (schedule), never the bell.
+  describe('E. F3 polish — on-dictionary toggle + bell glyph', () => {
+    it('contract 11 (THEMED TOGGLE, not bare Switch): the enable Switch carries the muted-sage track + cream knob — not iOS-green, not saturated accent', () => {
+      const onUpdate = jest.fn();
+      const { getByTestId } = render(
+        <WellnessWindowsDrawer timesOfDay={['morning', 'evening']} onUpdate={onUpdate} />,
+      );
+      const enable = getByTestId('wellness-window-morning-enable');
+      // Themed: ON track = accentMuted (muted sage), OFF track =
+      // glassStrong. A bare Switch has trackColor === undefined.
+      expect(enable.props.trackColor).toEqual({ false: 'glassStrong', true: 'accentMuted' });
+      // Must NOT be the saturated category-drawer "Reminders on" sage.
+      expect(enable.props.trackColor.true).not.toBe('accent');
+      // ON knob = cream (textPrimary); iOS bg = glassStrong.
+      expect(enable.props.thumbColor).toBe('textPrimary');
+      expect(enable.props.ios_backgroundColor).toBe('glassStrong');
+    });
+
+    it('contract 12 (BELL GLYPH — ACTIVE = SAGE): an ON reminder renders the notifications-outline line-glyph in the active sage color (accent), NOT gold, NOT an emoji', () => {
+      const onUpdate = jest.fn();
+      // morning.reminderEnabled defaults to true.
+      const { getByTestId } = render(
+        <WellnessWindowsDrawer timesOfDay={['morning', 'evening']} onUpdate={onUpdate} />,
+      );
+      const bell = getByTestId('wellness-window-morning-bell');
+      expect(bell.props.name).toBe('notifications-outline');
+      expect(bell.props.color).toBe('accent'); // active/sage — a reminder ON = active
+      expect(bell.props.color).not.toBe('gold'); // gold is schedule, reserved for the time chip
+    });
+
+    it('contract 13 (BELL GLYPH — OFF = DIM): an OFF reminder renders notifications-off-outline in the dim color (textMuted)', () => {
+      setSettings({
+        evening: { enabled: true, time: '20:00', checks: ['mood'], reminderEnabled: false, optionalChecks: {} },
+      });
+      const onUpdate = jest.fn();
+      const { getByTestId } = render(
+        <WellnessWindowsDrawer timesOfDay={['morning', 'evening']} onUpdate={onUpdate} />,
+      );
+      const bell = getByTestId('wellness-window-evening-bell');
+      expect(bell.props.name).toBe('notifications-off-outline');
+      expect(bell.props.color).toBe('textMuted');
+    });
+
+    it('contract 14 (GOLD RESERVED FOR THE TIME CHIP): the time text uses the gold schedule color', () => {
+      const onUpdate = jest.fn();
+      const { getByTestId } = render(
+        <WellnessWindowsDrawer timesOfDay={['morning', 'evening']} onUpdate={onUpdate} />,
+      );
+      const timeBtn = getByTestId('wellness-window-morning-time');
+      const timeText = within(timeBtn).getByText('7:00 AM');
+      expect(timeText.props.style.color).toBe('gold');
+    });
+
+    it('contract 15 (SHARED TOGGLE — anti-drift): WellnessWindowsDrawer + CategoryRow both consume the shared ThemedSwitch; the drawer has no bare <Switch>', () => {
+      const drawerSrc = readFileSync(
+        join(ROOT, 'components/careplan/drawers/WellnessWindowsDrawer.tsx'),
+        'utf8',
+      );
+      const indexSrc = readFileSync(join(ROOT, 'app/care-plan/index.tsx'), 'utf8');
+      expect(drawerSrc).toMatch(/import\s+\{\s*ThemedSwitch\s*\}\s+from\s+['"].*common\/ThemedSwitch['"]/);
+      expect(indexSrc).toMatch(/import\s+\{\s*ThemedSwitch\s*\}\s+from\s+['"].*common\/ThemedSwitch['"]/);
+      // No re-inlined raw <Switch> in the drawer (would re-introduce drift).
+      expect(drawerSrc).not.toMatch(/<Switch\b/);
     });
   });
 });

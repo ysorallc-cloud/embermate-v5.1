@@ -46,14 +46,15 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Switch,
   Modal,
   StyleSheet,
   Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { Colors, Spacing } from '../../../theme/theme-tokens';
+import { ThemedSwitch } from '../../common/ThemedSwitch';
 import { useWellnessSettings } from '../../../hooks/useWellnessSettings';
 import type {
   WellnessSettings,
@@ -267,14 +268,23 @@ export function WellnessWindowsDrawer({
                 style={styles.bellChip}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Text style={[styles.bellGlyph, !reminderOn && styles.bellGlyphOff]}>
-                  {reminderOn ? '🔔' : '🔕'}
-                </Text>
+                {/* Line-glyph bell on the app's -outline register.
+                    ACTIVE reminder = sage (accent) — a reminder being
+                    on reads as active, not "upcoming." OFF = dim
+                    (textMuted). Gold stays reserved for the time chip
+                    (schedule), never the bell. */}
+                <Ionicons
+                  testID={`wellness-window-${period}-bell`}
+                  name={reminderOn ? 'notifications-outline' : 'notifications-off-outline'}
+                  size={18}
+                  color={reminderOn ? colors.accent : colors.textMuted}
+                />
               </TouchableOpacity>
             ) : null}
 
-            {/* Enable Switch — drives timesOfDay membership. */}
-            <Switch
+            {/* Enable toggle — the shared sage/cream ThemedSwitch (not
+                a bare iOS-green Switch). Drives timesOfDay membership. */}
+            <ThemedSwitch
               testID={`wellness-window-${period}-enable`}
               value={enabled}
               onValueChange={(next) => handleEnableChange(period, next)}
@@ -354,18 +364,14 @@ const createStyles = (c: typeof Colors) =>
     },
     timeText: {
       fontSize: 14,
-      color: c.textSecondary,
+      // Gold = the schedule semantic (matches UpNextCard / TimelineItem
+      // scheduled-item accents). Reserved for the time chip, not the bell.
+      color: c.gold,
     },
     bellChip: {
       paddingHorizontal: 6,
       paddingVertical: 2,
       marginRight: 8,
-    },
-    bellGlyph: {
-      fontSize: 18,
-    },
-    bellGlyphOff: {
-      opacity: 0.5,
     },
     pickerBackdrop: {
       flex: 1,
