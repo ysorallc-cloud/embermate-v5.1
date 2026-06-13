@@ -22,6 +22,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
+import { GUTTER, SECTION_GAP, TypeScale } from '../theme/spacing';
 import { useTheme } from '../contexts/ThemeContext';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 import {
@@ -258,6 +259,12 @@ export default function MedicationFormScreen() {
   const [scheduleEndCondition, setScheduleEndCondition] = useState<ScheduleEndCondition>('ongoing');
 
   const [saving, setSaving] = useState(false);
+  // F7 C8 — reactive required-field gate. The save handler still runs
+  // its own validation (with Alert.alert messaging for the explicit
+  // failure cases like "name too short"), but this boolean drives the
+  // F7 disabled-CTA helper line beneath the Save button so the user
+  // can scan what's missing without tapping into an alert.
+  const requiredFieldsFilled = name.trim().length >= 2 && dosage.trim().length > 0;
   // Phase 34 NOT.A2 — load-time snapshot of the existing MedicationPlanItem
   // so handleSave can compute medicationNotificationChanged(before, after)
   // post-persistence. Null in add mode; populated by loadMedication in
@@ -658,7 +665,7 @@ export default function MedicationFormScreen() {
 
           {/* Medication Name — Dropdown Selector */}
           <View style={[styles.formGroup, { zIndex: 30 }]}>
-            <Text style={styles.label} accessibilityRole="text">Medication Name *</Text>
+            <Text style={styles.label} accessibilityRole="text">Medication name *</Text>
             <TouchableOpacity
               style={[styles.dropdownTrigger, showMedDropdown && styles.dropdownTriggerOpen]}
               onPress={() => { setShowMedDropdown(!showMedDropdown); setShowDosageDropdown(false); }}
@@ -721,7 +728,7 @@ export default function MedicationFormScreen() {
 
           {/* Dosage — Dropdown Selector */}
           <View style={[styles.formGroup, { zIndex: 20 }]}>
-            <Text style={styles.label} accessibilityRole="text">Dosage *</Text>
+            <Text style={styles.label} accessibilityRole="text">Dosage *</Text>{/* F7 C8 — sentence case via textTransform retired; copy unchanged. */}
             {selectedMedEntry && selectedMedEntry.commonDosages.length > 0 ? (
               <>
                 <TouchableOpacity
@@ -774,7 +781,7 @@ export default function MedicationFormScreen() {
 
           {/* Time Slot Selection - Horizontal Icon Row */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Time of Day *</Text>
+            <Text style={styles.label}>Time of day *</Text>
             <View style={styles.timeSlotRow}>
               {TIME_SLOTS.map(slot => (
                 <TouchableOpacity
@@ -854,16 +861,28 @@ export default function MedicationFormScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.primarySaveButton, saving && { opacity: 0.5 }]}
+                style={[
+                  styles.primarySaveButton,
+                  (saving || !requiredFieldsFilled) && { opacity: 0.5 },
+                ]}
                 onPress={handleSave}
-                disabled={saving}
+                disabled={saving || !requiredFieldsFilled}
                 accessibilityLabel={isEditing ? 'Save medication changes' : 'Save medication'}
                 accessibilityRole="button"
+                accessibilityState={{ disabled: saving || !requiredFieldsFilled }}
               >
                 <Text style={styles.primarySaveButtonText}>
                   {saving ? 'Saving...' : isEditing ? 'Save Changes' : 'Save Medication'}
                 </Text>
               </TouchableOpacity>
+              {/* F7 C8 — disabled-state helper. Silent disabled save left
+                  caregivers wondering which field they missed; the line
+                  below names what's required. */}
+              {!requiredFieldsFilled && !saving && (
+                <Text style={styles.saveDisabledHint} testID="med-form-save-disabled-hint">
+                  Name + dosage + time required
+                </Text>
+              )}
             </>
           )}
 
@@ -1209,11 +1228,45 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    paddingHorizontal: Spacing.lg,
+    // F7 C8 — page-edge horizontal pad on the GUTTER token (22pt)
+    // instead of the prior Spacing.lg (28). Tighter alignment to the
+    // F7 page rhythm shared across the redesigned surfaces.
+    paddingHorizontal: GUTTER,
+  },
+  // F7 C8 — divider + OPTIONAL micro eyebrow before optional field
+  // groups. Required fields stay on the existing label rhythm; the
+  // OPTIONAL split signals when the form transitions from must-have
+  // to may-add.
+  optionalDivider: {
+    borderTopWidth: 0.5,
+    borderTopColor: c.glassBorder,
+    marginTop: SECTION_GAP,
+    paddingTop: SECTION_GAP,
+    marginBottom: 8,
+  },
+  optionalEyebrow: {
+    ...TypeScale.micro,
+    color: c.textTertiary,
+    marginBottom: 14, // allow: eyebrow-to-first-optional-field rhythm
+  },
+  // F7 C8 — disabled-CTA helper. Renders beneath the save button when
+  // canSave is false; replaces the silent disabled state with an
+  // explicit "what's missing" line.
+  saveDisabledHint: {
+    fontSize: 12,
+    color: c.textMuted,
+    textAlign: 'center' as const,
+    marginTop: -4,
+    marginBottom: Spacing.md,
+    fontStyle: 'italic' as const,
   },
   // Form
+  // F7 C8 — field-group rhythm rebuilt: SECTION_GAP (36) between groups
+  // replaces the prior Spacing.lg (28). Labels flip from ALL CAPS to
+  // sentence case per F7 spec; the * suffix on required fields carries
+  // the affordance the uppercase weight used to imply.
   formGroup: {
-    marginBottom: Spacing.lg,
+    marginBottom: SECTION_GAP,
     position: 'relative',
     zIndex: 1,
   },
@@ -1222,8 +1275,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '600',
     color: c.textSecondary,
     marginBottom: Spacing.xs,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    // F7 C8: ALL CAPS → sentence case. Letter-spacing comes down to
+    // match the more conversational register.
+    letterSpacing: 0.2,
   },
   input: {
     backgroundColor: c.surface,
