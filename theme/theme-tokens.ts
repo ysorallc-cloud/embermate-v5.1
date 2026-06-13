@@ -20,21 +20,30 @@ const DarkColors = {
   // Phase 0 of the v6.7 May 1 sizing pass lifted the page bg from the prior
   // very-dark #141612 to #1f201c — calibrated half-step toward charcoal that
   // holds the warm cast without reading washed-out on device.
-  // Phase 33 F1a (2026-05-17) aligns to the website source-of-truth
+  // Phase 33 F1a (2026-05-17) aligned to the website source-of-truth
   // `--bg: #1a1612` — deeper warm-brown than the Phase-0 sage-charcoal.
-  // The L* drop from ~8.6 to ~6.1 widens the glass→bg delta (now ~11.5)
-  // and reads with more "warmth in the dark" than the prior cooler tone.
-  // Verified non-regression on cardContrast L* ≥ 8 + WCAG AA contrast
-  // tests (textSecondary on bg now ~10.3:1, textTertiary ~5.5:1).
-  background: '#1a1612',
+  // Post-F7 followup (2026-06-13) dropped one more step to #0d0b08 to
+  // pair with the schedule-floats-on-page-bg restructure: page bg
+  // becomes the deeper "rest" surface, glass (#211e18) becomes the
+  // one-step-from-bg card surface for surfaces that still card. L*
+  // drops to ~3.1, glass→bg L* delta still clears 8 (now ~8.3), and
+  // WCAG AA contrast IMPROVES on the darker surface (textSecondary
+  // ~10.9:1, textTertiary ~5.7:1).
+  background: '#0d0b08',
   backgroundAlt: '#050505',
   // Phase 0 lockstep lift — when bg moved from #141612 (L* 6.92) to #1f201c
   // (L* 12.01), the prior glass #2a2c25 (L* 17.59) only lifted L* 5.57 above
-  // the new bg, breaking the L* ≥ 8 dim-room legibility contract. Glass and
-  // its siblings are lifted in lockstep so cards keep the "object on a
-  // surface" affordance. New deltas: glass→bg L* 11.08, surfaceElevated→bg
-  // L* 12.54, youCardSurface→bg L* 10.08. See cardContrast.test.ts.
-  glass: '#363830',
+  // the new bg, breaking the L* ≥ 8 dim-room legibility contract.
+  // Post-F7 followup (2026-06-13) drops glass to #211e18 — one-step-from-bg
+  // card surface paired with the deeper #0d0b08 page bg. L* delta narrows
+  // from ~11 to ~8.3 (still clears the cardContrast ≥ 8 contract). Cards
+  // that still card sit closer to the page than before; the new visual
+  // hierarchy is "deeper page / quieter card / unchanged surfaceElevated
+  // modal lift." Sibling tokens (surface, surfaceElevated, warmSurface*,
+  // youCardSurface, backgroundElevated) intentionally NOT lockstep-shifted
+  // — they keep the Phase 0 / Phase 33 values to provide explicit
+  // elevation steps above the new closer-to-bg glass.
+  glass: '#211e18',
   glassHover: 'rgba(255, 245, 220, 0.06)',
   // Phase 3.5 — bumped opacity 0.08 → 0.10 so card edges read more
   // visibly against the warm-charcoal page bg. Border still reads as a
@@ -345,9 +354,9 @@ const DarkColors = {
   borderMedium: 'rgba(95, 184, 138, 0.22)',
   borderStrong: 'rgba(95, 184, 138, 0.35)',
   // Mirrors the page background (Phase 0 lifted both in lockstep so the
-  // tab strip stays seamless with the surface above it; Phase 33 F1a
-  // moved both to #1a1612 in lockstep).
-  tabBarBackground: '#1a1612',
+  // tab strip stays seamless with the surface above it; post-F7 followup
+  // 2026-06-13 moved both to #0d0b08 in lockstep).
+  tabBarBackground: '#0d0b08',
   tabBarBorder: 'rgba(95, 184, 138, 0.15)',
   tabBarActive: '#5fb88a',
   tabBarInactive: 'rgba(255, 255, 255, 0.40)',
@@ -367,11 +376,12 @@ const DarkColors = {
   // underneath. The gradient JSX surface itself is preserved (35
   // consumer sites today) for a future deliberate design call that
   // wants depth back.
-  // Phase 33 F1a — both moved to #1a1612 in lockstep with `background`.
-  // The lockstep is enforced by care-plan-page-background.test.tsx
-  // (gradient-stops-equal-bg pin).
-  backgroundGradientStart: '#1a1612',
-  backgroundGradientEnd: '#1a1612',
+  // Phase 33 F1a moved both to #1a1612 in lockstep with `background`;
+  // post-F7 followup (2026-06-13) drops both to #0d0b08 in lockstep
+  // with the new page bg. The lockstep is enforced by
+  // care-plan-page-background.test.tsx (gradient-stops-equal-bg pin).
+  backgroundGradientStart: '#0d0b08',
+  backgroundGradientEnd: '#0d0b08',
   // Phase 2.6.2 — lifted to the Phase 0 glass-tier value (#363830). Pre-lift
   // was '#1A1A1A', which sat L* 2.7 BELOW the new warm-charcoal bg — making
   // buttons read darker than the page they sat on. Same root cause as the

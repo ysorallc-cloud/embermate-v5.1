@@ -193,15 +193,13 @@ export function NowTimeline({
           onRowPress={onToggleCollapse}
         />
       ) : (
-        <View style={s.sectionCard}>
-          {/* F7 C6c-A — TimelineSection (period-grouped accordion)
-              retired in favor of FlatTimelineFeed (flat chronological
-              feed sorted by scheduledTime asc). The legacy
-              TimelineSection.tsx stays in tree to preserve the
-              Phase 27 / 32A / 35 source-level test coverage; only the
-              mount point flips. The expanded scope (DAD TODAY zone,
-              row hierarchy refinements, period dot anchors per the
-              C6c device-walk spec) banks for post-F7 design pass. */}
+        // Post-F7 followup (2026-06-13) — schedule floats on page bg.
+        // Wrapper carries ONLY the inter-section bottom rhythm
+        // (Spacing.md, ~20pt) — no backgroundColor / no border / no
+        // padding / no radius. The pre-fix `sectionCard` style carried
+        // all of those plus the same marginBottom; the de-card retains
+        // the rhythm in a chrome-less wrapper.
+        <View style={s.timelineFloat}>
           <FlatTimelineFeed
             allPending={allPending}
             completed={completed}
@@ -274,15 +272,8 @@ const createStyles = (c: any) => StyleSheet.create({
     backgroundColor: c.accentLight,
     overflow: 'hidden' as const,
   },
-  sectionCard: {
-    backgroundColor: c.glass,
-    borderWidth: 1,
-    borderColor: c.glassBorder,
-    borderRadius: 14,
-    padding: 12,
-    // Phase 3.5 — sibling-card gap on Spacing.md (20pt, was literal 16).
+  timelineFloat: {
     marginBottom: Spacing.md,
-    overflow: 'hidden',
   },
   emptyTimeline: {
     backgroundColor: c.glass,

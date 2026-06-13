@@ -17,11 +17,12 @@
 // JSX surface for a future deliberate design call.
 //
 // Phase 33 F1a (2026-05-17) moved `background` to '#1a1612' (website
-// source-of-truth); both gradient tokens flipped in lockstep so the
-// gradient-equals-bg contract holds.
+// source-of-truth); post-F7 followup (2026-06-13) dropped one more
+// step to '#0d0b08'. Both gradient tokens flip in lockstep so the
+// gradient-equals-bg contract holds across the migration chain.
 //
 // Pins:
-//   1. Both gradient tokens equal #1a1612 (Phase 33 F1a target).
+//   1. Both gradient tokens equal #0d0b08 (post-F7 followup target).
 //   2. Both gradient tokens equal `colors.background` so the overlay
 //      produces no visible color delta vs the SafeAreaView underneath
 //      (lockstep contract — survives future bg value changes).
@@ -35,13 +36,13 @@ import { getDarkColors } from '../theme/theme-tokens';
 
 const dark = getDarkColors() as unknown as Record<string, string>;
 
-describe('Gradient tokens flat-lifted (Phase 2.6.1 lockstep → Phase 33 F1a value)', () => {
-  it('backgroundGradientStart equals #1a1612 (Phase 33 F1a page-bg lockstep)', () => {
-    expect(dark.backgroundGradientStart).toBe('#1a1612');
+describe('Gradient tokens flat-lifted (Phase 2.6.1 lockstep → post-F7 followup value)', () => {
+  it('backgroundGradientStart equals #0d0b08 (post-F7 page-bg lockstep)', () => {
+    expect(dark.backgroundGradientStart).toBe('#0d0b08');
   });
 
-  it('backgroundGradientEnd equals #1a1612 (Phase 33 F1a page-bg lockstep)', () => {
-    expect(dark.backgroundGradientEnd).toBe('#1a1612');
+  it('backgroundGradientEnd equals #0d0b08 (post-F7 page-bg lockstep)', () => {
+    expect(dark.backgroundGradientEnd).toBe('#0d0b08');
   });
 
   it('both gradient stops equal colors.background — gradient renders flat', () => {

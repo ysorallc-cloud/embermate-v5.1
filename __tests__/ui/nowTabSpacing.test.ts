@@ -45,8 +45,15 @@ describe('Now tab spacing pass', () => {
     expect(statRingsSrc).toMatch(/container:\s*\{[\s\S]*?marginBottom:\s*Spacing\.md\b/);
   });
 
-  it('schedule card has marginBottom on Spacing.md (Phase 3.5 token-routed)', () => {
-    expect(timelineSrc).toMatch(/sectionCard:\s*\{[\s\S]*?marginBottom:\s*Spacing\.md\b/);
+  it('schedule float-wrapper carries marginBottom on Spacing.md (post-F7 de-card)', () => {
+    // Post-F7 followup (2026-06-13) — `sectionCard` retired. The
+    // schedule's expanded-state wrapper is now `timelineFloat`, which
+    // carries ONLY the inter-section bottom rhythm (no backgroundColor /
+    // no border / no radius). Pre-fix card chrome was in `sectionCard`;
+    // post-fix only the marginBottom survives, on a chrome-less View.
+    expect(timelineSrc).toMatch(/timelineFloat:\s*\{[\s\S]*?marginBottom:\s*Spacing\.md\b/);
+    // Forward-guard: the pre-fix sectionCard style block must not return.
+    expect(timelineSrc).not.toMatch(/sectionCard:\s*\{/);
   });
 
   // End of Shift spacing now lives in components/now/EndOfShiftCard.tsx —

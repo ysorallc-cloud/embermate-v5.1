@@ -13,21 +13,23 @@ const dark = getDarkColors() as unknown as Record<string, string>;
 // ── Locked tokens ─────────────────────────────────────────────────────────
 
 describe('Theme tokens — locked dark surfaces', () => {
-  it('background (page) is the warm-brown near-black (website source-of-truth)', () => {
-    // Phase 0 of the v6.7 May 1 sizing pass lifted the page bg from
-    // #141612 to #1f201c — calibrated half-step toward charcoal that
-    // held the warm cast without reading washed-out on device.
-    // Phase 33 F1a (2026-05-17) realigned to the website's
-    // `--bg: #1a1612` source-of-truth — deeper warm-brown than the
-    // Phase-0 sage-charcoal. Wider glass→bg L* delta (~11.5), text
-    // contrast IMPROVES on the darker surface.
-    expect(dark.background).toBe('#1a1612');
+  it('background (page) is the deeper warm-black (post-F7 followup)', () => {
+    // Migration chain #141612 → #1f201c → #1a1612 → #0d0b08.
+    // Post-F7 followup (2026-06-13) dropped page bg one more step to
+    // pair with the Now-schedule-floats-on-page-bg restructure. The
+    // deeper page bg is the "rest" surface; glass (#211e18) is the
+    // one-step-from-bg card surface. WCAG AA contrast improves on
+    // the darker surface (textSecondary now ~10.9:1).
+    expect(dark.background).toBe('#0d0b08');
   });
 
-  it('glass (default card surface) is the warm Sage card', () => {
-    // Phase 0 lockstep lift: glass moved from #2a2c25 → #363830 to
-    // restore the L* 8 dim-room legibility delta against the lifted bg.
-    expect(dark.glass).toBe('#363830');
+  it('glass (default card surface) is the one-step-from-bg warm card', () => {
+    // Migration chain glass: #2a2c25 → #363830 → #211e18.
+    // Post-F7 followup (2026-06-13) dropped glass alongside bg so
+    // cards that still card sit closer to the page than the prior
+    // ~L* 11 lift; new glass→bg delta is ~8.3 (still clears the
+    // cardContrast ≥ 8 contract).
+    expect(dark.glass).toBe('#211e18');
   });
 
   it('youCardSurface (You-tab capture only) is its own warmer card', () => {
