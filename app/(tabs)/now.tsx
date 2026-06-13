@@ -199,6 +199,21 @@ export default function NowScreen() {
   // Category filter state (tappable rings)
   const [selectedCategory, setSelectedCategory] = useState<BucketType | null>(null);
   const [activeRoutineWindow, setActiveRoutineWindow] = useState<TimeWindow | null>(null);
+
+  // Phase B (2026-06-13) — Reflection panel visibility gate. ReflectionZoneNow
+  // internally returns null pre-17:00; the panel wrap around it must gate
+  // too so we don't render an empty bordered rectangle. Dupe of the gate
+  // already living inside the component; minute-refresh keeps the panel
+  // surfacing on the 17:00 clock-roll without a tab switch.
+  const [isReflectionEvening, setIsReflectionEvening] = useState(
+    () => new Date().getHours() >= 17,
+  );
+  useEffect(() => {
+    const id = setInterval(() => {
+      setIsReflectionEvening(new Date().getHours() >= 17);
+    }, 60_000);
+    return () => clearInterval(id);
+  }, []);
   // Phase 35 Slice 3-D — Phase-1D parallel undoToast retired.
   // handleQuickConfirm now routes through the unified LogToast pattern
   // below + the canonical undoInstanceCompletion (which soft-deletes
@@ -1222,11 +1237,11 @@ export default function NowScreen() {
               the NowTimeline mount. */}
 
           {/* ═══ F7 ACTION ZONE — schedule (medications-led) ═══
-              z1 tint wrap around MorningMedsBanner (already lifted above)
-              + NowTimeline. NowTimeline's internal "Today's Schedule"
-              header is preserved for now; the zone-eyebrow integration
-              is a follow-up so existing tests + the "Care Plan →"
-              action affordance keep working through F7 cadence. */}
+              Phase B (2026-06-13) — NowTimeline now sits inside a
+              `zonePanel` wrapper (warm low-lift surface + glassBorder
+              hairline + modest radius) so the warm page bg reads as a
+              gutter between this and the Health zone below. */}
+          <View style={styles.zonePanel}>
           <NowTimeline
             timelineCollapsed={timelineCollapsed}
             onToggleCollapse={() => setTimelineCollapsed(prev => !prev)}
@@ -1253,12 +1268,14 @@ export default function NowScreen() {
             waterGoal={waterGoal}
             onWaterUpdate={handleWaterUpdate}
           />
+          </View>
 
           {/* ═══ F7 HEALTH ZONE — Today's Health (review) ═══
-              Open fabric rows for Vitals / Mood / Meals / Symptoms.
-              Each row reads today's logged value or "Not yet · log".
-              All four data sources pre-existed (no new service calls). */}
+              Phase B (2026-06-13) — HealthZoneNow + the "Log something
+              else →" catch-all link share one `zonePanel` wrapper so
+              the review surface + catch-all read as one zone. */}
           <View style={{ height: SECTION_GAP }} />
+          <View style={styles.zonePanel}>
           <HealthZoneNow />
 
           {/* Ad-hoc logging catch-all (2026-06-13) — retired the QuickLog
@@ -1276,21 +1293,29 @@ export default function NowScreen() {
           >
             <Text style={styles.logSomethingElseLinkText}>Log something else →</Text>
           </TouchableOpacity>
+          </View>
 
           {/* ═══ F7 REFLECTION ZONE — Reflection (evening only) ═══
-              Hidden entirely before 17:00. After 17:00 renders one of
-              three states (A: meds done → ember invite + Coffee Moment
-              sheet; B: meds not yet → quiet fabric line; C: dismissed
-              for today → quiet fabric line, persists for the calendar
-              day only). eveningMedsComplete derives from allPending —
-              no remaining medication items in the evening window. */}
-          <View style={{ height: SECTION_GAP }} />
-          {(() => {
-            const pendingEveningMeds = allPending.filter(
-              (i: any) => i.itemType === 'medication' && i.windowLabel === 'evening',
-            );
-            return <ReflectionZoneNow eveningMedsComplete={pendingEveningMeds.length === 0} />;
-          })()}
+              Phase B (2026-06-13) — ReflectionZoneNow sits inside a
+              `zonePanel` wrapper, conditionally rendered by the parent
+              `isReflectionEvening` gate. The gate dupes the component's
+              internal 17:00 check so the panel itself doesn't appear
+              as an empty bordered rectangle pre-evening. ReflectionZoneNow
+              still owns its own null-return + minute-refresh internally
+              (defense in depth). */}
+          {isReflectionEvening && (
+            <>
+              <View style={{ height: SECTION_GAP }} />
+              <View style={styles.zonePanel}>
+              {(() => {
+                const pendingEveningMeds = allPending.filter(
+                  (i: any) => i.itemType === 'medication' && i.windowLabel === 'evening',
+                );
+                return <ReflectionZoneNow eveningMedsComplete={pendingEveningMeds.length === 0} />;
+              })()}
+              </View>
+            </>
+          )}
 
           <View style={{ height: SECTION_GAP }} />
           {/* Phase 5.10.b — Upcoming appointment surface.
@@ -1376,6 +1401,19 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // v6.7 LogToast wrapper — same float anchor as the legacy undo toast.
   logToastWrap: {
     position: 'absolute', bottom: 100, left: 0, right: 0,
+  },
+
+  // Phase B (2026-06-13) — Now zone-panel wrapper. Schedule / Health /
+  // Reflection each sit inside one of these so the warm bg reads as a
+  // gutter between zones. Quiet warm low-lift surface (zonePanel ≈ #221d15,
+  // ~3.5 L* over the #1a1612 bg), glassBorder hairline, modest radius +
+  // inner padding for breathing room.
+  zonePanel: {
+    backgroundColor: c.zonePanel,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    borderRadius: 14,
+    padding: 12,
   },
 
   // Catch-all "Log something else →" link (2026-06-13). Quiet, low-key —
