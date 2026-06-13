@@ -37,6 +37,12 @@ import {
 import { InfoModal, InfoIconButton } from '../../components/common/InfoModal';
 import { SubScreenHeader } from '../../components/SubScreenHeader';
 import { SectionEyebrow } from '../../components/SectionEyebrow';
+import {
+  CardBorder,
+  ROW_V,
+  TypeScale,
+  ZoneTint,
+} from '../../theme/spacing';
 import { usePatient } from '../../contexts/PatientContext';
 // Phase 32A F5 — Quick Start TemplateCard surface retired from home
 // (P1 lock). The wizard's own template step stays unchanged; templates
@@ -576,8 +582,28 @@ export default function CarePlanHomeScreen() {
               ADD WHEN READY: water, sleep, activity, appointments (toggleable; drawer internals F9–F12).
               Errands / Shifts / Self-care intentionally absent from every section
               (MVP render filter expressed structurally; data types preserved). */}
-          <SectionEyebrow text="Always on" />
-          <View testID="section-zone-always-on" style={styles.sectionZone}>
+          {/* F7 C6 — Always On / Medications zone: z1 tint + count
+              badge "N active" when the user has 4+ meds. Badge is
+              suppressed under 4 to keep the surface quiet for
+              caregivers managing a small regimen. */}
+          <View style={styles.alwaysOnHeaderRow}>
+            <SectionEyebrow text="Medications" />
+            {(() => {
+              const medsCount = config?.meds?.medications?.length ?? 0;
+              if (medsCount < 4) return null;
+              return (
+                <View
+                  style={styles.medsCountBadge}
+                  accessibilityLabel={`${medsCount} active medications`}
+                  accessibilityRole="text"
+                  testID="meds-count-badge"
+                >
+                  <Text style={styles.medsCountBadgeText}>{`${medsCount} active`}</Text>
+                </View>
+              );
+            })()}
+          </View>
+          <View testID="section-zone-always-on" style={[styles.sectionZone, styles.sectionZoneAlwaysOn]}>
           {/* Phase 32A.1 F1 \u2014 Medications row converts from chevron-
               navigate-to-list (which routed to the now-retired
               retired /care-plan/meds subscreen) into expand/caret behavior. Tap
@@ -923,6 +949,39 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     padding: 14,
     marginBottom: 16,
   },
+  // F7 C6 — Always On / Medications zone overrides Phase 33 F1's
+  // neutral grounded ground with the z1 tint (#1f1b15). Daily Tracking
+  // + Add When Ready stay on the neutral c.bgRaised — only the meds
+  // zone is z1 per the Option C lock.
+  sectionZoneAlwaysOn: {
+    backgroundColor: ZoneTint.z1,
+  },
+  // F7 C6 — header row that brackets the section eyebrow with the
+  // count badge on the right. Eyebrow rows below stay on the
+  // SectionEyebrow primitive directly (no badge on those).
+  alwaysOnHeaderRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'baseline' as const,
+    justifyContent: 'space-between' as const,
+  },
+  // F7 C6 — meds count badge. Sage tones per spec: text c.accent,
+  // background rgba(127,184,138,0.1), border rgba(127,184,138,0.18),
+  // border-radius 9px. Renders only when meds count ≥ 4.
+  medsCountBadge: {
+    backgroundColor: 'rgba(127,184,138,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(127,184,138,0.18)',
+    borderRadius: 9,
+    paddingHorizontal: 8, // allow: badge horizontal pad
+    paddingVertical: 2,
+    marginBottom: Spacing.sm,
+  },
+  medsCountBadgeText: {
+    ...TypeScale.secondary,
+    fontWeight: '600' as const,
+    color: c.accent,
+    letterSpacing: 0.3,
+  },
   coreCard: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
@@ -959,11 +1018,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '500' as const,
     color: c.accent,
   },
-  // Category Row
+  // Category Row — F7 spec: ROW_V (15) padding per fabric-row rhythm.
   categoryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: ROW_V,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.025)',
   },
@@ -1026,10 +1085,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // matches the Phase 7 3-accent budget. Bg 8% → 6%, border stays
   // 25%, hue shifts cool→warm so the card sits cleanly against the
   // warm-charcoal page bg instead of fighting it.
+  // F7 C6 — notification nudge restyled from caregiverAccent (lavender)
+  // chrome to ember-bordered (review tone, not alert). The nudge is
+  // dismissible — coral would over-signal what is an informational
+  // affordance.
   aiInsightCard: {
-    backgroundColor: c.caregiverAccentBg,
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: c.caregiverAccentStrong,
+    borderColor: CardBorder.ember,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.lg,
@@ -1047,9 +1110,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    // Lavender stays on the heading + bell only (per spec). Token routed
-    // through caregiverAccentText (#d4baff) to match the warm palette.
-    color: c.caregiverAccentText,
+    // F7 C6 — title color flipped from the pre-F7 lavender token to
+    // ember (#c98a4a) so the nudge reads in its own warm review tone,
+    // matching the ember border.
+    color: '#c98a4a',
   },
   aiInsightDismiss: {
     width: 24,

@@ -45,44 +45,43 @@ function extractBlock(name: string): string {
   return src.slice(start, i - 1);
 }
 
-describe('Phase 2.6.5 — Stay-on-Track card uses caregiverAccent palette', () => {
-  it('aiInsightCard bg routes through caregiverAccentBg (warm lavender)', () => {
+describe('Stay-on-Track notification nudge — F7 C6 ember reframe', () => {
+  // F7 C6 (2026-06-12) migrated the Stay-on-Track / notification nudge
+  // chrome from the Phase 2.6.5 caregiverAccent (lavender) palette to
+  // ember (review tone). The nudge is dismissible — coral would over-
+  // signal what is an informational affordance — and ember matches the
+  // F7 review palette established by the broader zone architecture.
+
+  it('aiInsightCard bg is transparent (F7 C6) — chrome reads through the page surface', () => {
     const body = extractBlock('aiInsightCard');
-    expect(body).toMatch(/backgroundColor:\s*c\.caregiverAccentBg\b/);
+    expect(body).toMatch(/backgroundColor:\s*['"]transparent['"]/);
+    expect(body).not.toMatch(/caregiverAccentBg/);
   });
 
-  it('aiInsightCard border routes through caregiverAccentStrong', () => {
+  it('aiInsightCard border routes through CardBorder.ember', () => {
     const body = extractBlock('aiInsightCard');
-    expect(body).toMatch(/borderColor:\s*c\.caregiverAccentStrong\b/);
+    expect(body).toMatch(/borderColor:\s*CardBorder\.ember\b/);
+    expect(body).not.toMatch(/caregiverAccentStrong/);
   });
 
-  it('aiInsightTitle uses caregiverAccentText (the heading lavender stays)', () => {
+  it('aiInsightTitle uses ember (#c98a4a) — heading reads in the review tone', () => {
     const body = extractBlock('aiInsightTitle');
-    expect(body).toMatch(/color:\s*c\.caregiverAccentText\b/);
+    expect(body).toMatch(/color:\s*['"]#c98a4a['"]/);
+    expect(body).not.toMatch(/caregiverAccentText/);
   });
 
-  it('aiInsightMessage body text uses textSecondary, NOT primary', () => {
+  it('aiInsightMessage body text uses textSecondary, NOT primary (unchanged)', () => {
     const body = extractBlock('aiInsightMessage');
     expect(body).toMatch(/color:\s*c\.textSecondary\b/);
     expect(body).not.toMatch(/color:\s*c\.textPrimary\b/);
   });
 
-  it('the legacy purple* tokens are gone from the Stay-on-Track card', () => {
+  it('the legacy purple* tokens stay gone from the Stay-on-Track card', () => {
     const card = extractBlock('aiInsightCard');
     const title = extractBlock('aiInsightTitle');
     const combined = card + '\n' + title;
     expect(combined).not.toMatch(/c\.purpleMuted\b/);
     expect(combined).not.toMatch(/c\.purpleStrong\b/);
     expect(combined).not.toMatch(/c\.purpleBright\b/);
-  });
-
-  it('caregiverAccentStrong opacity is ≤ 0.3 (matches Phase 2 dim contract)', () => {
-    // Read directly from the token source so the test reflects the live
-    // value rather than just the consuming code.
-    const tokens = readFileSync(join(ROOT, 'theme/theme-tokens.ts'), 'utf8');
-    const m = tokens.match(/caregiverAccentStrong:\s*['"]rgba\([^)]+,\s*([\d.]+)\s*\)['"]/);
-    expect(m).not.toBeNull();
-    const alpha = parseFloat(m![1]);
-    expect(alpha).toBeLessThanOrEqual(0.3);
   });
 });

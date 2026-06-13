@@ -70,9 +70,13 @@ describe('Phase 33 F1 — three identical grounded zones on Care Plan', () => {
   // Three zones — each section wrapped in its own sectionZone container
   // --------------------------------------------------------------------------
 
-  it('contract 2: ALWAYS ON section is wrapped in <View testID="section-zone-always-on" style={styles.sectionZone}>', () => {
+  it('contract 2 [F7 C6]: ALWAYS ON section wrapped in <View testID="section-zone-always-on" style={[styles.sectionZone, styles.sectionZoneAlwaysOn]}>', () => {
+    // F7 C6 (2026-06-12) reframed the Phase 33 F1 "three identical
+    // zones" decision: the meds zone now carries a z1 tint via the
+    // sectionZoneAlwaysOn override (Option C lock). The wrapper now
+    // takes an array of [sectionZone, sectionZoneAlwaysOn].
     expect(STRIPPED).toMatch(
-      /<View\s+testID=['"]section-zone-always-on['"]\s+style=\{styles\.sectionZone\}\s*>/,
+      /<View\s+testID=['"]section-zone-always-on['"]\s+style=\{\[styles\.sectionZone,\s*styles\.sectionZoneAlwaysOn\]\}\s*>/,
     );
   });
 
@@ -92,15 +96,17 @@ describe('Phase 33 F1 — three identical grounded zones on Care Plan', () => {
   // Eyebrow ABOVE the zone, not inside
   // --------------------------------------------------------------------------
 
-  it('contract 5: each SectionEyebrow renders OUTSIDE / before its zone (eyebrow above the grounded panel)', () => {
-    // Per F1 spec: "eyebrow ABOVE each zone." The expected JSX shape:
-    //   <SectionEyebrow text="Always on" />
-    //   <View testID="section-zone-always-on" style={styles.sectionZone}>...</View>
-    // Pin the order with a regex that requires the eyebrow line
-    // immediately before the zone open. Comments/whitespace allowed
-    // between (the stripped source removes them).
+  it('contract 5 [F7 C6]: SectionEyebrows render above their zones; meds eyebrow text flipped to "Medications"', () => {
+    // F7 C6: "Always on" eyebrow text retires in favor of "Medications"
+    // and the eyebrow is wrapped in an alwaysOnHeaderRow flexbox so the
+    // count badge can sit on the right. The pre-eyebrow → zone order
+    // is preserved (eyebrow row open → zone open).
+    expect(STRIPPED).toMatch(
+      /<View\s+style=\{styles\.alwaysOnHeaderRow\}>\s*<SectionEyebrow\s+text=['"]Medications['"]/,
+    );
+    // Daily tracking + Add when ready stay on the original eyebrow →
+    // zone pattern.
     for (const [eyebrowText, testId] of [
-      ['Always on', 'always-on'],
       ['Daily tracking', 'daily-tracking'],
       ['Add when ready', 'add-when-ready'],
     ] as const) {
@@ -115,16 +121,16 @@ describe('Phase 33 F1 — three identical grounded zones on Care Plan', () => {
   // Identity lock — all three zones share the SAME style ref
   // --------------------------------------------------------------------------
 
-  it('contract 6: all three zones use the SAME sectionZone style (no per-section variant)', () => {
-    // Pin absence of any sectionZoneAlwaysOn / sectionZoneWarm /
-    // similar bespoke variant. The user's spec is explicit: "all
-    // three identical." Three references to styles.sectionZone is
-    // the only correct shape.
-    const refs = STRIPPED.match(/style=\{styles\.sectionZone\}/g) ?? [];
-    expect(refs.length).toBe(3);
-    // No bespoke per-section style — guards against a future
-    // "let's just warm up the meds zone slightly" drift.
-    expect(STRIPPED).not.toMatch(/\bsectionZoneAlwaysOn\s*:\s*\{/);
+  it('contract 6 [F7 C6 reframe]: meds zone overrides via sectionZoneAlwaysOn z1 tint; Daily + Add stay neutral', () => {
+    // F7 C6 (2026-06-12) retired the Phase 33 F1 "all three identical"
+    // lock. Per Option C: meds is z1-tinted (warm ember-near-black),
+    // Daily Tracking + Add When Ready stay on the neutral sectionZone
+    // ground. The forward-guards against sectionZoneWarm /
+    // sectionZoneMeds bespoke variants STAY — the only legal override
+    // is sectionZoneAlwaysOn for the Option C meds tint.
+    const plain = STRIPPED.match(/style=\{styles\.sectionZone\}/g) ?? [];
+    expect(plain.length).toBe(2); // Daily Tracking + Add When Ready
+    expect(STRIPPED).toMatch(/styles\.sectionZoneAlwaysOn\b/);
     expect(STRIPPED).not.toMatch(/\bsectionZoneWarm\s*:\s*\{/);
     expect(STRIPPED).not.toMatch(/\bsectionZoneMeds\s*:\s*\{/);
   });

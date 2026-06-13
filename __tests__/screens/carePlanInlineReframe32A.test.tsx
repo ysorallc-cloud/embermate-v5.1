@@ -146,8 +146,13 @@ describe('Phase 32A F2 — Care Plan main 3-section restructure', () => {
       expect(STRIPPED).toMatch(/import\s*\{[^}]*\bSectionEyebrow\b[^}]*\}\s*from\s*['"][^'"]*SectionEyebrow['"]/);
     });
 
-    it('renders <SectionEyebrow text="Always on" ... />', () => {
-      expect(STRIPPED).toMatch(/<SectionEyebrow[^/]*text=["']Always on["']/i);
+    it('[F7 C6] renders <SectionEyebrow text="Medications" ... /> (eyebrow flipped from "Always on")', () => {
+      // F7 C6 (2026-06-12) flipped the meds-zone eyebrow text from
+      // "Always on" → "Medications" so the section reads as its own
+      // bucket-named zone instead of an operational label. The
+      // sectionZoneAlwaysOn z1 tint carries the always-on semantic
+      // visually.
+      expect(STRIPPED).toMatch(/<SectionEyebrow[^/]*text=["']Medications["']/i);
     });
 
     it('renders <SectionEyebrow text="Daily tracking" ... />', () => {
