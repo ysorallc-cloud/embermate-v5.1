@@ -73,9 +73,14 @@ import { nextWellnessWindowMembership } from '../../../utils/wellnessWindowMembe
 
 const STANDARD_PERIODS = ['morning', 'evening'] as const;
 
+// 'midday' renders as "Afternoon" — the codebase canon (MEDS_TIME_LABEL
+// + carePlanUnifiedTimeModel34F1 contract 11 ban the user-facing string
+// "Midday"), and it matches the merged Wellness row's subtitle
+// (WELLNESS_WINDOW_LABEL in app/care-plan/index.tsx). The 'midday'
+// TimeOfDay still bridges to the 'afternoon' settings slot (settingsKeyOf).
 const PERIOD_LABEL: Record<string, string> = {
   morning: 'Morning',
-  midday: 'Midday',
+  midday: 'Afternoon',
   afternoon: 'Afternoon',
   evening: 'Evening',
   night: 'Night',

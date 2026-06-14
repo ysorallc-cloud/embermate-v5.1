@@ -1,6 +1,19 @@
 // ============================================================================
 // WELLNESS CHECK-IN DRAWER — Phase 34 F5.3.
 //
+// ⚠️ SUPERSEDED (wellness-merge F5) — NO LONGER MOUNTED IN PRODUCTION.
+//   The F5.3 two-pseudo-key-row split (Morning Check-in / Evening
+//   Check-in as two sibling editor cards) was MERGED back into a single
+//   "Wellness Check-in" row whose drawer is the compact per-window
+//   WellnessWindowsDrawer (components/careplan/drawers/
+//   WellnessWindowsDrawer.tsx). app/care-plan/index.tsx now mounts that
+//   drawer; this file is referenced only by its own legacy tests
+//   (wellnessCheckInDrawerF5_3Adoption / wellnessCheckInDrawerReschedNotB2
+//   / wellnessTimeEditDrawerB2) and is retirement-pending — see the F5
+//   report. The Q-34.F5.A "split into two sibling editor cards" lock
+//   below is HISTORY, superseded by the merge; kept (not deleted) so the
+//   trail from split → merge stays legible.
+//
 // Third per-category adoption of the F5 What → Reminder editor
 // skeleton. Replaces the legacy combined WellnessDrawer (retired in
 // this commit) with a SINGLE shared component mounted twice — once
@@ -25,7 +38,9 @@
 // The exception is forward-guarded by contract 8 of
 // __tests__/components/wellnessCheckInDrawerF5_3Adoption.test.tsx.
 //
-// Q-34.F5.A Option C lock: the legacy combined WellnessDrawer is
+// Q-34.F5.A Option C lock [SUPERSEDED by wellness-merge F5 — the split
+// was merged back to one row + WellnessWindowsDrawer; retained as
+// history]: the legacy combined WellnessDrawer is
 // split into two sibling editor cards. UI-layer pseudo-keys
 // ('wellness-morning', 'wellness-evening') route to this component
 // with different periods. NO BucketType enum change — backing

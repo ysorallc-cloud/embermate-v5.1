@@ -220,11 +220,14 @@ jest.mock('../../components/careplan/drawers/VitalsDrawer', () => {
     VitalsDrawer: () => React.createElement('Text', { testID: 'drawer-vitals-body' }, '[VitalsDrawer]'),
   };
 });
-jest.mock('../../components/careplan/drawers/WellnessCheckInDrawer', () => {
+// Wellness-merge F5 — the merged row's drawer is WellnessWindowsDrawer
+// (the F3 compact per-window drawer); the old WellnessCheckInDrawer is
+// no longer imported by this screen, so its mock is retired here.
+jest.mock('../../components/careplan/drawers/WellnessWindowsDrawer', () => {
   const React = require('react');
   return {
-    WellnessCheckInDrawer: ({ period }: any) =>
-      React.createElement('Text', { testID: `drawer-wellness-${period}-body` }, `[WellnessCheckInDrawer ${period}]`),
+    WellnessWindowsDrawer: () =>
+      React.createElement('Text', { testID: 'drawer-wellness-body' }, '[WellnessWindowsDrawer]'),
   };
 });
 jest.mock('../../components/careplan/drawers/MedicationsDrawer', () => {
@@ -294,7 +297,7 @@ describe('CarePlanHomeScreen — render smoke test (F5.3.1 — closes the F5.3 w
     expect(queryByTestId('category-row-wellness-evening')).toBeNull();
   });
 
-  it('contract 4 (REAL BUCKET ROWS PRESERVED): vitals + meals rows still render alongside the wellness split', () => {
+  it('contract 4 (REAL BUCKET ROWS PRESERVED): vitals + meals rows still render alongside the merged wellness row', () => {
     const { getByTestId } = render(<CarePlanHomeScreen />);
     expect(getByTestId('category-row-vitals')).toBeTruthy();
     expect(getByTestId('category-row-meals')).toBeTruthy();

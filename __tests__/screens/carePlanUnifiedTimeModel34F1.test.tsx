@@ -252,12 +252,19 @@ describe('Phase 34 F1 — unified time-model foundation', () => {
     //     zero callers (grep-confirmed); dead-code sweep.
     // Phase 34 F5.3 — WellnessDrawer.tsx retired; replaced by
     // WellnessCheckInDrawer.tsx.
+    // Wellness-merge F5 — the live wellness drawer is now
+    // WellnessWindowsDrawer.tsx (the F3 compact per-window drawer); it
+    // joins the guarded list so its legacy 'midday' window renders the
+    // canon label "Afternoon", not "Midday". WellnessCheckInDrawer.tsx
+    // is superseded (retirement-pending) but kept in the list while it
+    // still exists.
     const liveSurfaces = [
       'types/carePlanConfig.ts',
       'components/careplan/drawers/MedicationsDrawer.tsx',
       'components/careplan/drawers/MealsDrawer.tsx',
       'components/careplan/drawers/VitalsDrawer.tsx',
       'components/careplan/drawers/WellnessCheckInDrawer.tsx',
+      'components/careplan/drawers/WellnessWindowsDrawer.tsx',
       'components/careplan/drawers/WaterDrawer.tsx',
       'components/careplan/drawers/SleepDrawer.tsx',
       'components/careplan/drawers/ActivityDrawer.tsx',

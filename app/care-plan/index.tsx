@@ -206,11 +206,10 @@ const MVP_SUPPRESSED_BUCKETS: readonly BucketType[] = ['errands', 'shifts', 'sel
 // ============================================================================
 
 interface CategoryRowProps {
-  // Phase 34 F5.3 — accepts pseudo-key row identifiers via the
-  // DailyTrackingRowKey superset, plus an explicit `icon` prop so
-  // the row doesn't have to know how to resolve icons for pseudo-
-  // keys vs real BucketTypes. The caller passes the icon name
-  // (typed against Ionicons).
+  // rowKey is a BucketType string (the wellness-merge F5 collapse
+  // retired the DailyTrackingRowKey pseudo-key superset). The explicit
+  // `icon` prop keeps icon resolution at the call site; the caller
+  // passes the icon name (typed against Ionicons).
   rowKey?: string;
   name: string;
   detail: string | null;

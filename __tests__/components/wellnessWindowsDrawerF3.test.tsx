@@ -211,6 +211,19 @@ describe('WellnessWindowsDrawer — F3 compact per-window rows', () => {
       expect(getByTestId('wellness-window-midday-enable').props.value).toBe(true);
     });
 
+    it('contract 3b (CANON LABEL): the legacy `midday` row renders the label "Afternoon", NOT "Midday" — matching the merged row subtitle + the codebase ban on "Midday" (wellness-merge F5)', () => {
+      const onUpdate = jest.fn();
+      const { getByTestId, queryByText } = render(
+        <WellnessWindowsDrawer
+          timesOfDay={['morning', 'midday', 'evening']}
+          onUpdate={onUpdate}
+        />,
+      );
+      const middayRow = getByTestId('wellness-window-midday');
+      expect(within(middayRow).getByText('Afternoon')).toBeTruthy();
+      expect(queryByText('Midday')).toBeNull();
+    });
+
     it('contract 4: legacy `night` renders its own row when present in timesOfDay', () => {
       const onUpdate = jest.fn();
       const { getByTestId } = render(
