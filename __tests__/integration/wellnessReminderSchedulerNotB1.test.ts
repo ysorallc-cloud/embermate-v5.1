@@ -3,8 +3,9 @@
 // device-facing layer (Expo's scheduleNotificationAsync call surface).
 //
 // CLOSES GAP B of the three notification-slice gaps:
-//   wellnessSettings.{period}.reminderEnabled is written by
-//   WellnessCheckInDrawer (line ~163-167) but NO consumer reads it.
+//   wellnessSettings.{period}.reminderEnabled is written by the
+//   wellness drawer (now WellnessWindowsDrawer.handleReminderTap) but
+//   NO consumer reads it.
 //   The unified scheduler (utils/notificationService.ts:602
 //   scheduleCarePlanNotifications) iterates items uniformly and reads
 //   item.notification.enabled — wellness CarePlanItems are created by

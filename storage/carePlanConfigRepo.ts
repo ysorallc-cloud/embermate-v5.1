@@ -18,6 +18,7 @@ import {
 } from '../types/carePlanConfig';
 import { generateUniqueId } from '../utils/idGenerator';
 import { DEFAULT_PATIENT_ID } from '../types/patient';
+import { nextWellnessWindowMembership } from '../utils/wellnessWindowMembership';
 
 // ============================================================================
 // STORAGE KEYS
@@ -183,12 +184,17 @@ export async function setWellnessWindowEnabled(
 ): Promise<CarePlanConfig> {
   const config = await getOrCreateCarePlanConfig(patientId);
   const currentTimes = (config.wellness?.timesOfDay ?? []) as string[];
-  const nextTimes = enabled
-    ? [...currentTimes.filter((t) => t !== window), window]
-    : currentTimes.filter((t) => t !== window);
+  // Wellness-merge F4 — the membership math is the shared
+  // nextWellnessWindowMembership (the SAME function the Care Plan
+  // drawer calls), so the wizard and drawer can never fork.
+  const { timesOfDay, enabled: bucketEnabled } = nextWellnessWindowMembership(
+    currentTimes,
+    window,
+    enabled,
+  );
   return updateBucketConfig(patientId, 'wellness', {
-    timesOfDay: nextTimes as any,
-    enabled: nextTimes.length > 0,
+    timesOfDay: timesOfDay as any,
+    enabled: bucketEnabled,
   });
 }
 

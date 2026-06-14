@@ -73,6 +73,42 @@ jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn() },
 }));
 
+// Wellness-merge F3 (post-8f27238d) — the live Care Plan home screen
+// now mounts WellnessWindowsDrawer when the wellness row is enabled +
+// expanded, which imports `@react-native-community/datetimepicker`.
+// The native module uses ES module syntax that babel-jest can't
+// transform; stub it so the smoke test parses + mounts.
+jest.mock('@react-native-community/datetimepicker', () => {
+  const React = require('react');
+  return {
+    __esModule: true,
+    default: ({ onChange, value, testID }: any) =>
+      React.createElement(
+        'DateTimePicker',
+        {
+          testID: testID ?? 'time-picker',
+          value,
+          onChange: (e: any, d: any) => onChange?.(e, d),
+        },
+        null,
+      ),
+  };
+});
+
+// Notification scheduler — fire-and-forget from the drawer's reminder +
+// time-edit handlers. Stub to a no-op.
+jest.mock('../../utils/notificationService', () => ({
+  rescheduleAllNotifications: jest.fn().mockResolvedValue(undefined),
+}));
+
+// services/carePlanGenerator's ensureDailyInstances is invoked inside
+// the wellness drawer's time-edit handler; smoke test never triggers
+// the edit so a plain stub suffices.
+jest.mock('../../services/carePlanGenerator', () => ({
+  ensureDailyInstances: jest.fn().mockResolvedValue(undefined),
+  getTodayDateString: () => '2026-06-13',
+}));
+
 jest.mock('expo-linear-gradient', () => {
   const React = require('react');
   return {
@@ -184,11 +220,14 @@ jest.mock('../../components/careplan/drawers/VitalsDrawer', () => {
     VitalsDrawer: () => React.createElement('Text', { testID: 'drawer-vitals-body' }, '[VitalsDrawer]'),
   };
 });
-jest.mock('../../components/careplan/drawers/WellnessCheckInDrawer', () => {
+// Wellness-merge F5 — the merged row's drawer is WellnessWindowsDrawer
+// (the F3 compact per-window drawer); the old WellnessCheckInDrawer is
+// no longer imported by this screen, so its mock is retired here.
+jest.mock('../../components/careplan/drawers/WellnessWindowsDrawer', () => {
   const React = require('react');
   return {
-    WellnessCheckInDrawer: ({ period }: any) =>
-      React.createElement('Text', { testID: `drawer-wellness-${period}-body` }, `[WellnessCheckInDrawer ${period}]`),
+    WellnessWindowsDrawer: () =>
+      React.createElement('Text', { testID: 'drawer-wellness-body' }, '[WellnessWindowsDrawer]'),
   };
 });
 jest.mock('../../components/careplan/drawers/MedicationsDrawer', () => {
@@ -245,16 +284,20 @@ describe('CarePlanHomeScreen — render smoke test (F5.3.1 — closes the F5.3 w
     expect(getByTestId('section-zone-daily-tracking')).toBeTruthy();
   });
 
-  it('contract 3 (WELLNESS SPLIT — TWO PSEUDO-KEY ROWS): both wellness-morning and wellness-evening rows render in the daily-tracking zone', () => {
-    // Q-34.F5.A Option C lock: the combined wellness row is replaced
-    // by two sibling pseudo-key rows. Forward-guard against a future
-    // refactor that accidentally collapses them back.
-    const { getByTestId } = render(<CarePlanHomeScreen />);
-    expect(getByTestId('category-row-wellness-morning')).toBeTruthy();
-    expect(getByTestId('category-row-wellness-evening')).toBeTruthy();
+  it('contract 3 (WELLNESS MERGE — ONE WELLNESS CHECK-IN ROW): the merged wellness row renders in the daily-tracking zone, with no pseudo-key siblings', () => {
+    // Wellness-merge supersession of Q-34.F5.A Option C — the F5.3
+    // pseudo-key split (wellness-morning / wellness-evening) was
+    // collapsed back to a single bucket-level 'wellness' row at
+    // 8f27238d. Storage shape is unchanged; the per-window enable +
+    // time + reminder editing moves into the row's drawer. Forward-
+    // guard against a future refactor reintroducing the pseudo-keys.
+    const { getByTestId, queryByTestId } = render(<CarePlanHomeScreen />);
+    expect(getByTestId('category-row-wellness')).toBeTruthy();
+    expect(queryByTestId('category-row-wellness-morning')).toBeNull();
+    expect(queryByTestId('category-row-wellness-evening')).toBeNull();
   });
 
-  it('contract 4 (REAL BUCKET ROWS PRESERVED): vitals + meals rows still render alongside the wellness split', () => {
+  it('contract 4 (REAL BUCKET ROWS PRESERVED): vitals + meals rows still render alongside the merged wellness row', () => {
     const { getByTestId } = render(<CarePlanHomeScreen />);
     expect(getByTestId('category-row-vitals')).toBeTruthy();
     expect(getByTestId('category-row-meals')).toBeTruthy();

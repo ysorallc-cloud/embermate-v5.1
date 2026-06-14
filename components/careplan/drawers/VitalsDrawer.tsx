@@ -126,9 +126,10 @@ export function VitalsDrawer({
   // the scheduler's NOT.7 branch live-reads the persisted gate.
   // onUpdate still fires so the parent's useCarePlanConfig state
   // refreshes; we do NOT rely on the parent's persistence path.
-  // Mirrors WellnessCheckInDrawer's toggleReminder shape: bare
-  // reschedule (no sync/ensure) because the gate is a live read,
-  // not baked into instance.scheduledTime (B3 contract 7).
+  // Same bare-reschedule shape the wellness reminder toggle uses
+  // (WellnessWindowsDrawer.handleReminderTap): no sync/ensure because
+  // the gate is a live read, not baked into instance.scheduledTime
+  // (B3 contract 7).
   const toggleReminders = useCallback(
     async (value: boolean) => {
       // 1. onUpdate FIRST — parent's useCarePlanConfig state refreshes

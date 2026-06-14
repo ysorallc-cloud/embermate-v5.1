@@ -109,7 +109,12 @@ describe('Phase 33 F2 — emoji retired from Care Plan rendering; Ionicons outli
     // The caller still drives icons via BUCKET_ICON_MAP for real
     // BucketTypes (per-row Daily Tracking lookup falls through to
     // it). Pin that the source still references the map.
-    expect(STRIPPED).toMatch(/BUCKET_ICON_MAP\[\s*row\s*as\s*BucketType\s*\]/);
+    // Wellness-merge update (post 8f27238d) — the F5.3 pseudo-key
+    // row identifiers (wellness-morning / wellness-evening) were
+    // collapsed back to real BucketTypes, so the row variable no
+    // longer needs the `row as BucketType` cast. The map lookup is
+    // now `BUCKET_ICON_MAP[row]` (still through the same map).
+    expect(STRIPPED).toMatch(/BUCKET_ICON_MAP\[\s*row\s*\]/);
     expect(STRIPPED).toMatch(/<Ionicons\s+name=\{BUCKET_ICON_MAP\[\s*bucket\s*\]\}/);
   });
 
