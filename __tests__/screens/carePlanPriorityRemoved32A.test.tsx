@@ -63,9 +63,10 @@ describe('Phase 32A — Priority UI removed (absence pin across Care Plan surfac
   it('contract 1: every in-scope Care Plan UI surface is included in this audit', () => {
     // Pin the surface list so a future drawer file (added without
     // updating this list) doesn't escape the absence check.
-    // Phase 34 F5.3 — WellnessDrawer.tsx retired; replaced by
-    // WellnessCheckInDrawer.tsx (one component mounted twice for
-    // Morning Check-in + Evening Check-in).
+    // Phase 34 F5.3 — WellnessDrawer.tsx retired; replaced by the
+    // per-window check-in editor. Wellness-merge F5 then merged the two
+    // pseudo-key rows into one row whose drawer is WellnessWindowsDrawer
+    // .tsx (WellnessCheckInDrawer.tsx deleted in the same slice).
     expect(SURFACES.length).toBeGreaterThanOrEqual(9); // home + 8 drawers
     const drawerNames = drawerFiles().map((f) => f.split('/').pop());
     for (const expected of [
@@ -75,7 +76,7 @@ describe('Phase 32A — Priority UI removed (absence pin across Care Plan surfac
       'SleepDrawer.tsx',
       'VitalsDrawer.tsx',
       'WaterDrawer.tsx',
-      'WellnessCheckInDrawer.tsx',
+      'WellnessWindowsDrawer.tsx',
     ]) {
       expect(drawerNames).toContain(expected);
     }

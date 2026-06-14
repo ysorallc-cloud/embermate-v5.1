@@ -107,8 +107,8 @@ export function MealsDrawer({
   // the scheduler's NOT.7 branch live-reads the persisted gate.
   // onUpdate still fires so the parent's useCarePlanConfig state
   // refreshes; we do NOT rely on the parent's persistence path.
-  // Mirrors WellnessCheckInDrawer's toggleReminder + VitalsDrawer's
-  // toggleReminders: bare reschedule (no sync/ensure) because the
+  // Same bare-reschedule shape as VitalsDrawer.toggleReminders +
+  // WellnessWindowsDrawer.handleReminderTap: no sync/ensure because the
   // gate is a live read, not baked into instance.scheduledTime
   // (B3 contract 7).
   const toggleReminders = useCallback(

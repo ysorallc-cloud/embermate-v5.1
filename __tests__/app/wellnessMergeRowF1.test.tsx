@@ -19,23 +19,18 @@
 //     (rt-1..rt-5) stay GREEN through this change and are the proof
 //     that the membership write is unaffected.
 //
-// SCOPE NOTES / DECISIONS THIS TEST ENCODES (flagged for review):
-//   • SUBTITLE FORMAT (copy choice): the merged row's subtitle is
-//     formatted from wellness.timesOfDay using capitalized window
-//     names joined with ", " — mirroring the meals convention
-//     (getBucketStatusText, carePlanConfig.ts:664). Both windows →
-//     "Morning, Evening"; morning-only → "Morning"; evening-only →
-//     "Evening"; off → no subtitle. F2 implements the formatter.
-//   • DRAWER COMPOSITION (assumed, pending the F3 mock): the single
-//     merged row's drawer mounts the EXISTING WellnessCheckInDrawer
-//     once per active window (morning + evening) under one expand.
-//     This reuses the existing, decision-locked `onToggleEnabled`
-//     prop (no new drawer API invented) and matches the F5 note that
-//     drawer-component tests are "likely unchanged." The drawer's
-//     VISUAL layout is deferred to F3's mock (Decision #2). Contract
-//     6 only asserts the per-window toggle WIRING (membership write),
-//     not layout. If the forthcoming mock changes the composition,
-//     F5 cascades this contract.
+// SCOPE NOTES (final state — the F1-time assumptions below were
+// resolved by later slices):
+//   • SUBTITLE FORMAT: the merged row's subtitle is formatted from
+//     wellness.timesOfDay with an ampersand join (F2 decision —
+//     superseded the original comma proposal): "Morning & Evening" /
+//     "Morning" / "Evening" / legacy "Morning, Afternoon & Evening";
+//     off → no subtitle. See the contract 3/4/5/5b assertions below.
+//   • DRAWER COMPOSITION: the merged row's drawer is the compact
+//     per-window WellnessWindowsDrawer (F3). The F1-time guess (stack
+//     two WellnessCheckInDrawers) was NOT taken; that component was
+//     retired in F5. Contract 7 (per-window write wiring) is owned by
+//     wellnessWindowsDrawerF3.test.tsx and skipped here.
 //
 // Mirrors the mock scaffold in
 // __tests__/app/carePlanHomeScreenSmoke.test.tsx (the F5.3.1
