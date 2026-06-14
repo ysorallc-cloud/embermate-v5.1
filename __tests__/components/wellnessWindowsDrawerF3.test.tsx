@@ -145,6 +145,7 @@ import { render, fireEvent, within } from '@testing-library/react-native';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { WellnessWindowsDrawer } from '../../components/careplan/drawers/WellnessWindowsDrawer';
+import { DEFAULT_WELLNESS_SETTINGS } from '../../types/wellnessSettings';
 
 const ROOT = join(__dirname, '..', '..');
 
@@ -393,6 +394,40 @@ describe('WellnessWindowsDrawer — F3 compact per-window rows', () => {
       expect(indexSrc).toMatch(/import\s+\{\s*ThemedSwitch\s*\}\s+from\s+['"].*common\/ThemedSwitch['"]/);
       // No re-inlined raw <Switch> in the drawer (would re-introduce drift).
       expect(drawerSrc).not.toMatch(/<Switch\b/);
+    });
+  });
+
+  // ── F. ONBOARDING → DRAWER CONSISTENCY (wellness-merge F4) ──────────────────
+  // The wizard writes only timesOfDay (no wellnessSettings — Option A
+  // keeps onboarding a fast enable-only flow). So when a new user lands
+  // in the drawer, the windows they enabled in onboarding must already
+  // be populated from the REAL store defaults (07:00 / 20:00 / reminders
+  // on) — not blank, not missing. Pinned against the actual
+  // DEFAULT_WELLNESS_SETTINGS constant so a defaults change can't
+  // silently leave onboarding users with an empty drawer.
+  describe('F. onboarding → drawer defaults consistency', () => {
+    it('contract 16: after the wizard enables morning+evening, the drawer shows both windows populated with the real defaults (7:00 AM / 8:00 PM, reminders ON)', () => {
+      // The store returns DEFAULT_WELLNESS_SETTINGS for a fresh user;
+      // the wizard only set timesOfDay=['morning','evening'].
+      mockSettings = { ...DEFAULT_WELLNESS_SETTINGS };
+      const onUpdate = jest.fn();
+      const { getByTestId } = render(
+        <WellnessWindowsDrawer timesOfDay={['morning', 'evening']} onUpdate={onUpdate} />,
+      );
+
+      // Morning — default 07:00 → "7:00 AM", reminder ON (sage bell).
+      const morningTime = within(getByTestId('wellness-window-morning-time')).getByText('7:00 AM');
+      expect(morningTime).toBeTruthy();
+      expect(getByTestId('wellness-window-morning-bell').props.name).toBe('notifications-outline');
+
+      // Evening — default 20:00 → "8:00 PM", reminder ON.
+      const eveningTime = within(getByTestId('wellness-window-evening-time')).getByText('8:00 PM');
+      expect(eveningTime).toBeTruthy();
+      expect(getByTestId('wellness-window-evening-bell').props.name).toBe('notifications-outline');
+
+      // Both enable toggles read ON (windows are in timesOfDay).
+      expect(getByTestId('wellness-window-morning-enable').props.value).toBe(true);
+      expect(getByTestId('wellness-window-evening-enable').props.value).toBe(true);
     });
   });
 });

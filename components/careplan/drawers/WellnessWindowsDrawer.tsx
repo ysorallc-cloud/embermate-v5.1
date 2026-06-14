@@ -67,6 +67,7 @@ import {
 } from '../../../services/carePlanGenerator';
 import { DEFAULT_PATIENT_ID } from '../../../storage/carePlanRepo';
 import { logError } from '../../../utils/devLog';
+import { nextWellnessWindowMembership } from '../../../utils/wellnessWindowMembership';
 
 // ── Period helpers ──────────────────────────────────────────────────────────
 
@@ -151,10 +152,10 @@ export function WellnessWindowsDrawer({
 
   const handleEnableChange = useCallback(
     (period: string, next: boolean) => {
-      const nextTimes = next
-        ? [...timesOfDay.filter((t) => t !== period), period]
-        : timesOfDay.filter((t) => t !== period);
-      onUpdate({ timesOfDay: nextTimes, enabled: nextTimes.length > 0 });
+      // Wellness-merge F4 — shared membership math (the SAME function
+      // the onboarding wizard's setWellnessWindowEnabled calls), so the
+      // two surfaces can never fork.
+      onUpdate(nextWellnessWindowMembership(timesOfDay, period, next));
       // Bucket toggle is enough to drive the scheduler downstream via
       // the parent's updateBucket → ensureDailyInstances loop. The
       // drawer does not call reschedule itself for enable changes (the
