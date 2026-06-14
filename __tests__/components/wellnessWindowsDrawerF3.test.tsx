@@ -146,8 +146,13 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { WellnessWindowsDrawer } from '../../components/careplan/drawers/WellnessWindowsDrawer';
 import { DEFAULT_WELLNESS_SETTINGS } from '../../types/wellnessSettings';
+import { rescheduleAllNotifications } from '../../utils/notificationService';
+import { ensureDailyInstances } from '../../services/carePlanGenerator';
 
 const ROOT = join(__dirname, '..', '..');
+const rescheduleMock = rescheduleAllNotifications as jest.Mock;
+const ensureMock = ensureDailyInstances as jest.Mock;
+const flush = () => new Promise((r) => setImmediate(r));
 
 function setSettings(next: any) {
   mockSettings = { ...mockSettings, ...next };
@@ -155,6 +160,8 @@ function setSettings(next: any) {
 
 beforeEach(() => {
   mockUpdateSettings.mockClear();
+  rescheduleMock.mockClear();
+  ensureMock.mockClear();
   // Reset settings to defaults
   mockSettings = {
     morning: { enabled: true, time: '07:00', checks: ['sleep'], reminderEnabled: true, optionalChecks: {} },
@@ -418,6 +425,70 @@ describe('WellnessWindowsDrawer — F3 compact per-window rows', () => {
   // on) — not blank, not missing. Pinned against the actual
   // DEFAULT_WELLNESS_SETTINGS constant so a defaults change can't
   // silently leave onboarding users with an empty drawer.
+  // ── G. RESCHEDULE WIRING (migrated from WellnessCheckInDrawer) ──────────────
+  // Migrates the notification-reschedule coverage that previously lived
+  // ONLY on the retired WellnessCheckInDrawer (wellnessCheckInDrawer
+  // ReschedNotB2 + wellnessTimeEditDrawerB2). Both surfaces share the
+  // asymmetric-trigger discipline (CLAUDE.md notification slice):
+  //   • reminder toggle → rescheduleAllNotifications ONLY (the gate is a
+  //     live read at schedule time; no ensure needed).
+  //   • time change → ensureDailyInstances → rescheduleAllNotifications
+  //     (fire-time is baked into the instance; bare reschedule fires
+  //     stale). Unlike the old drawer (which had NO time-edit UI, so
+  //     this path was banked), WellnessWindowsDrawer's time chip makes
+  //     it LIVE — hence it must be pinned here.
+  describe('G. reschedule wiring (migrated from WellnessCheckInDrawer)', () => {
+    it('contract 17 (REMINDER TOGGLE → RESCHEDULE ONLY): tapping a window reminder bell calls rescheduleAllNotifications and does NOT call ensureDailyInstances (asymmetric — live-read gate)', async () => {
+      const onUpdate = jest.fn();
+      const { getByTestId } = render(
+        <WellnessWindowsDrawer timesOfDay={['morning', 'evening']} onUpdate={onUpdate} />,
+      );
+      fireEvent.press(getByTestId('wellness-window-morning-reminder'));
+      await flush();
+      expect(rescheduleMock).toHaveBeenCalledWith('default');
+      expect(ensureMock).not.toHaveBeenCalled();
+      // The reminder write itself is the settings store, not the bucket.
+      expect(onUpdate).not.toHaveBeenCalled();
+    });
+
+    it('contract 18 (TIME CHANGE → ENSURE THEN RESCHEDULE): editing a window time calls ensureDailyInstances BEFORE rescheduleAllNotifications (fire-time baked into the instance)', async () => {
+      const onUpdate = jest.fn();
+      const { getByTestId } = render(
+        <WellnessWindowsDrawer timesOfDay={['morning', 'evening']} onUpdate={onUpdate} />,
+      );
+      fireEvent.press(getByTestId('wellness-window-morning-time'));
+      const newDate = new Date();
+      newDate.setHours(8, 30, 0, 0);
+      fireEvent(getByTestId('wellness-window-morning-time-picker'), 'change', { type: 'set' }, newDate);
+      await flush();
+
+      expect(ensureMock).toHaveBeenCalledTimes(1);
+      expect(rescheduleMock).toHaveBeenCalledWith('default');
+      // Order: ensure must precede reschedule (else the OS queue reads a
+      // stale scheduledTime).
+      expect(ensureMock.mock.invocationCallOrder[0]).toBeLessThan(
+        rescheduleMock.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('contract 19 (NO-OP TIME EDIT → NO RESCHEDULE THRASH): re-picking the SAME time does not fire ensure/reschedule', async () => {
+      const onUpdate = jest.fn();
+      const { getByTestId } = render(
+        <WellnessWindowsDrawer timesOfDay={['morning', 'evening']} onUpdate={onUpdate} />,
+      );
+      fireEvent.press(getByTestId('wellness-window-morning-time'));
+      // morning default is 07:00 — pick the same time.
+      const sameDate = new Date();
+      sameDate.setHours(7, 0, 0, 0);
+      fireEvent(getByTestId('wellness-window-morning-time-picker'), 'change', { type: 'set' }, sameDate);
+      await flush();
+
+      expect(mockUpdateSettings).not.toHaveBeenCalled();
+      expect(ensureMock).not.toHaveBeenCalled();
+      expect(rescheduleMock).not.toHaveBeenCalled();
+    });
+  });
+
   describe('F. onboarding → drawer defaults consistency', () => {
     it('contract 16: after the wizard enables morning+evening, the drawer shows both windows populated with the real defaults (7:00 AM / 8:00 PM, reminders ON)', () => {
       // The store returns DEFAULT_WELLNESS_SETTINGS for a fresh user;
