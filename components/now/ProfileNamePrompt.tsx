@@ -39,6 +39,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, Fonts, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
 import { StorageKeys } from '../../utils/storageKeys';
+import { getCaregiverProfile } from '../../storage/caregiverProfileRepo';
 import { navigate } from '../../lib/navigate';
 import { useDataListener, emitDataUpdate } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
@@ -71,12 +72,18 @@ export const ProfileNamePrompt: React.FC<ProfileNamePromptProps> = ({
 
   const refresh = useCallback(async () => {
     try {
-      const [completeFlag, name, count] = await Promise.all([
+      // The caregiver name lives in the caregiverProfileRepo
+      // ('caregiver_profile' object), written by who.tsx + Settings>
+      // Profile via saveCaregiverProfile. (It used to read the dead
+      // StorageKeys.CAREGIVER_NAME key, which has no writer — so the
+      // banner never cleared.)
+      const [completeFlag, profile, count] = await Promise.all([
         safeGetItem<string | null>(StorageKeys.ONBOARDING_COMPLETE, null),
-        safeGetItem<string | null>(StorageKeys.CAREGIVER_NAME, null),
+        getCaregiverProfile(),
         safeGetItem<number>(DISMISS_KEY, 0),
       ]);
       setOnboardingComplete(completeFlag === 'true');
+      const name = profile?.name;
       setCaregiverName(name && name.trim().length > 0 ? name : null);
       setDismissedCount(typeof count === 'number' ? count : 0);
     } catch (e) {

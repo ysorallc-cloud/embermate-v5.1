@@ -37,8 +37,7 @@ import { getMedicalInfo, MedicalInfo } from '../utils/medicalInfo';
 import { getEmergencyContacts, CareTeamMember } from '../utils/careTeamStorage';
 import { getTodayVitalsLog, getTodayMoodLog, getTodayMealsLog, getTodayNotesLog } from '../utils/centralStorage';
 import { getCareActivities, CareActivity } from '../utils/collaborativeCare';
-import { safeGetItem } from '../utils/safeStorage';
-import { StorageKeys } from '../utils/storageKeys';
+import { getCaregiverProfile } from '../storage/caregiverProfileRepo';
 import { getTodayDateString } from '../services/carePlanGenerator';
 
 // Report utilities
@@ -125,8 +124,11 @@ export default function CareReportScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      const [cgName, meds, allLogs, appts, mi, contacts, brief, allInsights, prep, vitals, mood, meals, notes, activities] = await Promise.all([
-        safeGetItem<string | null>(StorageKeys.CAREGIVER_NAME, null),
+      const [cgProfile, meds, allLogs, appts, mi, contacts, brief, allInsights, prep, vitals, mood, meals, notes, activities] = await Promise.all([
+        // Report author = the live caregiver profile (caregiver_profile),
+        // the same source who.tsx + Settings>Profile write. Was the dead
+        // StorageKeys.CAREGIVER_NAME key (no writer) → author showed blank.
+        getCaregiverProfile(),
         getMedications(),
         getMedicationLogs(),
         getUpcomingAppointments(),
@@ -142,7 +144,7 @@ export default function CareReportScreen() {
         getCareActivities(10),
       ]);
 
-      if (cgName) setCaregiverName(cgName);
+      if (cgProfile?.name) setCaregiverName(cgProfile.name);
       setMedications(meds.filter(m => m.active));
       setMedicationLogs(allLogs);
       setAppointments(appts);

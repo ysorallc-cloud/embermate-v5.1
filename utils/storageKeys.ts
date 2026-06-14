@@ -35,7 +35,9 @@ export const StorageKeys = {
   PATIENT_LANGUAGE: '@embermate_patient_language',
   PATIENT_RELATIONSHIP: '@embermate_patient_relationship',
   MEDICAL_INFO: '@embermate_medical_info',
-  CAREGIVER_NAME: '@embermate_caregiver_name',
+  // CAREGIVER_NAME ('@embermate_caregiver_name') removed (now-rebuild
+  // dead-key fix): it had no writer; the caregiver name lives in
+  // caregiverProfileRepo ('caregiver_profile'). Readers repointed there.
 
   // ---- Medications ----
   MEDICATIONS: '@embermate_medications',
