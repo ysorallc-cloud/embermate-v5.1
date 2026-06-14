@@ -28,6 +28,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { GlassCard } from '../components/aurora/GlassCard';
 import { SubScreenHeader } from '../components/SubScreenHeader';
+import { ReportPreparedBy } from '../components/reports/ReportPreparedBy';
 
 // Data sources
 import { useActivePatientName } from '../hooks/useActivePatientName';
@@ -223,6 +224,7 @@ export default function CareReportScreen() {
             { label: 'Primary Concerns', value: report.concerns.length > 0 ? report.concerns.slice(0, 2).join('; ') : 'None' },
           ],
           generatedAt: report.generatedAt,
+          preparedBy: caregiverName,
         };
         await generateAndSharePDF(reportData, { name: patientName });
       } else if (scope === 'today') {
@@ -256,6 +258,7 @@ export default function CareReportScreen() {
       summary: careBrief.statusNarrative || 'Daily care summary',
       details,
       generatedAt: new Date(),
+      preparedBy: caregiverName,
     };
     await generateAndSharePDF(reportData, { name: patientName });
   };
@@ -280,6 +283,7 @@ export default function CareReportScreen() {
       summary: careBrief.handoffNarrative || 'Visit preparation summary',
       details,
       generatedAt: new Date(),
+      preparedBy: caregiverName,
     };
     await generateAndSharePDF(reportData, { name: patientName });
   };
@@ -335,6 +339,7 @@ export default function CareReportScreen() {
         ? 'Attention Items:\n' + careBrief.attentionItems.map(a => `- ${a.text}${a.detail ? ' - ' + a.detail : ''}`).join('\n')
         : undefined,
       generatedAt: new Date(),
+      preparedBy: caregiverName,
     };
     await generateAndSharePDF(reportData, { name: careBrief.patient.name || undefined, age: careBrief.patient.age || undefined });
   };
@@ -424,6 +429,9 @@ export default function CareReportScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
           }
         >
+          {/* Surfaces who prepared the report — applies to every scope. */}
+          <ReportPreparedBy caregiverName={caregiverName} />
+
           {scope === 'handoff' && <HandoffView
             patientName={patientName}
             medications={activeMeds}

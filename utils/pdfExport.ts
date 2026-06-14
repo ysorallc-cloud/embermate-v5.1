@@ -27,6 +27,9 @@ export interface ReportData {
   sections?: ReportSection[];
   notes?: string;
   generatedAt?: Date;
+  /** Caregiver who prepared the report. Rendered as a "Prepared by {name}"
+   *  line; omitted entirely when absent. */
+  preparedBy?: string;
 }
 
 export interface PatientInfo {
@@ -37,7 +40,7 @@ export interface PatientInfo {
 }
 
 // Generate HTML template for PDF
-function generateHTML(data: ReportData, patient?: PatientInfo): string {
+export function generateHTML(data: ReportData, patient?: PatientInfo): string {
   const timestamp = data.generatedAt || new Date();
   const formattedDate = timestamp.toLocaleDateString('en-US', {
     weekday: 'long',
@@ -225,6 +228,7 @@ function generateHTML(data: ReportData, patient?: PatientInfo): string {
 
       <h1 class="report-title">${data.title}</h1>
       <p class="report-period">${data.periodLabel}</p>
+      ${data.preparedBy ? `<p class="report-period">Prepared by ${data.preparedBy}</p>` : ''}
 
       <div class="summary-box">
         <div class="summary-label">Summary</div>
@@ -301,6 +305,10 @@ export function generatePreviewHTML(data: ReportData, patient?: PatientInfo): st
 
   if (patient?.name) {
     lines.push(`Patient: ${patient.name}`);
+  }
+
+  if (data.preparedBy) {
+    lines.push(`Prepared by ${data.preparedBy}`);
   }
 
   // The summary field contains the structured report text
