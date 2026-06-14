@@ -364,9 +364,11 @@ const createStyles = (c: typeof Colors) =>
     },
     timeText: {
       fontSize: 14,
-      // Gold = the schedule semantic (matches UpNextCard / TimelineItem
-      // scheduled-item accents). Reserved for the time chip, not the bell.
-      color: c.gold,
+      // Quiet gray. Gold is the schedule-URGENCY semantic (Now's "Up
+      // Next"); a static settings time isn't that, so coloring it gold
+      // would dilute gold's meaning. The bell carries the only color
+      // accent in this row (sage when active).
+      color: c.textSecondary,
     },
     bellChip: {
       paddingHorizontal: 6,

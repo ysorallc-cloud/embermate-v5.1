@@ -372,14 +372,15 @@ describe('WellnessWindowsDrawer — F3 compact per-window rows', () => {
       expect(bell.props.color).toBe('textMuted');
     });
 
-    it('contract 14 (GOLD RESERVED FOR THE TIME CHIP): the time text uses the gold schedule color', () => {
+    it('contract 14 (TIME CHIP STAYS QUIET GRAY): the time text uses textSecondary, NOT gold — gold is schedule-urgency (Now\'s Up Next), and a static settings time isn\'t that', () => {
       const onUpdate = jest.fn();
       const { getByTestId } = render(
         <WellnessWindowsDrawer timesOfDay={['morning', 'evening']} onUpdate={onUpdate} />,
       );
       const timeBtn = getByTestId('wellness-window-morning-time');
       const timeText = within(timeBtn).getByText('7:00 AM');
-      expect(timeText.props.style.color).toBe('gold');
+      expect(timeText.props.style.color).toBe('textSecondary');
+      expect(timeText.props.style.color).not.toBe('gold');
     });
 
     it('contract 15 (SHARED TOGGLE — anti-drift): WellnessWindowsDrawer + CategoryRow both consume the shared ThemedSwitch; the drawer has no bare <Switch>', () => {
