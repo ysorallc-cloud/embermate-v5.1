@@ -32,8 +32,10 @@ import {
   ScrollView,
   RefreshControl,
   Linking,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { navigate } from '../../lib/navigate';
 import { AffirmationHeader } from '../../components/support/AffirmationHeader';
@@ -204,6 +206,19 @@ export default function SupportScreen() {
               identity-statement copy ("This is your space") instead
               of the bare name. */}
           <View style={styles.headerWrap}>
+            {/* Single canonical Settings entry (settings-entry stranding
+                fix). The gear was retired from the Insights header (F7)
+                and the You tab is its replacement home. Neutral
+                navigation color — not an accent/status cue. */}
+            <TouchableOpacity
+              style={styles.settingsGear}
+              onPress={() => navigate('/settings')}
+              accessibilityRole="button"
+              accessibilityLabel="Settings"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons name="settings-outline" size={22} color={colors.textSecondary} />
+            </TouchableOpacity>
             <Text style={styles.greeting}>
               {composeYouGreeting({ hour: new Date().getHours(), name: caregiverName })}
             </Text>
@@ -324,6 +339,16 @@ function createStyles(c: typeof Colors) {
       paddingHorizontal: 4,
       borderBottomWidth: 0.5,
       borderBottomColor: c.glassHover,
+    },
+    // Settings gear — pinned to the header's upper-right, aligned with
+    // the greeting's top. Absolute so it doesn't disturb the greeting /
+    // caregiver-chip stack.
+    settingsGear: {
+      position: 'absolute',
+      top: 28,
+      right: 4,
+      zIndex: 2,
+      padding: 6, // allow: tap-target padding (Apple HIG ≥44pt with hitSlop)
     },
     // Phase 33b Scope 1 — greeting canonical block per
     // project_brand_alignment_canon.md `.phone-greeting`. Symmetric with
