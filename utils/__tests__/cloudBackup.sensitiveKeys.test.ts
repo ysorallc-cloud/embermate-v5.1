@@ -14,7 +14,9 @@ import {
 
 const ENCRYPTION_KEY_ALIAS = 'embermate_master_key';
 const SENSITIVE_KEY = '@embermate_central_vitals_logs';
-const NON_SENSITIVE_KEY = '@embermate_patient_name';
+// encrypt-pii moved @embermate_patient_name onto the sensitive allowlist,
+// so the non-sensitive control uses a genuinely non-PII key (theme).
+const NON_SENSITIVE_KEY = '@embermate_theme';
 
 // Helper: decrypt a backup using the same password
 // (re-implements the decryption path to inspect the payload)

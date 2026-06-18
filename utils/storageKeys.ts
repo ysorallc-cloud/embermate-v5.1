@@ -149,6 +149,13 @@ export const StorageKeys = {
   // encrypted in-place at the same AsyncStorage key. Idempotent +
   // atomic. Pinned by encryptionMigrationV2.test.ts.
   ENCRYPTION_MIGRATED_V2: '@embermate_encryption_migrated_v2',
+  // encrypt-pii — bumped V2 → V3 so the sweep re-runs ONCE for
+  // already-V2 users to encrypt newly-sensitive IDENTITY PII that was
+  // off the allowlist (caregiver_profile, @embermate_patient_name
+  // mirror, @embermate_patient_relationship/_gender/_age/_language).
+  // Same in-place re-encrypt mechanics as V2. Pinned by
+  // encryptionMigrationV3Pii.test.ts.
+  ENCRYPTION_MIGRATED_V3: '@embermate_encryption_migrated_v3',
   // Phase 35 Slice 2 — one-time sweep that moves caregiver notes out
   // of LogEntry.data.notes into the canonical LogEntry.notes field.
   // Pre-Slice-2 the medication log screen passed notes in the 3rd-arg
