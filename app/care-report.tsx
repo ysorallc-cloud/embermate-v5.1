@@ -28,6 +28,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { GlassCard } from '../components/aurora/GlassCard';
 import { SubScreenHeader } from '../components/SubScreenHeader';
+import { ReportPreparedBy } from '../components/reports/ReportPreparedBy';
 
 // Data sources
 import { useActivePatientName } from '../hooks/useActivePatientName';
@@ -37,8 +38,7 @@ import { getMedicalInfo, MedicalInfo } from '../utils/medicalInfo';
 import { getEmergencyContacts, CareTeamMember } from '../utils/careTeamStorage';
 import { getTodayVitalsLog, getTodayMoodLog, getTodayMealsLog, getTodayNotesLog } from '../utils/centralStorage';
 import { getCareActivities, CareActivity } from '../utils/collaborativeCare';
-import { safeGetItem } from '../utils/safeStorage';
-import { StorageKeys } from '../utils/storageKeys';
+import { getCaregiverProfile } from '../storage/caregiverProfileRepo';
 import { getTodayDateString } from '../services/carePlanGenerator';
 
 // Report utilities
@@ -125,8 +125,11 @@ export default function CareReportScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      const [cgName, meds, allLogs, appts, mi, contacts, brief, allInsights, prep, vitals, mood, meals, notes, activities] = await Promise.all([
-        safeGetItem<string | null>(StorageKeys.CAREGIVER_NAME, null),
+      const [cgProfile, meds, allLogs, appts, mi, contacts, brief, allInsights, prep, vitals, mood, meals, notes, activities] = await Promise.all([
+        // Report author = the live caregiver profile (caregiver_profile),
+        // the same source who.tsx + Settings>Profile write. Was the dead
+        // StorageKeys.CAREGIVER_NAME key (no writer) → author showed blank.
+        getCaregiverProfile(),
         getMedications(),
         getMedicationLogs(),
         getUpcomingAppointments(),
@@ -142,7 +145,7 @@ export default function CareReportScreen() {
         getCareActivities(10),
       ]);
 
-      if (cgName) setCaregiverName(cgName);
+      if (cgProfile?.name) setCaregiverName(cgProfile.name);
       setMedications(meds.filter(m => m.active));
       setMedicationLogs(allLogs);
       setAppointments(appts);
@@ -221,6 +224,7 @@ export default function CareReportScreen() {
             { label: 'Primary Concerns', value: report.concerns.length > 0 ? report.concerns.slice(0, 2).join('; ') : 'None' },
           ],
           generatedAt: report.generatedAt,
+          preparedBy: caregiverName,
         };
         await generateAndSharePDF(reportData, { name: patientName });
       } else if (scope === 'today') {
@@ -254,6 +258,7 @@ export default function CareReportScreen() {
       summary: careBrief.statusNarrative || 'Daily care summary',
       details,
       generatedAt: new Date(),
+      preparedBy: caregiverName,
     };
     await generateAndSharePDF(reportData, { name: patientName });
   };
@@ -278,6 +283,7 @@ export default function CareReportScreen() {
       summary: careBrief.handoffNarrative || 'Visit preparation summary',
       details,
       generatedAt: new Date(),
+      preparedBy: caregiverName,
     };
     await generateAndSharePDF(reportData, { name: patientName });
   };
@@ -333,6 +339,7 @@ export default function CareReportScreen() {
         ? 'Attention Items:\n' + careBrief.attentionItems.map(a => `- ${a.text}${a.detail ? ' - ' + a.detail : ''}`).join('\n')
         : undefined,
       generatedAt: new Date(),
+      preparedBy: caregiverName,
     };
     await generateAndSharePDF(reportData, { name: careBrief.patient.name || undefined, age: careBrief.patient.age || undefined });
   };
@@ -422,6 +429,9 @@ export default function CareReportScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
           }
         >
+          {/* Surfaces who prepared the report — applies to every scope. */}
+          <ReportPreparedBy caregiverName={caregiverName} />
+
           {scope === 'handoff' && <HandoffView
             patientName={patientName}
             medications={activeMeds}

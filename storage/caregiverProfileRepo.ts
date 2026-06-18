@@ -9,6 +9,8 @@
 
 import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { logError } from '../utils/devLog';
+import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 
 export const CAREGIVER_PROFILE_KEY = 'caregiver_profile';
 
@@ -59,6 +61,10 @@ export async function saveCaregiverProfile(
       createdAt,
     };
     await safeSetItem(CAREGIVER_PROFILE_KEY, next);
+    // Notify live surfaces (Now-tab ProfileNamePrompt, JournalIdentityStrip)
+    // so they re-read and reflect the new name without a restart. The
+    // prompt's useDataListener already subscribes to EVENT.PATIENT.
+    emitDataUpdate(EVENT.PATIENT);
   } catch (err) {
     logError('caregiverProfileRepo.save', err);
   }
