@@ -33,18 +33,22 @@ describe('Onboarding → Care Plan integration', () => {
     expect(config.version).toBe(1);
   });
 
-  it('core 4 buckets are always enabled regardless of answers', () => {
-    // Even with empty careAreas, wellness and water should be enabled
+  it('empty careAreas → sane default (meds+vitals+wellness on; water+meals off, nothing force-on)', () => {
+    // onboarding-personalize: nothing is force-on. Empty Q2 falls back to
+    // DEFAULT_CARE_AREAS = meds + vitals + wellness; water + meals stay off.
     const answers: OnboardingAnswers = {
-      relationship: 'self',
+      relationship: 'parent',
       careAreas: [],
       concerns: [],
       cadence: 'morning_only',
     };
     const config = generateCarePlanFromOnboarding(answers);
 
+    expect(config.meds.enabled).toBe(true);
+    expect(config.vitals.enabled).toBe(true);
     expect(config.wellness.enabled).toBe(true);
-    expect(config.water.enabled).toBe(true);
+    expect(config.water.enabled).toBe(false);
+    expect(config.meals.enabled).toBe(false);
   });
 
   it("concern areas elevate priority to 'required'", () => {
