@@ -94,12 +94,12 @@ describe('Onboarding redesign C4 — Landing screen', () => {
 });
 
 describe('Onboarding redesign C4 — orchestrator restructure', () => {
-  it('contract 7 (FOUR-SCREEN FLOW): ONBOARDING_SCREENS has exactly Welcome / Privacy / Name / Landing', () => {
+  it('contract 7 (FIVE-SCREEN FLOW): ONBOARDING_SCREENS is Welcome / Privacy / Name / WatchingFor / Landing (onboarding-personalize added Q2)', () => {
     const titles: string[] = [];
     const re = /title:\s*['"]([^'"]+)['"]/g;
     let m: RegExpExecArray | null;
     while ((m = re.exec(ORCH))) titles.push(m[1]);
-    expect(titles).toEqual(['Welcome', 'Privacy', 'Name', 'Landing']);
+    expect(titles).toEqual(['Welcome', 'Privacy', 'Name', 'WatchingFor', 'Landing']);
   });
 
   it('contract 8 (CUT IMPORTS): AsYouUseScreen + GetStartedScreen + MeetSampleScreen no longer imported; NameScreen + LandingScreen are', () => {
@@ -122,11 +122,13 @@ describe('Onboarding redesign C4 — orchestrator restructure', () => {
     expect(ORCH).toMatch(/writePatientName/);
   });
 
-  it('contract 12 (generates default care plan via generateCarePlanFromOnboarding + saveCarePlanConfig)', () => {
+  it('contract 12 (generates the care plan from COLLECTED answers via generateCarePlanFromOnboarding + saveCarePlanConfig)', () => {
     expect(ORCH).toMatch(/generateCarePlanFromOnboarding/);
     expect(ORCH).toMatch(/saveCarePlanConfig/);
-    // Default answers per the C4 spec: meds + wellness enabled.
-    expect(ORCH).toMatch(/['"]medications['"][\s\S]{0,50}['"]wellness['"]|['"]wellness['"][\s\S]{0,50}['"]medications['"]/);
+    // onboarding-personalize — the plan is built from the caregiver's
+    // collected Q2 careAreas (state), not a hardcoded meds+wellness pair.
+    expect(ORCH).toMatch(/careAreas\s*,/);
+    expect(ORCH).not.toMatch(/careAreas:\s*\[\s*['"]medications['"]\s*,\s*['"]wellness['"]\s*\]/);
   });
 
   it('contract 13 (lands on /(tabs)/now, NOT the wizard)', () => {

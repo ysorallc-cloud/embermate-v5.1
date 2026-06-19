@@ -40,6 +40,7 @@ import { safeSetItem } from '../../utils/safeStorage';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { PrivacyDisclaimerScreen } from './screens/PrivacyDisclaimerScreen';
 import { NameScreen } from './screens/NameScreen';
+import { WatchingForScreen } from './screens/WatchingForScreen';
 import { LandingScreen } from './screens/LandingScreen';
 
 import { PaginationDots } from './components/PaginationDots';
@@ -47,9 +48,15 @@ import { logError } from '../../utils/devLog';
 import { Colors, Typography, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { StorageKeys } from '../../utils/storageKeys';
-import { generateCarePlanFromOnboarding, OnboardingAnswers } from '../../utils/onboardingToPlan';
+import {
+  generateCarePlanFromOnboarding,
+  OnboardingAnswers,
+  CareArea,
+  CareRelationship,
+} from '../../utils/onboardingToPlan';
 import { saveCarePlanConfig } from '../../storage/carePlanConfigRepo';
 import { writePatientName } from '../../utils/patientNameWriter';
+import { updatePatient } from '../../storage/patientRegistry';
 import { DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
 
 // Onboarding redesign fix — width is single-sourced from
@@ -80,8 +87,9 @@ const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 const ONBOARDING_SCREENS = [
   { id: '1', title: 'Welcome' },
   { id: '2', title: 'Privacy' },
-  { id: '3', title: 'Name' },
-  { id: '4', title: 'Landing' },
+  { id: '3', title: 'Name' },        // name + "who are they to you?" (relationship)
+  { id: '4', title: 'WatchingFor' }, // Q2 — what are you keeping an eye on?
+  { id: '5', title: 'Landing' },
 ];
 
 export default function OnboardingFlow() {
@@ -99,6 +107,12 @@ export default function OnboardingFlow() {
   // threaded to C4's Landing screen for "Meet {name}." interpolation
   // and to writePatientName at completion. Default empty until C3.
   const [patientName, setPatientName] = useState('');
+  // onboarding-personalize — relationship (optional; folded into the name
+  // screen) + Q2 care-area selections. Both default to "unset"; the
+  // generator applies DEFAULT_CARE_AREAS for empty careAreas, and an
+  // unset relationship leaves registry.relationship undefined (never 'self').
+  const [relationship, setRelationship] = useState<CareRelationship | undefined>(undefined);
+  const [careAreas, setCareAreas] = useState<CareArea[]>([]);
   // Phase 16.3 — careMode hardcoded to 'caregiver' (primary EmberMate
   // use case). Retained as a literal for the generateCarePlanFromOnboarding
   // answers shape below.
@@ -139,19 +153,31 @@ export default function OnboardingFlow() {
       //    belt and suspenders.
       try {
         await writePatientName(DEFAULT_PATIENT_ID, patientName);
+        // onboarding-personalize — persist the optional relationship to the
+        // patientRegistry (the canonical store the Journal snapshot, the
+        // Switch-Patient label, and the care-report copy "caring for your
+        // parent" all read), AND mirror to PATIENT_RELATIONSHIP so the
+        // profile screen's field pre-fills. Skipped relationship → no write
+        // (registry stays undefined; never defaults to 'self').
+        if (relationship) {
+          await updatePatient(DEFAULT_PATIENT_ID, { relationship });
+          await safeSetItem(StorageKeys.PATIENT_RELATIONSHIP, relationship);
+        }
       } catch (nameError) {
         logError('OnboardingFlow.writePatientName', nameError);
         // Non-blocking — the name can be re-entered later via the
         // post-onboarding profile nudge (Now tab) or Settings.
       }
 
-      // Default care plan — meds + wellness enabled per C4 spec.
-      // wellness.timesOfDay defaults to ['morning','evening'] via the
-      // 'morning_evening' cadence (CADENCE_TO_TIMES map).
+      // onboarding-personalize — build the plan from the caregiver's actual
+      // Q2 selections (or the sane default when skipped). The generator gates
+      // every bucket on selection — nothing force-on. relationship is carried
+      // for the answers shape only; the generator does not read it (the
+      // persistence above is what surfaces it).
       try {
         const answers: OnboardingAnswers = {
-          relationship: 'parent',
-          careAreas: ['medications', 'wellness'],
+          relationship: relationship ?? 'parent',
+          careAreas,
           concerns: [],
           cadence: 'morning_evening',
         };
@@ -226,13 +252,30 @@ export default function OnboardingFlow() {
         <NameScreen
           initialValue={patientName}
           isActive={currentIndex === 2}
-          onContinue={(name) => {
+          onContinue={(name, rel) => {
             setPatientName(name);
+            setRelationship(rel);
             advanceToNext();
           }}
         />
       );
     } else if (index === 3) {
+      // onboarding-personalize Q2 — care-area multi-select drives the
+      // generated plan. Continue stores selections; Skip leaves careAreas
+      // empty (generator applies DEFAULT_CARE_AREAS). Both advance.
+      screen = (
+        <WatchingForScreen
+          onContinue={(areas) => {
+            setCareAreas(areas);
+            advanceToNext();
+          }}
+          onSkip={() => {
+            setCareAreas([]);
+            advanceToNext();
+          }}
+        />
+      );
+    } else if (index === 4) {
       screen = (
         <LandingScreen
           patientName={patientName}

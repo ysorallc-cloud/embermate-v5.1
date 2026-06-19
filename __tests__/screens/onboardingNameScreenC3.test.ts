@@ -78,10 +78,11 @@ describe('Onboarding redesign C3 — Name screen', () => {
     expect(SRC).not.toMatch(/#5fb88a/i);
   });
 
-  it('contract 7 (ONCONTINUE RECEIVES NAME): the prop signature passes the entered name up', () => {
+  it('contract 7 (ONCONTINUE RECEIVES NAME [+ optional relationship]): the prop signature passes the entered name up', () => {
     expect(SRC).toMatch(/onContinue/);
-    // The handler that fires the prop passes the trimmed name.
-    expect(SRC).toMatch(/onContinue\s*\(\s*[A-Za-z_$][\w$]*\s*(?:\.trim\(\))?\s*\)/);
+    // The handler fires the prop with the trimmed name; onboarding-
+    // personalize added an optional second arg (the relationship).
+    expect(SRC).toMatch(/onContinue\s*\(\s*[A-Za-z_$][\w$]*\s*(?:,\s*[A-Za-z_$][\w$]*\s*)?\)/);
   });
 
   it('contract 8 (DISABLED-UNTIL-NONEMPTY): the CTA disabled / dim opacity state tracks the trimmed name', () => {
