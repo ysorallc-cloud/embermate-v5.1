@@ -149,9 +149,10 @@ describe('Slice 1 — LOAD-BEARING: existing user with plaintext + V1 flag set i
     const readWellness = await safeGetItem<any>(PLAINTEXT_KEYS.wellness, null);
     expect(readWellness).toEqual(SAMPLE_WELLNESS);
 
-    // V2 flag is now set.
-    const v2Flag = await rawGet(StorageKeys.ENCRYPTION_MIGRATED_V2);
-    expect(v2Flag).not.toBeNull();
+    // The migration flag is now set. encrypt-pii bumped MIGRATION_FLAG
+    // V2 → V3, so the sweep stamps the V3 flag on completion.
+    const migratedFlag = await rawGet(StorageKeys.ENCRYPTION_MIGRATED_V3);
+    expect(migratedFlag).not.toBeNull();
   });
 
   it('contract 6: ALREADY-MIGRATED user (V1 + V2 prior, no plaintext) → sweep is a no-op (early return, no double-encryption)', async () => {

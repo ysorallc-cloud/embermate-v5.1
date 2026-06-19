@@ -13,13 +13,16 @@ import { StorageKeys } from './storageKeys';
 // Phase 35 Slice 1 — bumped V1 → V2. The sweep iterates
 // AsyncStorage.getAllKeys() and re-encrypts any isSensitiveKey() not
 // already prefixed v3:/v2:. The flag bump makes it re-run ONCE for
-// existing users so newly-sensitive keys (@embermate_logs_v2:*,
-// @embermate_all_logs_v2:*, @embermate_wellness_settings) get
-// encrypted in place. The per-key prefix skip protects already-
-// encrypted v1 keys (no double-encryption); the in-place same-key
-// overwrite handles atomicity (no absence window). V1 flag stays in
-// storage as a no-op breadcrumb for older test installs.
-const MIGRATION_FLAG = StorageKeys.ENCRYPTION_MIGRATED_V2;
+// existing users so newly-sensitive keys get encrypted in place. The
+// per-key prefix skip protects already-encrypted keys (no double-
+// encryption); the in-place same-key overwrite handles atomicity (no
+// absence window). Older flags stay in storage as no-op breadcrumbs.
+//
+// encrypt-pii — bumped V2 → V3 so the sweep re-runs ONCE more for
+// already-V2 users to pick up the identity PII keys newly added to
+// SENSITIVE_KEY_PREFIXES (caregiver_profile, @embermate_patient_name
+// mirror, @embermate_patient_relationship/_gender/_age/_language).
+const MIGRATION_FLAG = StorageKeys.ENCRYPTION_MIGRATED_V3;
 
 export async function migrateToEncryptedStorage(): Promise<void> {
   try {

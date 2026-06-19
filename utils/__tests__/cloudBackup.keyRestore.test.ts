@@ -88,8 +88,10 @@ describe('Task 1.4: Backup includes wrapped master key, restore restores it', ()
   });
 
   it('backward compat: v3 backup without wrappedMasterKey restores data without touching key', async () => {
-    // Create a legacy-style backup (no wrappedMasterKey)
-    await AsyncStorage.setItem('@embermate_patient_name', JSON.stringify('Legacy'));
+    // Create a legacy-style backup (no wrappedMasterKey). Uses a
+    // non-sensitive key (theme) — encrypt-pii moved patient_name onto
+    // the encrypted allowlist, so it's no longer a plaintext example.
+    await AsyncStorage.setItem('@embermate_theme', JSON.stringify('Legacy'));
 
     const backup = await createEncryptedBackup('legacypw');
     expect(backup).not.toBeNull();
@@ -115,7 +117,7 @@ describe('Task 1.4: Backup includes wrapped master key, restore restores it', ()
     expect(keyAfter).toBe(deviceBKey);
 
     // Non-sensitive data should still be restored
-    const name = await AsyncStorage.getItem('@embermate_patient_name');
+    const name = await AsyncStorage.getItem('@embermate_theme');
     expect(JSON.parse(name!)).toBe('Legacy');
   });
 });

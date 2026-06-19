@@ -98,15 +98,26 @@ describe('SecureStorage', () => {
       expect(result).toBe(defaultValue);
     });
 
-    it('should handle invalid encrypted data gracefully', async () => {
-      // Store invalid encrypted data directly
-      await AsyncStorage.setItem('invalid_encrypted', 'not:valid:encrypted:data:format');
-
+    it('should handle CORRUPT v3 ciphertext gracefully (HMAC mismatch → default)', async () => {
+      // A v3-tagged blob whose authentication tag won't verify must fall
+      // back to the default — never hand unverified bytes to callers.
+      await AsyncStorage.setItem(
+        'corrupt_cipher',
+        'v3:00000000000000000000000000000000:deadbeef:0000',
+      );
       const defaultValue = { fallback: true };
-      const result = await getSecureItem('invalid_encrypted', defaultValue);
-
-      // Should return default on decryption failure
+      const result = await getSecureItem('corrupt_cipher', defaultValue);
       expect(result).toBe(defaultValue);
+    });
+
+    it('passes UN-ENCRYPTED plaintext through, even with colons (encrypt-pii — recover un-migrated values, do not blank)', async () => {
+      // Non-v3/v2 data is plaintext (e.g. a key newly added to
+      // SENSITIVE_KEY_PREFIXES whose value the V3 sweep hasn't
+      // re-encrypted yet). It must resolve, not blank on its colons.
+      const plain = { name: 'Amber', createdAt: '2026-06-14T12:34:56.000Z' };
+      await AsyncStorage.setItem('plain_colons', JSON.stringify(plain));
+      const result = await getSecureItem('plain_colons', null);
+      expect(result).toEqual(plain);
     });
   });
 
@@ -373,8 +384,11 @@ describe('SecureStorage', () => {
       const encrypted = await AsyncStorage.getItem('tamper_test');
       expect(encrypted).not.toBeNull();
 
-      // Tamper with the data (modify a character)
-      const tampered = encrypted!.slice(0, -1) + '0';
+      // Tamper with the data (modify the last character). Flip to a
+      // guaranteed-different char — a constant '0' is a no-op when the
+      // tag already ends in '0' (1/16 flake). Mirrors testEncryption.
+      const lastChar = encrypted!.slice(-1);
+      const tampered = encrypted!.slice(0, -1) + (lastChar === '0' ? '1' : '0');
       await AsyncStorage.setItem('tamper_test', tampered);
 
       // Try to retrieve - should fail and return default

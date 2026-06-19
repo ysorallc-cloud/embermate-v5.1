@@ -8,12 +8,12 @@
 //   3. emit SAMPLE_DATA_CLEARED    — global refresh signal
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { clearSampleData } from './sampleDataManager';
 import { getPatientRegistry, updatePatient } from '../storage/patientRegistry';
 import { emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
 import { StorageKeys } from './storageKeys';
+import { safeSetItem } from './safeStorage';
 import { logError } from './devLog';
 
 /**
@@ -39,7 +39,8 @@ export async function setUpLovedOneFromSample(name: string): Promise<void> {
         ? { name: trimmed, relationship: undefined }
         : { name: trimmed };
     await updatePatient(activeId, updates);
-    await AsyncStorage.setItem(StorageKeys.PATIENT_NAME, trimmed);
+    // encrypt-pii — encrypted at rest (was raw AsyncStorage.setItem).
+    await safeSetItem(StorageKeys.PATIENT_NAME, trimmed);
     emitDataUpdate(EVENT.SAMPLE_DATA_CLEARED);
   } catch (error) {
     logError('setUpLovedOneFromSample', error);

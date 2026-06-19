@@ -108,27 +108,32 @@ async function decryptData(encryptedData: string): Promise<string> {
     const key = await getOrCreateEncryptionKey();
     const masterKey = CryptoJS.enc.Hex.parse(key);
 
-    // Parse encrypted data format
+    // Classify by VERSION PREFIX, not by colon count. Our authenticated
+    // ciphertext is "v3:iv:ct:tag" (or legacy "v2:..."), always 4
+    // colon-separated parts whose first part is the version tag.
     const parts = encryptedData.split(':');
+    const version = parts[0];
+    const isOurCiphertext =
+      (version === 'v3' || version === 'v2') && parts.length === 4;
 
-    if (parts.length === 2) {
-      // Legacy XOR format (version:data) - migrate to new format
-      return await migrateLegacyEncryption(encryptedData);
-    }
-
-    if (parts.length !== 4) {
-      if (parts.length === 1) {
-        // No version prefix at all — likely plain text stored before encryption
-        // was enabled. Return as-is for backward compatibility.
-        return encryptedData;
+    if (!isOurCiphertext) {
+      // encrypt-pii fix — anything that is NOT our v3/v2 ciphertext is
+      // UN-ENCRYPTED plaintext (e.g. a key newly added to
+      // SENSITIVE_KEY_PREFIXES whose value the V3 migration hasn't
+      // re-encrypted yet). Pass it through untouched so colon-bearing
+      // plaintext JSON (e.g. caregiver_profile's createdAt timestamp)
+      // resolves instead of blanking. Previously this split on ':' and
+      // either XOR-garbled (2 parts) or threw (>4 parts) → null → blank
+      // name. Legacy XOR ("ivHex:base64") is still honored: exactly 2
+      // parts AND a hex first segment (plaintext JSON's first segment is
+      // never pure hex).
+      if (parts.length === 2 && /^[0-9a-fA-F]+$/.test(version)) {
+        return await migrateLegacyEncryption(encryptedData);
       }
-      // Multiple colon-separated parts but neither v2 nor v3 — malformed/corrupt.
-      // Throw so getSecureItem falls back to its default rather than handing
-      // ciphertext to callers.
-      throw new Error(`Unrecognized encrypted data format (parts=${parts.length})`);
+      return encryptedData;
     }
 
-    const [version, ivHex, ciphertextHex, tagHex] = parts;
+    const [, ivHex, ciphertextHex, tagHex] = parts;
 
     // Derive keys based on encryption version
     let encKey: CryptoJS.lib.WordArray;

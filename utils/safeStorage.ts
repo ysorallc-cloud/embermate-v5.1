@@ -50,6 +50,18 @@ export const SENSITIVE_KEY_PREFIXES = [
   '@embermate_logs_v2:',             // per-day LogEntry buckets
   '@embermate_all_logs_v2:',         // append-only all-logs aggregate
   '@embermate_wellness_settings',    // P5 wellness store (single key)
+  // encrypt-pii — identity PII that was leaking in plaintext, breaking
+  // the onboarding "encrypted storage" claim. Migration bumps to
+  // ENCRYPTION_MIGRATED_V3 so existing plaintext re-encrypts in place;
+  // writers route through safeSetItem. (Patient clinical data was
+  // already encrypted via the registry / medical_info; these are the
+  // demographic/name fields that sat outside the allowlist.)
+  'caregiver_profile',               // caregiverProfileRepo — caregiver name
+  StorageKeys.PATIENT_NAME,          // @embermate_patient_name — legacy name mirror
+  StorageKeys.PATIENT_RELATIONSHIP,  // @embermate_patient_relationship
+  StorageKeys.PATIENT_GENDER,        // @embermate_patient_gender
+  StorageKeys.PATIENT_AGE,           // @embermate_patient_age
+  StorageKeys.PATIENT_LANGUAGE,      // @embermate_patient_language
 ];
 
 export function isSensitiveKey(key: string): boolean {

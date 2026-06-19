@@ -40,9 +40,16 @@ describe('writePatientName — happy path', () => {
     expect(mockUpdatePatient).toHaveBeenCalledWith('default', { name: 'Mom' });
   });
 
-  it('mirrors the trimmed name to AsyncStorage', async () => {
+  it('mirrors the name to AsyncStorage ENCRYPTED (encrypt-pii — via safeSetItem, no plaintext)', async () => {
     await writePatientName('default', '  Mom  ');
-    expect(mockSetItem).toHaveBeenCalledWith(StorageKeys.PATIENT_NAME, 'Mom');
+    // The mirror now routes through safeSetItem → setSecureItem, so the
+    // value written to the @embermate_patient_name key is a v3: blob, not
+    // plaintext 'Mom'. (Trimming is asserted via the registry call above.)
+    expect(mockSetItem).toHaveBeenCalledWith(
+      StorageKeys.PATIENT_NAME,
+      expect.stringMatching(/^v3:/),
+    );
+    expect(mockSetItem).not.toHaveBeenCalledWith(StorageKeys.PATIENT_NAME, 'Mom');
   });
 
   it('emits EVENT.PATIENT to refresh downstream subscribers', async () => {
