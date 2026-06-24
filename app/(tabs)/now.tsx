@@ -60,6 +60,7 @@ import {
   type TimeWindow,
   isOverdue,
   getRouteForInstanceType,
+  getRouteForWellnessInstance,
   groupByTimeWindow,
   getCurrentTimeWindow,
   TIME_WINDOW_HOURS,
@@ -571,9 +572,7 @@ export default function NowScreen() {
     // set of fields. (Phase 34 F1 — comment harmonized with the
     // unified time-model vocabulary; routing logic unchanged.)
     if (instance.itemType === 'wellness') {
-      const wellnessRoute = instance.windowLabel === 'evening'
-        ? '/log-evening-wellness'
-        : '/silent-vitals';
+      const wellnessRoute = getRouteForWellnessInstance(instance);
       navigate({
         pathname: wellnessRoute,
         params: {

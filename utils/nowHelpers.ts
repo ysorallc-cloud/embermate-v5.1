@@ -179,6 +179,18 @@ export function getRouteForInstanceType(itemType: string): string {
   }
 }
 
+// Route a wellness DailyCareInstance by its time window. Evening keeps its
+// dedicated multi-field wizard (/log-evening-wellness); morning / afternoon /
+// night land on the single-screen /silent-vitals capture (the v6.7 reframe).
+// Centralized here — instead of inlined in the Now timeline tap handler — so
+// the destination is unit-testable and a malformed/missing windowLabel can
+// never resolve to an empty pathname ("routes nowhere"); it falls through to
+// the always-registered /silent-vitals capture. See
+// __tests__/ui/morningCheckinRoute.test.ts.
+export function getRouteForWellnessInstance(instance: { windowLabel?: string | null }): string {
+  return instance?.windowLabel === 'evening' ? '/log-evening-wellness' : '/silent-vitals';
+}
+
 // Get time window for a scheduled time
 export function getTimeWindow(scheduledTime: string): TimeWindow {
   let date = new Date(scheduledTime);
