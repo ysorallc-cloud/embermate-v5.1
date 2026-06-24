@@ -49,6 +49,7 @@ import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Fonts, Spacing } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { ONBOARDING_CTA_GRADIENT } from '../onboardingTokens';
+import type { CareRelationship } from '../../../utils/onboardingToPlan';
 
 export interface NameScreenProps {
   /** Initial value (when re-entering from C4 via back navigation,
@@ -59,11 +60,22 @@ export interface NameScreenProps {
    *  focuses the TextInput inside a ~350ms settle window so the
    *  keyboard rises only AFTER the slide transition completes. */
   isActive?: boolean;
-  /** Advance to the next screen with the entered name. The
-   *  orchestrator stores it for C4's Landing screen interpolation
-   *  and threads it into writePatientName at completion. */
-  onContinue?: (name: string) => void;
+  /** Advance to the next screen with the entered name and (optionally)
+   *  the relationship. Relationship is OPTIONAL — the caregiver can
+   *  continue on the name alone; when skipped the orchestrator leaves
+   *  registry.relationship undefined (never defaults to 'self'). */
+  onContinue?: (name: string, relationship?: CareRelationship) => void;
 }
+
+// "Who are they to you?" — folded onto this screen (no third slide).
+// Maps onto the existing CareRelationship enum; 'self' is intentionally
+// never produced (self-care is a distinct case we don't mislabel).
+const RELATIONSHIP_OPTIONS: { label: string; value: CareRelationship }[] = [
+  { label: 'Parent', value: 'parent' },
+  { label: 'Partner', value: 'spouse' },
+  { label: 'Other family', value: 'other' },
+  { label: 'Someone else', value: 'other' },
+];
 
 const FOCUS_SETTLE_MS = 350;
 
@@ -75,6 +87,7 @@ export const NameScreen: React.FC<NameScreenProps> = ({
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [name, setName] = useState(initialValue);
+  const [relIndex, setRelIndex] = useState<number | null>(null);
   const [showEmptyHint, setShowEmptyHint] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
@@ -112,8 +125,10 @@ export const NameScreen: React.FC<NameScreenProps> = ({
       return;
     }
     Keyboard.dismiss();
-    if (onContinue) onContinue(trimmed);
-  }, [canContinue, trimmed, onContinue]);
+    const relationship =
+      relIndex !== null ? RELATIONSHIP_OPTIONS[relIndex].value : undefined;
+    if (onContinue) onContinue(trimmed, relationship);
+  }, [canContinue, trimmed, relIndex, onContinue]);
 
   return (
     <View style={styles.root}>
@@ -149,6 +164,33 @@ export const NameScreen: React.FC<NameScreenProps> = ({
               <Text style={styles.fieldHint}>
                 You can change this anytime.
               </Text>
+            </View>
+
+            {/* "Who are they to you?" — optional. Lets the report and
+                Journal read "caring for your parent". Skippable: continue
+                on the name alone and no relationship is stored. */}
+            <View style={styles.relBlock}>
+              <Text style={styles.fieldCaption}>WHO ARE THEY TO YOU? (OPTIONAL)</Text>
+              <View style={styles.relRow}>
+                {RELATIONSHIP_OPTIONS.map((opt, i) => {
+                  const selected = relIndex === i;
+                  return (
+                    <Pressable
+                      key={opt.label}
+                      testID={`rel-option-${i}`}
+                      onPress={() => setRelIndex(selected ? null : i)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                      accessibilityLabel={opt.label}
+                      style={[styles.relChip, selected && styles.relChipSelected]}
+                    >
+                      <Text style={[styles.relChipText, selected && styles.relChipTextSelected]}>
+                        {opt.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
 
             {/* Spacer absorbs the empty middle of the screen without
@@ -263,6 +305,36 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 12, // allow: post-walk fix — field hint, fills the void
     color: c.textMuted,
     marginTop: Spacing.sm,
+  },
+  relBlock: {
+    width: '100%',
+    marginTop: Spacing.lg,
+  },
+  relRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  relChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 14, // allow: chip tap target
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    backgroundColor: c.glass,
+  },
+  relChipSelected: {
+    backgroundColor: c.accentChipFill,
+    borderColor: c.accentBorder,
+  },
+  relChipText: {
+    fontFamily: Fonts.serif,
+    fontSize: 14,
+    color: c.textSecondary,
+  },
+  relChipTextSelected: {
+    color: c.textPrimary,
+    fontWeight: '500' as const,
   },
   spacer: {
     flex: 1,

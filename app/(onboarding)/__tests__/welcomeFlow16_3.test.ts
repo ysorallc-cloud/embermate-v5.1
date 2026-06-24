@@ -38,11 +38,11 @@ const indexSrc = readFileSync(join(ROOT, 'app/(onboarding)/index.tsx'), 'utf8');
 const indexCode = codeOnly(indexSrc);
 
 describe('Phase 16.3 → Onboarding redesign C4 — welcome flow narrowed to 4 screens', () => {
-  it('contract 1: ONBOARDING_SCREENS array has exactly 4 entries (C4 retired AsYouUseScreen + GetStartedScreen alongside the 16.3 WhoIsThisFor cut)', () => {
+  it('contract 1: ONBOARDING_SCREENS array has exactly 5 entries (onboarding-personalize added the Q2 WatchingFor screen)', () => {
     // Pin the array length declaratively — count the screen entries
     // ({ id: '...', title: '...' } shape).
     const entryMatches = indexCode.match(/\{\s*id:\s*['"][^'"]+['"]\s*,\s*title:\s*['"][^'"]+['"]\s*\}/g) || [];
-    expect(entryMatches.length).toBe(4);
+    expect(entryMatches.length).toBe(5);
   });
 
   it('contract 2: WhoIsThisForScreen is no longer imported or rendered', () => {
@@ -62,14 +62,14 @@ describe('Phase 16.3 → Onboarding redesign C4 — welcome flow narrowed to 4 s
     expect(indexCode).not.toMatch(/handleSelectCareMode\b/);
   });
 
-  it('contract 5: the final 4-screen onboarding flow is Welcome → Privacy → Name → Landing (C4)', () => {
+  it('contract 5: the final 5-screen onboarding flow is Welcome → Privacy → Name → WatchingFor → Landing (onboarding-personalize)', () => {
     // Updated for onboarding redesign C4: AsYouUseScreen +
     // GetStartedScreen retired from the main flow alongside
     // MeetSampleScreen (cut in C3). The Landing screen ("Meet
     // {name}.") replaces the wizard handoff; completeOnboarding
     // writes the three required keys + generates the default care
     // plan + lands the user on /(tabs)/now.
-    const expectedOrder = ['Welcome', 'Privacy', 'Name', 'Landing'];
+    const expectedOrder = ['Welcome', 'Privacy', 'Name', 'WatchingFor', 'Landing'];
     const found: string[] = [];
     const entryRegex = /title:\s*['"]([^'"]+)['"]/g;
     let m: RegExpExecArray | null;

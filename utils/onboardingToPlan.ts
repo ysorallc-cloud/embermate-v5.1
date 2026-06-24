@@ -21,7 +21,8 @@ export type CareArea =
   | 'meals'
   | 'doctor_visits'
   | 'wellness'
-  | 'vitals';
+  | 'vitals'
+  | 'hydration';   // onboarding Q2 — water is a selectable choice, not forced
 
 export type ConcernArea =
   | 'missed_medication'
@@ -53,7 +54,17 @@ const CARE_AREA_TO_BUCKET: Record<CareArea, BucketType> = {
   doctor_visits: 'appointments',
   wellness: 'wellness',
   vitals: 'vitals',
+  hydration: 'water',
 };
+
+/** Sane default when the caregiver skips / selects nothing in Q2: meds
+ *  (enabled, not required), vitals (with BP), morning/evening wellness.
+ *  Water + meals stay off — they're now opt-in choices, not forced. */
+export const DEFAULT_CARE_AREAS: CareArea[] = ['medications', 'vitals', 'wellness'];
+
+/** Standard mealtimes a selected Meals bucket lands with so it's usable,
+ *  not an empty meals bucket (breakfast/lunch/dinner). */
+const MEAL_TIMES: TimeOfDay[] = ['morning', 'midday', 'evening'];
 
 const CONCERN_TO_BUCKET: Record<ConcernArea, BucketType | null> = {
   missed_medication: 'meds',
@@ -74,9 +85,14 @@ export function generateCarePlanFromOnboarding(
   answers: OnboardingAnswers
 ): CarePlanConfig {
   const config = createDefaultCarePlanConfig('default');
-  const timesOfDay = CADENCE_TO_TIMES[answers.cadence];
+  const wellnessTimes = CADENCE_TO_TIMES[answers.cadence];
 
-  // Start with everything disabled
+  // Skip / empty Q2 → the sane default. Otherwise the caregiver's picks.
+  const careAreas =
+    answers.careAreas.length > 0 ? answers.careAreas : DEFAULT_CARE_AREAS;
+
+  // NOTHING is force-on — every bucket starts disabled and only turns on
+  // if it's selected (or in the default set above).
   const allBuckets: BucketType[] = [
     'meds', 'vitals', 'meals', 'water', 'sleep', 'activity', 'wellness', 'appointments',
   ];
@@ -86,28 +102,30 @@ export function generateCarePlanFromOnboarding(
     }
   }
 
-  // Always enable wellness (it's the core check-in)
-  config.wellness.enabled = true;
-  config.wellness.priority = 'recommended';
-  config.wellness.timesOfDay = timesOfDay;
-
-  // Always enable water (universal tracking need)
-  config.water.enabled = true;
-  config.water.priority = 'recommended';
-
-  // Enable buckets from care area selections
-  for (const area of answers.careAreas) {
+  // Enable the selected areas, each landing USABLE (not an empty bucket).
+  for (const area of careAreas) {
     const bucket = CARE_AREA_TO_BUCKET[area];
-    if (bucket && config[bucket]) {
-      (config as any)[bucket].enabled = true;
-      (config as any)[bucket].priority = 'recommended';
-      if ('timesOfDay' in config[bucket]) {
-        (config as any)[bucket].timesOfDay = timesOfDay;
-      }
+    if (!bucket || !config[bucket]) continue;
+    (config as any)[bucket].enabled = true;
+    (config as any)[bucket].priority = 'recommended';
+
+    if (bucket === 'vitals') {
+      // Land usable: blood pressure on by default, not an empty vitals bucket.
+      (config as any).vitals.vitalTypes = ['bp'];
+    } else if (bucket === 'meals') {
+      // Standard mealtimes, not meals-enabled-with-no-mealtimes.
+      (config as any).meals.timesOfDay = [...MEAL_TIMES];
+    } else if (bucket === 'wellness') {
+      (config as any).wellness.timesOfDay = wellnessTimes;
     }
+    // meds: enabled + 'recommended' (NOT 'required') — an empty meds list
+    // is an "add the first medication" invitation, never a silent empty
+    // required slot. No placeholder med is invented.
+    // water: enabled + 'recommended' (the generic enable above).
   }
 
-  // Elevate priority for concern areas
+  // Elevate priority for explicit concern areas (onboarding passes none;
+  // retained for other callers / future use).
   for (const concern of answers.concerns) {
     const bucket = CONCERN_TO_BUCKET[concern];
     if (bucket && config[bucket]) {
@@ -115,12 +133,6 @@ export function generateCarePlanFromOnboarding(
       (config as any)[bucket].priority = 'required';
       (config as any)[bucket].notificationsEnabled = true;
     }
-  }
-
-  // If medications selected, ensure required priority
-  if (answers.careAreas.includes('medications')) {
-    config.meds.priority = 'required';
-    config.meds.timesOfDay = timesOfDay;
   }
 
   return config;
@@ -144,6 +156,7 @@ export function getCoreQuickLogFromAnswers(answers: OnboardingAnswers): string[]
     vitals: 'vitals',
     doctor_visits: 'appointment',
     wellness: 'wellness',
+    hydration: 'hydration',
   };
 
   for (const area of answers.careAreas) {
