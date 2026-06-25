@@ -6,7 +6,7 @@
 // the pre-B QuickResetPills surface (which fully retires in F4).
 //
 // Cards (in order):
-//   1. Helpline   — call-outline icon, "24/7" subtitle
+//   1. Helpline   — call-outline icon, "Mon-Fri 8am-7pm ET" subtitle
 //   2. Community  — heart-outline icon, "Read" subtitle
 //   3. Wellness   — pulse-outline icon, "Over time" subtitle
 //
@@ -36,7 +36,8 @@ import { useTheme } from '../../contexts/ThemeContext';
 export interface ActionCardsRowProps {
   /** Fired when the Helpline card is tapped. Parent (support.tsx) wires
    *  this to Linking.openURL('tel:18552273640') — the Caregiver Action
-   *  Network 24/7 helpline. */
+   *  Network helpline (Mon-Fri 8am-7pm ET; verified against CAN's official
+   *  pages — it is NOT a 24/7 line). */
   onHelpline: () => void;
   /** Fired when the Community card is tapped. Parent wires this to
    *  Linking.openURL('https://caregiveraction.org/'). */
@@ -69,9 +70,9 @@ export function ActionCardsRow({
       testID: 'action-card-helpline',
       iconName: 'call-outline',
       label: 'Helpline',
-      subtitle: '24/7',
+      subtitle: 'Mon-Fri 8am-7pm ET',
       accessibilityLabel: 'Helpline',
-      accessibilityHint: 'Call the Caregiver Action Network helpline — free and confidential',
+      accessibilityHint: 'Call the Caregiver Action Network helpline — Mon-Fri 8am-7pm ET, free and confidential',
       onPress: onHelpline,
     },
     {

@@ -7,7 +7,7 @@
 //      primary (#5fb88a / #0a1510).
 //   2. QuickResetPills are equal-flex children (Breathe / Helpline /
 //      Community) with category-coloured labels (sage / coral / lavender)
-//      and a tertiary subtitle below each ("60 sec" / "24/7" / "Read").
+//      and a tertiary subtitle below each ("60 sec" / "Mon-Fri 8am-7pm ET" / "Read").
 //   3. Plan-ahead is a single grouped card; the eyebrow + italic subtitle
 //      live above the card, not inside.
 // ============================================================================
