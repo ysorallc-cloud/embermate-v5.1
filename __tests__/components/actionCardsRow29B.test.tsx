@@ -122,10 +122,13 @@ describe('Phase 29 Batch B F2 — ActionCardsRow', () => {
     expect(allText).toContain('Wellness');
   });
 
-  it('contract 4: card subtitles render — "24/7", "Read", "Over time"', () => {
+  it('contract 4: card subtitles render — "Mon-Fri 8am-7pm ET", "Read", "Over time"', () => {
     const tree = render();
     const allText = findAll(tree.root, (n) => n.type === 'Text').map(flatText).join(' | ');
-    expect(allText).toContain('24/7');
+    // fix-helpline-hours — the Caregiver Action Network helpline is
+    // Mon-Fri 8am-7pm ET, NOT 24/7 (verified against CAN's official pages).
+    expect(allText).toContain('Mon-Fri 8am-7pm ET');
+    expect(allText).not.toContain('24/7');
     expect(allText).toContain('Read');
     expect(allText).toContain('Over time');
   });
