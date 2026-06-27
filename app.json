@@ -105,7 +105,9 @@
         {
           "checkAutomatically": "ON_LOAD"
         }
-      ]
+      ],
+      "@sentry/react-native",
+      "expo-web-browser"
     ],
     "updates": {
       "url": "https://u.expo.dev/c1c2cfb3-2d20-485c-9e9d-29a53d853228",
