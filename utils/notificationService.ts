@@ -48,8 +48,12 @@ const DEFAULT_SETTINGS: NotificationSettings = {
 
 // Configure notification handler (how notifications appear when app is foregrounded)
 Notifications.setNotificationHandler({
+  // SDK 54 — `shouldShowAlert` is deprecated; foreground presentation is now
+  // expressed via `shouldShowBanner` (heads-up banner) + `shouldShowList`
+  // (Notification Center list), which together replace the old alert flag.
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),
@@ -512,7 +516,11 @@ export async function handleNotificationAction(
   actionIdentifier: string,
   notification: Notifications.Notification
 ): Promise<void> {
-  const data = notification.request.content.data;
+  // SDK 54 — content.data is typed as Record<string, unknown>; this handler
+  // reads app-authored string fields (medicationId / title / body) written
+  // when the notification was scheduled, so narrow to the loose shape the
+  // call sites expect.
+  const data = notification.request.content.data as Record<string, any>;
 
   switch (actionIdentifier) {
     case 'MARK_TAKEN':

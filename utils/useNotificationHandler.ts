@@ -17,8 +17,10 @@ import { logActivity, getCurrentUser } from './collaborativeCare';
  */
 export function useNotificationHandler() {
   const router = useRouter();
-  const notificationListener = useRef<Notifications.Subscription>();
-  const responseListener = useRef<Notifications.Subscription>();
+  // React 19 — useRef requires an initial argument; default to null and
+  // narrow before use in the cleanup below.
+  const notificationListener = useRef<Notifications.Subscription | null>(null);
+  const responseListener = useRef<Notifications.Subscription | null>(null);
 
   useEffect(() => {
     // Handler for notifications received while app is foregrounded
@@ -75,12 +77,10 @@ export function useNotificationHandler() {
 
     // Cleanup on unmount
     return () => {
-      if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
-      }
-      if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
-      }
+      // SDK 54 — removeNotificationSubscription was removed; call
+      // subscription.remove() on the stored handle instead.
+      notificationListener.current?.remove();
+      responseListener.current?.remove();
     };
   }, [router]);
 }
