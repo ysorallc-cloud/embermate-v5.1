@@ -45,6 +45,7 @@ import { getTodayDateString } from '../services/carePlanGenerator';
 import { buildCareBrief, CareBrief } from '../utils/careSummaryBuilder';
 import { generateComprehensiveReport } from '../utils/reportGenerator';
 import { generateAndSharePDF, ReportData as PdfReportData, PatientInfo } from '../utils/pdfExport';
+import { buildVitalsDetails } from '../utils/reportVitals';
 import { getAllInsights, InsightData } from '../utils/insightEngine';
 import { buildProviderPrep, ProviderPrepData } from '../utils/providerPrepBuilder';
 import { logError } from '../utils/devLog';
@@ -321,12 +322,10 @@ export default function CareReportScreen() {
       details.push({ label: 'Medication Notes', value: careBrief.interpretations.medications });
     }
     if (sections.vitals) {
-      const r = careBrief.vitals?.readings;
-      if (r) {
-        if (r.systolic && r.diastolic) details.push({ label: 'Blood Pressure', value: `${r.systolic}/${r.diastolic} mmHg` });
-        if (r.heartRate) details.push({ label: 'Heart Rate', value: `${r.heartRate} bpm` });
-        if (r.oxygen) details.push({ label: 'O2 Saturation', value: `${r.oxygen}%` });
-      }
+      // Vitals included → always render rows; an explained empty-state when
+      // none in range (trust rule — never silently omit a toggled-on section).
+      // Shared with Visit Prep via utils/reportVitals.
+      details.push(...buildVitalsDetails(careBrief.vitals?.readings));
     }
 
     const reportData: PdfReportData = {

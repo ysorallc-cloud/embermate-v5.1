@@ -72,8 +72,13 @@ describe('Phase 5.10.d — empty-state sentinels in PDF', () => {
     expect(src).toMatch(/No medications logged in this window/);
   });
 
-  it("Vitals empty-state body reads 'No vitals readings in this window.'", () => {
-    expect(src).toMatch(/No vitals readings in this window/);
+  it("Vitals empty-state body uses the shared NO_VITALS_IN_RANGE string", () => {
+    // device-walk fix #2 — vitals empty-state unified into utils/reportVitals
+    // (NO_VITALS_IN_RANGE = 'No vitals logged in this range.') so the care-report
+    // Full export and Visit Prep render the SAME string. The literal now lives
+    // in the shared module; the PDF references the constant.
+    expect(src).toMatch(/NO_VITALS_IN_RANGE/);
+    expect(src).not.toMatch(/No vitals readings in this window/);
   });
 
   it("Caregiver notes empty-state body reads 'No notes saved in this window.'", () => {
@@ -102,7 +107,8 @@ describe('Phase 5.10.d — toggle gates apply to BOTH preview and PDF', () => {
   it('preview renders empty-state body strings (parity with PDF)', () => {
     // Identical sentinels — the preview must show what the PDF will show.
     expect(previewSrc).toMatch(/No medications logged in this window/);
-    expect(previewSrc).toMatch(/No vitals readings in this window/);
+    // device-walk fix #2 — vitals empty-state unified to the shared constant.
+    expect(previewSrc).toMatch(/NO_VITALS_IN_RANGE/);
     expect(previewSrc).toMatch(/No notes saved in this window/);
   });
 
