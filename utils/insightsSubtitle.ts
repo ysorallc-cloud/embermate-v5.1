@@ -4,9 +4,10 @@
 // Pure function that picks the Insights header subtitle copy. Two
 // variants:
 //   • Visit-anchored: "For {patientName}'s visit with {provider}
-//     · {N} day(s)" — when an appointment exists in the canonical
+//     · {N} days away" — when an appointment exists in the canonical
 //     14-day upcoming window AND both patientName and provider are
-//     usable.
+//     usable. The countdown ("N days away") is phrased to NOT collide
+//     with the range selector's data-window day count (7/14/30d).
 //   • Default daysOfData chain: the pre-15.8 copy keyed on how much
 //     history exists ("Log a few days...", "Building Dad's picture
 //     — N days in.", "What the last N days are showing.").
@@ -47,10 +48,13 @@ function isUsableProvider(provider: string): boolean {
   return Boolean(provider) && provider.trim().length >= MIN_PROVIDER_LENGTH;
 }
 
+// Visit countdown — phrased as "N days away" (not bare "N days") so it reads
+// as a countdown to the appointment, not the Insights data-range window the
+// selector controls. "today" stays bare (no "away").
 function daysLabel(n: number): string {
   if (n === 0) return 'today';
-  if (n === 1) return '1 day';
-  return `${n} days`;
+  if (n === 1) return '1 day away';
+  return `${n} days away`;
 }
 
 function defaultSubtitle(daysOfData: number, patientName: string): string {

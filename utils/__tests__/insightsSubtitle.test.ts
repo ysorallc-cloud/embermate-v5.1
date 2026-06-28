@@ -35,7 +35,7 @@ import { computeInsightsSubtitle } from '../insightsSubtitle';
 
 describe('Phase 15.8 — computeInsightsSubtitle', () => {
   describe('contract 1: visit-anchored variant when appt exists in window', () => {
-    it('produces "For {name}\'s visit with {provider} · {N} days" copy', () => {
+    it('produces "For {name}\'s visit with {provider} · {N} days away" copy', () => {
       const out = computeInsightsSubtitle({
         daysOfData: 14,
         patientName: 'Dad',
@@ -44,16 +44,16 @@ describe('Phase 15.8 — computeInsightsSubtitle', () => {
           daysUntil: 7,
         },
       });
-      expect(out).toBe("For Dad's visit with Dr. Torres · 7 days");
+      expect(out).toBe("For Dad's visit with Dr. Torres · 7 days away");
     });
 
-    it('uses singular "1 day" when daysUntil === 1', () => {
+    it('uses singular "1 day away" when daysUntil === 1', () => {
       const out = computeInsightsSubtitle({
         daysOfData: 14,
         patientName: 'Mom',
         upcomingAppointment: { provider: 'Dr. Lin', daysUntil: 1 },
       });
-      expect(out).toBe("For Mom's visit with Dr. Lin · 1 day");
+      expect(out).toBe("For Mom's visit with Dr. Lin · 1 day away");
     });
 
     it('uses "today" when daysUntil === 0', () => {
@@ -78,7 +78,7 @@ describe('Phase 15.8 — computeInsightsSubtitle', () => {
           daysUntil: 3,
         },
       });
-      expect(out).toBe("For Dad's visit with Dr. Maria Torres, MD · 3 days");
+      expect(out).toBe("For Dad's visit with Dr. Maria Torres, MD · 3 days away");
     });
   });
 
@@ -135,7 +135,7 @@ describe('Phase 15.8 — computeInsightsSubtitle', () => {
           daysUntil: 3,                     // the days-until value
         },
       });
-      expect(out).toMatch(/· 3 days$/);
+      expect(out).toMatch(/· 3 days away$/);
       expect(out).not.toMatch(/· 14 days/);
     });
 
@@ -151,7 +151,7 @@ describe('Phase 15.8 — computeInsightsSubtitle', () => {
           daysUntil: 5,
         },
       });
-      expect(out).toBe("For Mom's visit with Dr. Chen · 5 days");
+      expect(out).toBe("For Mom's visit with Dr. Chen · 5 days away");
     });
   });
 
