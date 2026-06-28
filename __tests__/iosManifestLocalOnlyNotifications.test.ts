@@ -50,6 +50,30 @@ describe('iOS manifest declares no remote-notification capability — notificati
     });
   });
 
+  describe('C. SDK 54 opt-in vector — enableBackgroundRemoteNotifications stays OFF', () => {
+    // SDK 54 / expo-notifications 0.32 gained an `enableBackgroundRemoteNotifications`
+    // plugin option (plugin/build/withNotificationsIOS.js). When truthy it
+    // injects `UIBackgroundModes: ['remote-notification']` into the PREBUILT
+    // Info.plist via withInfoPlist — a vector the entitlements-only
+    // withNoApsEntitlement stripper does NOT cover, and which contract A
+    // above can't see (it reads app.json source, not prebuild output, and the
+    // flag lives in the plugin block, not under expo.ios.infoPlist). The
+    // aps-environment entitlement injection is still unconditional (and still
+    // stripped), but this new background-mode path would re-introduce the
+    // exact remote-notification capability A bans. Keep the opt-in off so the
+    // local-only posture holds end-to-end.
+    const json = JSON.parse(readFileSync(join(ROOT, 'app.json'), 'utf8'));
+    const plugins: any[] = json?.expo?.plugins ?? [];
+    const notif = plugins.find(
+      (p) => Array.isArray(p) && p[0] === 'expo-notifications',
+    );
+
+    it('expo-notifications plugin does not enable enableBackgroundRemoteNotifications', () => {
+      const cfg = (notif && notif[1]) || {};
+      expect(cfg.enableBackgroundRemoteNotifications).toBeFalsy();
+    });
+  });
+
   describe('B. Regression guard — utils/notificationService.ts stays local-only', () => {
     const SRC = readFileSync(
       join(ROOT, 'utils/notificationService.ts'),
