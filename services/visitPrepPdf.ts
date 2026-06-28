@@ -8,7 +8,7 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { getMedications } from '../utils/medicationStorage';
 import { getVitalsInRange, VitalReading } from '../utils/vitalsStorage';
-import { NO_VITALS_IN_RANGE } from '../utils/reportVitals';
+import { NO_VITALS_IN_WINDOW } from '../utils/reportVitals';
 import {
   listDailyInstancesRange,
   listLogsInRange,
@@ -833,7 +833,7 @@ function buildHtml(data: VisitPrepData): string {
   </table>
   ` : `
   <h2>Vitals</h2>
-  <p style="color:#9a9aa8;">${NO_VITALS_IN_RANGE}</p>
+  <p style="color:#9a9aa8;">${NO_VITALS_IN_WINDOW}</p>
   `) : ''}
 
   ${data.includes.hydrationNutrition ? (data.hydrationNutrition ? `

@@ -6,20 +6,20 @@
 // an EXPLAINED empty-state — never silently omit the section (trust rule).
 // Visit Prep (services/visitPrepPdf.ts) already did this; care-report.tsx's
 // Full export silently dropped the rows. This pins the shared behavior + a
-// single source-of-truth string ("No vitals logged in this range.") used by
+// single source-of-truth string ("No vitals logged in this window.") used by
 // BOTH report paths.
 // ============================================================================
 
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { buildVitalsDetails, NO_VITALS_IN_RANGE } from '../../utils/reportVitals';
+import { buildVitalsDetails, NO_VITALS_IN_WINDOW } from '../../utils/reportVitals';
 
 const ROOT = join(__dirname, '../..');
 const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8');
 
 describe('reportVitals empty-state (fix #2)', () => {
-  it('agreed string is "No vitals logged in this range."', () => {
-    expect(NO_VITALS_IN_RANGE).toBe('No vitals logged in this range.');
+  it('agreed string is "No vitals logged in this window."', () => {
+    expect(NO_VITALS_IN_WINDOW).toBe('No vitals logged in this window.');
   });
 
   describe('buildVitalsDetails — explained empty-state, never silent omission', () => {
@@ -27,18 +27,18 @@ describe('reportVitals empty-state (fix #2)', () => {
       const rows = buildVitalsDetails({ systolic: 120, diastolic: 80, heartRate: 70, oxygen: 98 });
       const labels = rows.map((r) => r.label);
       expect(labels).toEqual(['Blood Pressure', 'Heart Rate', 'O2 Saturation']);
-      expect(rows.map((r) => r.value)).not.toContain(NO_VITALS_IN_RANGE);
+      expect(rows.map((r) => r.value)).not.toContain(NO_VITALS_IN_WINDOW);
     });
 
     it('null readings (vitals included, none in range) → single explained empty-state row', () => {
       const rows = buildVitalsDetails(null);
-      expect(rows).toEqual([{ label: 'Vitals', value: NO_VITALS_IN_RANGE }]);
+      expect(rows).toEqual([{ label: 'Vitals', value: NO_VITALS_IN_WINDOW }]);
     });
 
     it('empty readings object → explained empty-state (not zero rows)', () => {
       const rows = buildVitalsDetails({});
       expect(rows).toHaveLength(1);
-      expect(rows[0].value).toBe(NO_VITALS_IN_RANGE);
+      expect(rows[0].value).toBe(NO_VITALS_IN_WINDOW);
     });
 
     it('partial readings (HR only) → just that row, no empty-state', () => {
@@ -53,9 +53,9 @@ describe('reportVitals empty-state (fix #2)', () => {
       expect(src).toMatch(/buildVitalsDetails/);
     });
 
-    it('visitPrepPdf.ts uses NO_VITALS_IN_RANGE and drops the old per-path string', () => {
+    it('visitPrepPdf.ts uses NO_VITALS_IN_WINDOW and drops the old per-path string', () => {
       const src = read('services/visitPrepPdf.ts');
-      expect(src).toMatch(/NO_VITALS_IN_RANGE/);
+      expect(src).toMatch(/NO_VITALS_IN_WINDOW/);
       expect(src).not.toMatch(/No vitals readings in this window/);
     });
   });

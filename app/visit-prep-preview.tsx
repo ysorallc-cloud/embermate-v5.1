@@ -35,7 +35,7 @@ import { navigate, navigateBack } from '../lib/navigate';
 import { logError } from '../utils/devLog';
 import { hapticSuccess } from '../utils/hapticFeedback';
 import { safeGetItem, safeSetItem } from '../utils/safeStorage';
-import { NO_VITALS_IN_RANGE } from '../utils/reportVitals';
+import { NO_VITALS_IN_WINDOW } from '../utils/reportVitals';
 import {
   assembleVisitPrepData,
   generateAndShareVisitPrep,
@@ -347,7 +347,7 @@ export default function VisitPrepPreviewScreen() {
                       ))
                     ) : (
                       <Text style={[styles.bulletLine, styles.bulletLineMuted]}>
-                        {NO_VITALS_IN_RANGE}
+                        {NO_VITALS_IN_WINDOW}
                       </Text>
                     )}
                   </View>

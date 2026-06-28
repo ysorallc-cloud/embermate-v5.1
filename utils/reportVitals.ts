@@ -9,7 +9,10 @@
 //   • services/visitPrepPdf.ts — Visit Prep HTML
 // ============================================================================
 
-export const NO_VITALS_IN_RANGE = 'No vitals logged in this range.';
+// "window" (not "range") to match the sibling Visit Prep empty-states
+// (meds / notes / questions all say "in this window") — internal report
+// consistency. Shared so care-report's Full export uses the identical string.
+export const NO_VITALS_IN_WINDOW = 'No vitals logged in this window.';
 
 export interface VitalsReadings {
   systolic?: number;
@@ -43,7 +46,7 @@ export function buildVitalsDetails(readings: VitalsReadings | null | undefined):
     }
   }
   if (rows.length === 0) {
-    rows.push({ label: 'Vitals', value: NO_VITALS_IN_RANGE });
+    rows.push({ label: 'Vitals', value: NO_VITALS_IN_WINDOW });
   }
   return rows;
 }
