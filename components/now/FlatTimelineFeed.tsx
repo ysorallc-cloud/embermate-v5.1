@@ -20,9 +20,11 @@
 //              "OVERDUE · time" eyebrow, 28px coral ring, TAPPABLE.
 //   Pending  — opacity 0.55, muted text, 28px faint ring, TAPPABLE.
 //
-// WHISPER LINE above the feed (italic-serif, muted, data-driven):
+// WHISPER LINE above the feed (italic-serif, muted, data-driven) — copy
+// lives in utils/nowWhisper (composeNowWhisper), unit-tested:
 //   All done    → "All done today."
-//   Some overdue → "Morning done. N overdue, N still ahead."
+//   Some overdue → "N overdue, M still ahead." / "N overdue." (no false
+//                  "done" lead, no "0 still ahead")
 //   Some pending → "N things still ahead."
 //
 // COMING UP dashed divider lands before the first non-Done, non-Overdue
@@ -38,6 +40,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, Fonts } from '../../theme/theme-tokens';
 import { isOverdue } from '../../utils/nowHelpers';
+import { composeNowWhisper } from '../../utils/nowWhisper';
 import { TypeScale } from '../../theme/spacing';
 
 type RowStatus = 'done' | 'overdue' | 'pending';
@@ -122,22 +125,7 @@ interface ComingUpRow { kind: 'coming-up' }
 interface ItemRow { kind: 'item'; flat: FlatItem }
 type Row = BandRow | ComingUpRow | ItemRow;
 
-function whisperLine(flats: FlatItem[]): string | null {
-  if (flats.length === 0) return null;
-  const total = flats.length;
-  const done = flats.filter((f) => f.status === 'done').length;
-  const overdue = flats.filter((f) => f.status === 'overdue').length;
-  const pending = flats.filter((f) => f.status === 'pending').length;
-  if (done === total) return 'All done today.';
-  if (overdue > 0) {
-    const ahead = pending;
-    return `Morning done. ${overdue} overdue, ${ahead} still ahead.`;
-  }
-  if (pending > 0) {
-    return pending === 1 ? '1 thing still ahead.' : `${pending} things still ahead.`;
-  }
-  return null;
-}
+// whisper copy extracted to utils/nowWhisper (composeNowWhisper) — unit-tested.
 
 export interface FlatTimelineFeedProps {
   allPending: any[];
@@ -165,7 +153,7 @@ export function FlatTimelineFeed({ allPending, completed, onItemPress }: FlatTim
       .sort((a, b) => a.hour - b.hour);
   }, [allPending, completed]);
 
-  const whisper = useMemo(() => whisperLine(flats), [flats]);
+  const whisper = useMemo(() => composeNowWhisper(flats), [flats]);
 
   const rows: Row[] = useMemo(() => {
     const out: Row[] = [];
