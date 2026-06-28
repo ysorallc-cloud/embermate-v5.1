@@ -6,17 +6,20 @@ import Animated, {
   useAnimatedStyle,
   interpolate,
   Extrapolation,
+  // SDK 54 / reanimated 4 — SharedValue is no longer re-exported through the
+  // default Animated namespace; import the type top-level.
+  type SharedValue,
 } from 'react-native-reanimated';
 
 interface Props {
   count: number;
-  scrollX: Animated.SharedValue<number>;
+  scrollX: SharedValue<number>;
   width: number;
 }
 
 interface DotProps {
   index: number;
-  scrollX: Animated.SharedValue<number>;
+  scrollX: SharedValue<number>;
   width: number;
 }
 
