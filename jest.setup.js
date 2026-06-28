@@ -296,6 +296,11 @@ const mockFileSystem = (() => {
 })();
 
 jest.mock('expo-file-system', () => mockFileSystem);
+// SDK 54 — the classic FileSystem API moved to the 'expo-file-system/legacy'
+// subpath. App code imports from there now; mock the same handle so tests
+// keep intercepting the identical surface regardless of which specifier the
+// source uses.
+jest.mock('expo-file-system/legacy', () => mockFileSystem);
 
 // ============================================================================
 // MOCK: expo-notifications
