@@ -14,9 +14,14 @@
 // would imply a push capability the app does not use — an App Store review
 // signal and a privacy posture mismatch with our local-only claim.
 //
-// This plugin must be listed in app.json plugins[] AFTER the
-// expo-notifications block so it runs after the injection and strips the
-// key from modResults.
+// ORDERING (verified by a real SDK-54 `expo prebuild`): Expo runs same-mod
+// actions LIFO — the LAST-listed plugin's mod runs FIRST (withMod.js wraps:
+// each action runs, THEN calls nextMod = the previously-added one). So this
+// stripper must be listed in app.json plugins[] *** BEFORE *** the
+// expo-notifications block, so it executes AFTER expo-notifications injects
+// aps-environment and strips the key from modResults. (Listing it AFTER —
+// the intuitive-but-wrong order — runs the strip first, deletes nothing, then
+// expo-notifications injects, leaving aps-environment in the entitlements.)
 //
 // SCOPE — this plugin covers ONLY the entitlements half (aps-environment).
 // SDK 54 added a SECOND, opt-in vector: when expo-notifications' plugin option
