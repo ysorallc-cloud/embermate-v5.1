@@ -84,11 +84,11 @@ function RootLayout() {
   // Handle notification taps
   useNotificationHandler();
   const insets = useSafeAreaInsets();
-  const notificationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const notificationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [locked, setLocked] = useState(false);
   const [lockoutInfo, setLockoutInfo] = useState<PINLockoutInfo | null>(null);
   const [integrityWarning, setIntegrityWarning] = useState(false);
-  const lockoutTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lockoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const appStateRef = useRef(AppState.currentState);
 
   // Phase 33 F3 — Source Serif 4 loaded before splash dismisses so the
