@@ -57,6 +57,7 @@ export interface JournalNotesCardProps {
 }
 
 export function JournalNotesCard({
+  date,
   savedText,
   savedAt,
   onSave,
@@ -90,11 +91,31 @@ export function JournalNotesCard({
     };
   }, [inputRef]);
 
-  // Sync incoming saved text (e.g. when the parent loads a different day).
+  // Sync incoming saved text into the editable buffer. This fires on a
+  // genuine day-switch (parent loads a different day) AND on the post-save
+  // echo (the parent lifts the just-saved value back into savedText).
+  //
+  // Option C confirmation ownership: this effect must NOT touch justSaved.
+  // The save confirmation (visible pulse + a11y "Saved" announcement) is
+  // owned by handleSave alone and is immune to savedText prop echoes —
+  // otherwise the post-save lift would reset justSaved before the caregiver
+  // could perceive it (the bug this design closes). The confirmation reset
+  // lives in the date-keyed effect below, not here.
   useEffect(() => {
     setText(savedText ?? '');
-    setJustSaved(false);
   }, [savedText]);
+
+  // Confirmation lifecycle is keyed to the DAY, not to savedText. A real
+  // day-switch (date prop change) clears any stale "✓ Saved" badge that
+  // belonged to the previous day; a savedText echo within the SAME day
+  // cannot reach justSaved. This is the structural guard that removes the
+  // whole "echo clears the confirmation" bug class rather than detecting
+  // and suppressing one specific echo (which would silently re-break the
+  // a11y announcement from any future savedText-lifting path). `date` is
+  // a stable per-day string, so this fires only on actual day changes.
+  useEffect(() => {
+    setJustSaved(false);
+  }, [date]);
 
   // Clean up the just-saved timer on unmount.
   useEffect(() => {
