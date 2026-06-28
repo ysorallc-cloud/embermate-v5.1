@@ -331,6 +331,13 @@ export async function scheduleOneTimeNotification(
       return null;
     }
 
+    // SDK 54 / New Architecture — OMIT Optional<String> fields when absent
+    // rather than setting them to explicit undefined: the codegen'd native
+    // module rejects undefined/null for an Optional<String> (the bridge throws,
+    // the catch below swallows it, the reminder is silently dropped). Same
+    // contract as scheduleInstanceNotification (fda51d52). Conditional spread
+    // keeps the key out entirely; never '' (empty string is a real unmatched
+    // iOS category id), and `categoryIdentifier ?` already drops falsy values.
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
         title,
@@ -341,14 +348,14 @@ export async function scheduleOneTimeNotification(
           title,
           body,
         },
-        sound: settings.soundEnabled ? 'default' : undefined,
         badge: 1,
-        categoryIdentifier: categoryIdentifier || undefined, // Enables quick actions
+        ...(settings.soundEnabled ? { sound: 'default' } : {}),
+        ...(categoryIdentifier ? { categoryIdentifier } : {}), // Enables quick actions
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
         date: triggerDate,
-        channelId: Platform.OS === 'android' ? 'medication-reminders' : undefined,
+        ...(Platform.OS === 'android' ? { channelId: 'medication-reminders' } : {}),
       },
     });
 
