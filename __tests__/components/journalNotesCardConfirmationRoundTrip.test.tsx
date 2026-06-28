@@ -223,12 +223,19 @@ describe('JournalNotesCard — device-facing confirmation round-trip', () => {
     tree.unmount();
   });
 
-  it('(d-a11y) the live-region announces "Saved" after a successful save', async () => {
+  it('(d-a11y) the live-region PROP is set to "Saved" after a successful save', async () => {
+    // SCOPE: this verifies the live-region PROP is populated and exposed —
+    // NOT that VoiceOver actually announces. Screen-reader support is OUT
+    // OF SCOPE for this version (project_accessibility_scope_decision), so
+    // this channel is built-and-dormant: the code is wired and pinned here
+    // at the prop level, but iOS speaking it is a DEFERRED on-device
+    // VoiceOver walk, gated on accessibility coming into scope. Green here
+    // ≠ "iOS announces it." The ACTIVE v1 confirmation is (d-pill-pulse).
     const tree = await typeAndSave();
     const live = findLiveRegion(tree);
     expect(live).not.toBeNull();
     expect(flattenText(live!.props.children)).toBe('Saved');
-    // And it is exposed to assistive tech at the moment of announcement.
+    // And the node is exposed to assistive tech (not hidden) at announce time.
     expect(live!.props.accessibilityElementsHidden).toBe(false);
     tree.unmount();
   });
