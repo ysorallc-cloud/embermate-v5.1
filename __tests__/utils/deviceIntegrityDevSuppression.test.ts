@@ -33,7 +33,9 @@ jest.mock('react-native', () => ({
   Platform: { OS: 'ios' },
 }));
 
-jest.mock('expo-file-system', () => ({
+// SDK 54 — deviceIntegrity.ts imports FileSystem from 'expo-file-system/legacy';
+// mock that subpath so this suite's getInfoAsync spy intercepts the real call.
+jest.mock('expo-file-system/legacy', () => ({
   getInfoAsync: (...args: any[]) => mockGetInfoAsync(...args),
 }));
 

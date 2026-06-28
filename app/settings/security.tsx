@@ -139,7 +139,7 @@ export default function SecuritySettingsScreen() {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Set PIN',
-          onPress: async (pin) => {
+          onPress: async (pin?: string) => {
             if (!pin || pin.length < 4 || pin.length > 6 || !/^\d+$/.test(pin)) {
               Alert.alert('Invalid PIN', 'PIN must be 4-6 digits');
               return;
@@ -168,7 +168,7 @@ export default function SecuritySettingsScreen() {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Change',
-          onPress: async (pin) => {
+          onPress: async (pin?: string) => {
             if (!pin || pin.length < 4 || pin.length > 6 || !/^\d+$/.test(pin)) {
               Alert.alert('Invalid PIN', 'PIN must be 4-6 digits');
               return;

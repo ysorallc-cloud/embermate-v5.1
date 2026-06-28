@@ -3,7 +3,7 @@
 // Export user data in various formats (JSON, CSV)
 // ============================================================================
 
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';

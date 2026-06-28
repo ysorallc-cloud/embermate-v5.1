@@ -90,11 +90,11 @@ beforeEach(() => {
   mockReportError.mockClear();
 });
 
-function Boom(): JSX.Element {
+function Boom(): React.JSX.Element {
   throw new Error('boom: test failure');
 }
 
-function Healthy(): JSX.Element {
+function Healthy(): React.JSX.Element {
   return (
     <View>
       <Text>healthy child</Text>

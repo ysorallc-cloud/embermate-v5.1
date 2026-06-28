@@ -27,10 +27,12 @@
 //      2. A custom Expo config plugin file exists at
 //         plugins/withNoApsEntitlement.js whose body deletes the
 //         'aps-environment' key from the entitlements modResults.
-//      3. app.json:expo.plugins[] includes './plugins/withNoApsEntitlement'
-//         AFTER the expo-notifications plugin block. (expo-notifications'
+//      3. app.json:expo.plugins[] lists './plugins/withNoApsEntitlement'
+//         BEFORE the expo-notifications plugin block. (expo-notifications'
 //         iOS plugin auto-injects aps-environment during `expo prebuild`;
-//         our stripper must run after it.)
+//         Expo runs same-mod actions LIFO, so the stripper must be listed
+//         BEFORE expo-notifications to EXECUTE after it. Verified by a real
+//         SDK-54 prebuild — the reversed order leaves aps-environment in.)
 // ============================================================================
 
 import { readFileSync } from 'fs';
@@ -67,7 +69,7 @@ describe('iOS entitlements declare no push capability — app is local-only', ()
       expect(src).toMatch(/delete\s+\w+\.modResults\[\s*['"]aps-environment['"]\s*\]/);
     });
 
-    it('app.json plugins[] wires the stripper AFTER the expo-notifications plugin', () => {
+    it('app.json plugins[] lists the stripper BEFORE expo-notifications (LIFO: runs after injection)', () => {
       const json = JSON.parse(readFileSync(join(ROOT, 'app.json'), 'utf8'));
       const plugins: any[] = json?.expo?.plugins ?? [];
 
@@ -85,8 +87,13 @@ describe('iOS entitlements declare no push capability — app is local-only', ()
       });
       expect(stripperIdx).toBeGreaterThanOrEqual(0);
 
-      // Order matters: expo-notifications injects, stripper removes.
-      expect(stripperIdx).toBeGreaterThan(notifIdx);
+      // Order matters — and it is COUNTERINTUITIVE. Expo runs same-mod actions
+      // LIFO (the last-listed plugin's mod runs first; see withMod.js). So to
+      // run the strip AFTER expo-notifications injects aps-environment, the
+      // stripper must be listed BEFORE expo-notifications. Verified empirically:
+      // the reversed order leaves aps-environment in the regenerated
+      // entitlements (caught by a real SDK-54 `expo prebuild`).
+      expect(stripperIdx).toBeLessThan(notifIdx);
     });
   });
 });

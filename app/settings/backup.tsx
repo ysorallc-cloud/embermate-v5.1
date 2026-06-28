@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Colors } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { SubScreenHeader } from '../../components/SubScreenHeader';

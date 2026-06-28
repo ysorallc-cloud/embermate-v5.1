@@ -51,7 +51,7 @@ export const SwipeableTimelineItem: React.FC<Props> = ({
   const translateX = useRef(new Animated.Value(0)).current;
   const [isRevealed, setIsRevealed] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
-  const resetTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Cleanup timer on unmount
   useEffect(() => {
