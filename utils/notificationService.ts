@@ -830,7 +830,14 @@ async function scheduleInstanceNotification(
     const title = `${emoji} ${getNotificationTitle(item.type)}`;
     const body = getNotificationBody(item, instance);
 
-    // Schedule with Expo
+    // Schedule with Expo.
+    // SDK 54 / New Architecture — Optional<String> fields (categoryIdentifier,
+    // sound, trigger.channelId) must be OMITTED when absent, not set to an
+    // explicit undefined: the codegen'd native module rejects undefined/null
+    // for an Optional<String> (the bridge throws, the catch below swallows it,
+    // and the reminder is silently dropped). Conditional spread keeps the key
+    // out of the object entirely. NOTE: never use '' as a categoryIdentifier
+    // fallback — empty string is a real (unmatched) category id on iOS.
     const expoNotificationId = await Notifications.scheduleNotificationAsync({
       content: {
         title,
@@ -843,14 +850,14 @@ async function scheduleInstanceNotification(
           title,
           body,
         },
-        sound: deliveryPrefs.soundEnabled ? 'default' : undefined,
         badge: 1,
-        categoryIdentifier: item.type === 'medication' ? 'medication' : undefined,
+        ...(deliveryPrefs.soundEnabled ? { sound: 'default' } : {}),
+        ...(item.type === 'medication' ? { categoryIdentifier: 'medication' } : {}),
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
         date: triggerTime,
-        channelId: Platform.OS === 'android' ? 'medication-reminders' : undefined,
+        ...(Platform.OS === 'android' ? { channelId: 'medication-reminders' } : {}),
       },
     });
 
