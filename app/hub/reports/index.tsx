@@ -22,7 +22,7 @@ interface Report {
   id: string;
   icon: string;
   name: string;
-  badge: string;
+  badge?: string;
   color: string;
   route: string;
   requiredBuckets?: BucketType[]; // If any of these enabled, show report. Empty/undefined = always show
@@ -39,7 +39,11 @@ const REPORT_CATEGORIES: ReportCategory[] = [
     title: 'Clinical Reports',
     description: 'For healthcare providers',
     reports: [
-      { id: 'medication', icon: '💊', name: 'Medication Adherence', badge: '94%', color: Colors.amber, route: '/hub/reports/medication', requiredBuckets: ['meds'] },
+      // Wave-1 fakes deletion: the hardcoded '94%' badge was a fake metric
+      // (no live wiring on this hub screen — every sibling badge is a static
+      // label). Removed rather than replaced with a placeholder; the real
+      // adherence computation lives in the linked /hub/reports/medication.
+      { id: 'medication', icon: '💊', name: 'Medication Adherence', color: Colors.amber, route: '/hub/reports/medication', requiredBuckets: ['meds'] },
       { id: 'vitals', icon: '🫀', name: 'Vitals Stability', badge: 'Coming soon', color: Colors.rose, route: '', requiredBuckets: ['vitals'] },
       { id: 'symptoms', icon: '🩺', name: 'Symptom Timeline', badge: 'Coming soon', color: Colors.caregiverAccent, route: '', requiredBuckets: ['wellness'] },
       { id: 'nutrition', icon: '🥗', name: 'Hydration & Nutrition', badge: 'Coming soon', color: Colors.green, route: '', requiredBuckets: ['meals', 'water'] },
@@ -134,7 +138,7 @@ export default function ReportsHub() {
                       }
                     }}
                     activeOpacity={0.7}
-                    accessibilityLabel={`${report.name} report, ${report.badge}`}
+                    accessibilityLabel={report.badge ? `${report.name} report, ${report.badge}` : `${report.name} report`}
                     accessibilityRole="button"
                   >
                     <View style={[

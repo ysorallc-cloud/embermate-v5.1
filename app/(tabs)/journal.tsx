@@ -619,40 +619,12 @@ export default function JournalTab() {
   const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
   const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-  // Phase 1A — day status (first read on the Journal page).
-  // MUST live above the loading/error early returns so the hook order
-  // stays stable across renders. Inlines its counter logic for the same
-  // reason: the medsDone/etc consts below this point are computed AFTER
-  // the early returns and can't be referenced here.
-  const dayStatus = useMemo(() => {
-    if (!brief) {
-      return { color: colors.textWarmMuted, label: 'No data yet', detail: 'Start logging on the Now tab' };
-    }
-    const md = brief.medications.filter(m => m.status === 'completed' || m.status === 'skipped').length;
-    const mt = brief.medications.length;
-    const mm = brief.medications.filter(m => m.status === 'missed').length;
-    const eaD = brief.meals.meals.filter(m => m.status === 'completed' || m.status === 'skipped').length;
-    const eaT = brief.meals.total;
-    const wD = brief.wellnessChecks.done;
-    const wT = brief.wellnessChecks.total;
-
-    const totalItems = mt + eaT + wT;
-    const doneItems = md + eaD + wD;
-
-    if (totalItems === 0) {
-      return { color: colors.textWarmMuted, label: 'No data yet', detail: 'Start logging on the Now tab' };
-    }
-    if (doneItems === totalItems) {
-      return { color: colors.accent, label: 'Good day', detail: 'All items completed' };
-    }
-    if (mm > 0) {
-      return { color: colors.amberBright, label: 'Needs attention', detail: `${mm} med${mm > 1 ? 's' : ''} missed` };
-    }
-    if (doneItems > 0) {
-      return { color: colors.amberBright, label: 'Incomplete day', detail: `${doneItems} of ${totalItems} items done` };
-    }
-    return { color: colors.textWarmMuted, label: 'Day starting', detail: `${totalItems} items scheduled` };
-  }, [brief, colors]);
+  // Wave-1 dead-code deletion: the `dayStatus` useMemo (a duplicate
+  // adherence/day-status computation) was orphaned — its rendered consumer
+  // (the statusBlock/statusDot/statusLabel callout) was removed in Phase 2,
+  // leaving the producer computing a value nothing read. Removed so it
+  // can't be mistaken for a live adherence source during data convergence.
+  // (Pinned by __tests__/screens/journalNoNeedsAttentionCallout.test.tsx.)
 
   if (loading && !brief) {
     return (
