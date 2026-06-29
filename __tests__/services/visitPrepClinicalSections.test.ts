@@ -24,8 +24,10 @@ const mockGetRangeWithMissingDays = jest.fn();
 jest.mock('../../utils/medicationStorage', () => ({
   getMedications: (...a: any[]) => mockGetMedications(...a),
 }));
-jest.mock('../../utils/vitalsStorage', () => ({
-  getVitalsInRange: (...a: any[]) => mockGetVitalsInRange(...a),
+// Wave-1 Fix #2 — vitals now read from the CANONICAL store (B) via
+// vitalsCanonical. Same VitalReading[] fixtures; only the mocked function moves.
+jest.mock('../../utils/vitalsCanonical', () => ({
+  getCanonicalVitalReadingsInRange: (...a: any[]) => mockGetVitalsInRange(...a),
 }));
 jest.mock('../../storage/carePlanRepo', () => ({
   listDailyInstancesRange: (...a: any[]) => mockListDailyInstancesRange(...a),

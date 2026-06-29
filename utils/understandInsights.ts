@@ -15,6 +15,7 @@ import { getDailyTrackingLogs } from './dailyTrackingStorage';
 import { getAllBaselines } from './baselineStorage';
 import { hasSampleData } from './sampleData';
 import { listLogsInRange, listDailyInstancesRange, listCarePlanItems, getActiveCarePlan, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
+import { countCanonicalVitalsInRange } from './vitalsCanonical';
 import { LogEntry, CarePlanItem, CarePlanItemType } from '../types/carePlan';
 
 // ============================================================================
@@ -550,7 +551,7 @@ interface CarePlanStats {
   lunchSkipRate: number;
 }
 
-async function getCarePlanStatsForRange(timeRange: TimeRange): Promise<CarePlanStats> {
+export async function getCarePlanStatsForRange(timeRange: TimeRange): Promise<CarePlanStats> {
   const endDate = getTodayDateString();
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - timeRange);
@@ -597,8 +598,12 @@ async function getCarePlanStatsForRange(timeRange: TimeRange): Promise<CarePlanS
         case 'medication':
           medicationLogs++;
           break;
+        // Wave-1 clinician convergence (Fix #2): vitals are NOT counted from
+        // LogEntry completions here — the normal vitals flow never writes a
+        // vitals-typed LogEntry, so this counter sat at 0 even with BP/HR
+        // visible on Now. vitalsLogs is computed below from the canonical
+        // store (B) instead. Case kept as a no-op for shape clarity.
         case 'vitals':
-          vitalsLogs++;
           break;
         // Phase 11.7.3b — wellness completions have itemType ===
         // 'wellness' on the runtime DailyCareInstance / LogEntry;
@@ -648,6 +653,16 @@ async function getCarePlanStatsForRange(timeRange: TimeRange): Promise<CarePlanS
     const hydrationDays = Object.values(hydrationPerDay);
     const sleepDays = Object.values(sleepPerDay);
     const wellnessDays = Object.values(wellnessPerDay);
+
+    // Wave-1 clinician convergence (Fix #2): vitals count = reading EVENTS in
+    // the canonical store (B `@embermate_central_vitals_logs`, what Now/Journal
+    // show), over this window — NOT vitals-typed LogEntry completions (store C),
+    // which the normal vitals flow never writes, so the counter sat at 0 even
+    // with BP/HR visible on Now.
+    vitalsLogs = await countCanonicalVitalsInRange(
+      `${startDateStr}T00:00:00`,
+      `${endDate}T23:59:59`,
+    );
 
     return {
       totalLogs: logs.length,

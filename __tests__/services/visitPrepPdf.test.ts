@@ -10,8 +10,12 @@ jest.mock('expo-sharing', () => ({ shareAsync: jest.fn(), isAvailableAsync: jest
 jest.mock('../../utils/medicationStorage', () => ({
   getMedications: jest.fn(),
 }));
-jest.mock('../../utils/vitalsStorage', () => ({
-  getVitalsInRange: jest.fn(),
+// Wave-1 Fix #2 — vitals now read from the CANONICAL store (B) via
+// vitalsCanonical, not store A (vitalsStorage.getVitalsInRange). The fixtures
+// are the same VitalReading[] shape, so the grouping/trend assertions are
+// unchanged; only the mocked function moves.
+jest.mock('../../utils/vitalsCanonical', () => ({
+  getCanonicalVitalReadingsInRange: jest.fn(),
 }));
 jest.mock('../../storage/carePlanRepo', () => ({
   listDailyInstancesRange: jest.fn(),
@@ -39,12 +43,12 @@ jest.mock('../../services/medicationChangeTracking', () => ({
 
 import { assembleVisitPrepData, VisitPrepConfig } from '../../services/visitPrepPdf';
 import { getMedications } from '../../utils/medicationStorage';
-import { getVitalsInRange } from '../../utils/vitalsStorage';
+import { getCanonicalVitalReadingsInRange } from '../../utils/vitalsCanonical';
 import { listDailyInstancesRange } from '../../storage/carePlanRepo';
 import { getReflection } from '../../storage/reflectionStorage';
 
 const mockGetMedications = getMedications as jest.MockedFunction<typeof getMedications>;
-const mockGetVitalsInRange = getVitalsInRange as jest.MockedFunction<typeof getVitalsInRange>;
+const mockGetVitals = getCanonicalVitalReadingsInRange as jest.MockedFunction<typeof getCanonicalVitalReadingsInRange>;
 const mockListInstances = listDailyInstancesRange as jest.MockedFunction<typeof listDailyInstancesRange>;
 const mockGetReflection = getReflection as jest.MockedFunction<typeof getReflection>;
 
@@ -97,7 +101,7 @@ function makeInstance(overrides: Partial<any> = {}): any {
 beforeEach(() => {
   // Default neutral fixtures: no data of any kind
   mockGetMedications.mockResolvedValue([]);
-  mockGetVitalsInRange.mockResolvedValue([]);
+  mockGetVitals.mockResolvedValue([]);
   mockListInstances.mockResolvedValue([]);
   mockGetReflection.mockResolvedValue(null);
 });
@@ -214,7 +218,7 @@ describe('assembleVisitPrepData — medications edge cases', () => {
 
 describe('assembleVisitPrepData — vitals', () => {
   it('groups vitals by type and computes trend + outOfRange', async () => {
-    mockGetVitalsInRange.mockResolvedValue([
+    mockGetVitals.mockResolvedValue([
       { id: 'v1', type: 'systolic', value: 145, unit: 'mmHg', timestamp: '2026-04-12T08:00:00Z' },
       { id: 'v2', type: 'systolic', value: 138, unit: 'mmHg', timestamp: '2026-04-15T08:00:00Z' },
       { id: 'v3', type: 'systolic', value: 132, unit: 'mmHg', timestamp: '2026-04-18T08:00:00Z' },
@@ -232,7 +236,7 @@ describe('assembleVisitPrepData — vitals', () => {
   });
 
   it('vitals with single reading reports trend as "unknown"', async () => {
-    mockGetVitalsInRange.mockResolvedValue([
+    mockGetVitals.mockResolvedValue([
       { id: 'v1', type: 'glucose', value: 100, unit: 'mg/dL', timestamp: '2026-04-15T08:00:00Z' },
     ]);
     const data = await assembleVisitPrepData(BASE_CONFIG);
@@ -241,7 +245,7 @@ describe('assembleVisitPrepData — vitals', () => {
   });
 
   it('omits vitals section entirely when includeVitals is false', async () => {
-    mockGetVitalsInRange.mockResolvedValue([
+    mockGetVitals.mockResolvedValue([
       { id: 'v1', type: 'systolic', value: 130, unit: 'mmHg', timestamp: '2026-04-15T08:00:00Z' },
     ]);
     const data = await assembleVisitPrepData({ ...BASE_CONFIG, includeVitals: false });

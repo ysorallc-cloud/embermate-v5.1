@@ -7,7 +7,12 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { getMedications } from '../utils/medicationStorage';
-import { getVitalsInRange, VitalReading } from '../utils/vitalsStorage';
+import { VitalReading } from '../utils/vitalsStorage';
+// Wave-1 clinician convergence (Fix #2): vitals read from the CANONICAL store
+// (store B `@embermate_central_vitals_logs`, what Now/Journal read) — not the
+// separate store A `@vitals_readings`, which only co-populated by the QuickLog
+// dual-write and could silently drift from the screens.
+import { getCanonicalVitalReadingsInRange } from '../utils/vitalsCanonical';
 import { NO_VITALS_IN_WINDOW } from '../utils/reportVitals';
 import {
   listDailyInstancesRange,
@@ -324,7 +329,7 @@ export async function assembleVisitPrepData(config: VisitPrepConfig): Promise<Vi
     try {
       const startISO = new Date(`${dateRange.start}T00:00:00`).toISOString();
       const endISO = new Date(`${dateRange.end}T23:59:59`).toISOString();
-      const readings = await getVitalsInRange(startISO, endISO);
+      const readings = await getCanonicalVitalReadingsInRange(startISO, endISO);
 
       const byType = new Map<string, VitalReading[]>();
       for (const r of readings) {
