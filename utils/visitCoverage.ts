@@ -23,6 +23,10 @@
 
 import type { CareEvent } from '../types/event';
 import type { DailyCareInstance } from '../types/carePlan';
+import { getEventsByDateRange } from '../storage/eventRepo';
+import { listDailyInstancesRange, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
+import { countCanonicalVitalsInRange } from './vitalsCanonical';
+import { countCanonicalMealsLoggedInRange } from './mealsCanonical';
 
 export const COVERAGE_WINDOW_DAYS = 15;
 
@@ -43,24 +47,29 @@ function eventKey(e: CareEvent): string {
 }
 
 /**
- * Aggregate per-source counts and distinct-day count over a union of
- * events and completed/skipped instances. Pure / synchronous.
+ * Aggregate per-source counts and distinct-day count. Pure / synchronous.
  *
- * Pending and missed instances do NOT contribute — coverage measures
- * "did the caregiver log anything that day", not what was scheduled.
+ * Wave-1 clinician convergence (Fix #3): VITALS and MEALS are no longer
+ * counted from the events+instances union here — they come from the canonical
+ * readers (countCanonicalVitalsInRange / countCanonicalMealsLoggedInRange) and
+ * are passed in via `canonical`. This closes the last two non-canonical chip
+ * counters (the 4th vitals counter held back from Fix #2, and the meals chip).
+ * MEDS, NOTES, and daysLogged still come from the union; vitals/meals events +
+ * instances still contribute to daysLogged (a logged meal/vital makes the day
+ * count) but not to the per-source totals.
+ *
+ * Pending and missed instances do NOT contribute to daysLogged — coverage
+ * measures "did the caregiver log anything that day", not what was scheduled.
  */
 export function computeDataCoverage(
   events: CareEvent[],
   instances: DailyCareInstance[],
   windowDays: number,
+  canonical: { vitals: number; meals: number },
 ): DataCoverage {
   const seenMeds = new Set<string>();
-  const seenVitals = new Set<string>();
-  const seenMeals = new Set<string>();
   const dayKeys = new Set<string>();
   let meds = 0;
-  let vitals = 0;
-  let meals = 0;
   let notes = 0;
 
   for (const e of events) {
@@ -69,32 +78,51 @@ export function computeDataCoverage(
     const k = eventKey(e);
     if (e.type === 'medication_taken' || e.type === 'medication_skipped') {
       if (!seenMeds.has(k)) { seenMeds.add(k); meds += 1; }
-    } else if (e.type === 'vitals_recorded') {
-      if (!seenVitals.has(k)) { seenVitals.add(k); vitals += 1; }
-    } else if (e.type === 'meal_logged') {
-      if (!seenMeals.has(k)) { seenMeals.add(k); meals += 1; }
     } else if (e.type === 'note_added') {
       // Notes have no instance counterpart — events-only.
       notes += 1;
     }
+    // vitals_recorded / meal_logged: contribute to daysLogged (above); their
+    // COUNTS come from the canonical readers, not this union.
   }
 
   for (const i of instances) {
     if (i.status !== 'completed' && i.status !== 'skipped') continue;
     if (i.date) dayKeys.add(i.date);
-    const k = `${i.carePlanItemId}:${i.scheduledTime}`;
     if (i.itemType === 'medication') {
+      const k = `${i.carePlanItemId}:${i.scheduledTime}`;
       if (!seenMeds.has(k)) { seenMeds.add(k); meds += 1; }
-    } else if (i.itemType === 'vitals') {
-      if (!seenVitals.has(k)) { seenVitals.add(k); vitals += 1; }
-    } else if (i.itemType === 'nutrition') {
-      if (!seenMeals.has(k)) { seenMeals.add(k); meals += 1; }
     }
+    // vitals / nutrition instances: contribute to daysLogged; counts canonical.
   }
 
   return {
     daysLogged: dayKeys.size,
     windowDays,
-    meds, vitals, meals, notes,
+    meds,
+    vitals: canonical.vitals,
+    meals: canonical.meals,
+    notes,
   };
+}
+
+/**
+ * Async loader for the visit-prep coverage chip. Owns the canonical wiring so
+ * visitCoverage is the single home for the chip's vitals + meals counts. Loads
+ * events + instances (for meds/notes/days) and the canonical vitals + meals
+ * counts, then folds them through computeDataCoverage.
+ */
+export async function loadDataCoverage(
+  startStr: string,
+  endStr: string,
+  windowDays: number,
+  patientId: string = DEFAULT_PATIENT_ID,
+): Promise<DataCoverage> {
+  const [events, instances, vitals, meals] = await Promise.all([
+    getEventsByDateRange(startStr, endStr, patientId),
+    listDailyInstancesRange(patientId, startStr, endStr),
+    countCanonicalVitalsInRange(`${startStr}T00:00:00`, `${endStr}T23:59:59`, patientId),
+    countCanonicalMealsLoggedInRange(startStr, endStr, patientId),
+  ]);
+  return computeDataCoverage(events, instances, windowDays, { vitals, meals: meals.logged });
 }

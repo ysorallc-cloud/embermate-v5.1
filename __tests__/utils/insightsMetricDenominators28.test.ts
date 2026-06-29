@@ -83,8 +83,12 @@ describe('Phase 28 Batch B MEALS Commit B — metric denominators', () => {
   );
 
   it('avgMealsPerDay divides by timeRange (range-denominator α)', () => {
+    // Wave-1 Fix #3: the range-denominator (α) convention is PRESERVED — still
+    // `/ timeRange`. Only the numerator changed: meals now come from the
+    // canonical INSTANCE unit (mealsCanon.logged), not the LogEntry-derived
+    // mealDays sum (which produced the 4.4/day overcount).
     expect(SRC).toMatch(
-      /avgMealsPerDay:\s*timeRange\s*>\s*0\s*\?\s*mealDays\.reduce\([\s\S]+?\)\s*\/\s*timeRange\s*:\s*0/,
+      /avgMealsPerDay:\s*timeRange\s*>\s*0\s*\?\s*mealsCanon\.logged\s*\/\s*timeRange\s*:\s*0/,
     );
   });
 

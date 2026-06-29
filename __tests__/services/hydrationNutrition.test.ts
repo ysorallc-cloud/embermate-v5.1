@@ -76,12 +76,12 @@ describe('Phase 5.10.a — buildHydrationNutrition', () => {
   it('renders meal full / partial / refused day counts from instance status', async () => {
     mockGetHydrationHistory.mockResolvedValue({});
     mockListDailyInstancesRange.mockResolvedValue([
-      { itemType: 'nutrition', status: 'completed', dueDate: '2026-04-19', itemName: 'Breakfast' },
-      { itemType: 'nutrition', status: 'completed', dueDate: '2026-04-19', itemName: 'Lunch' },
-      { itemType: 'nutrition', status: 'completed', dueDate: '2026-04-19', itemName: 'Dinner' },
-      { itemType: 'nutrition', status: 'completed', dueDate: '2026-04-20', itemName: 'Breakfast' },
-      { itemType: 'nutrition', status: 'missed',    dueDate: '2026-04-20', itemName: 'Lunch' },
-      { itemType: 'nutrition', status: 'completed', dueDate: '2026-04-20', itemName: 'Dinner' },
+      { itemType: 'nutrition', status: 'completed', date: '2026-04-19', itemName: 'Breakfast' },
+      { itemType: 'nutrition', status: 'completed', date: '2026-04-19', itemName: 'Lunch' },
+      { itemType: 'nutrition', status: 'completed', date: '2026-04-19', itemName: 'Dinner' },
+      { itemType: 'nutrition', status: 'completed', date: '2026-04-20', itemName: 'Breakfast' },
+      { itemType: 'nutrition', status: 'missed',    date: '2026-04-20', itemName: 'Lunch' },
+      { itemType: 'nutrition', status: 'completed', date: '2026-04-20', itemName: 'Dinner' },
     ]);
     mockGetEventsByDateRange.mockResolvedValue([]);
     const out = await buildHydrationNutrition({
@@ -96,7 +96,7 @@ describe('Phase 5.10.a — buildHydrationNutrition', () => {
   it('captures refused meals from status===skipped with refused reason', async () => {
     mockGetHydrationHistory.mockResolvedValue({});
     mockListDailyInstancesRange.mockResolvedValue([
-      { itemType: 'nutrition', status: 'skipped', dueDate: '2026-04-22',
+      { itemType: 'nutrition', status: 'skipped', date: '2026-04-22',
         itemName: 'Dinner', skipReason: 'refused' },
     ]);
     mockGetEventsByDateRange.mockResolvedValue([]);
@@ -112,7 +112,7 @@ describe('Phase 5.10.a — buildHydrationNutrition', () => {
   it("derives appetite summary from meal_logged event quality field", async () => {
     mockGetHydrationHistory.mockResolvedValue({});
     mockListDailyInstancesRange.mockResolvedValue([
-      { itemType: 'nutrition', status: 'completed', dueDate: '2026-04-19', itemName: 'Breakfast' },
+      { itemType: 'nutrition', status: 'completed', date: '2026-04-19', itemName: 'Breakfast' },
     ]);
     mockGetEventsByDateRange.mockResolvedValue([
       { type: 'meal_logged', timestamp: '2026-04-19T08:00:00Z',

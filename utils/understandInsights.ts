@@ -16,6 +16,7 @@ import { getAllBaselines } from './baselineStorage';
 import { hasSampleData } from './sampleData';
 import { listLogsInRange, listDailyInstancesRange, listCarePlanItems, getActiveCarePlan, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { countCanonicalVitalsInRange } from './vitalsCanonical';
+import { countCanonicalMealsLoggedInRange } from './mealsCanonical';
 import { LogEntry, CarePlanItem, CarePlanItemType } from '../types/carePlan';
 
 // ============================================================================
@@ -618,8 +619,11 @@ export async function getCarePlanStatsForRange(timeRange: TimeRange): Promise<Ca
           wellnessPerDay[log.date] = (wellnessPerDay[log.date] || 0) + 1;
           break;
         case 'nutrition': {
-          mealLogs++;
-          mealsPerDay[log.date] = (mealsPerDay[log.date] || 0) + 1;
+          // Wave-1 clinician convergence (Fix #3): meals are NOT counted from
+          // LogEntries here — that produced the 4.4/day overcount. mealLogs +
+          // avgMealsPerDay are computed below from the canonical INSTANCE unit
+          // (logged = completed||skipped). Lunch-skip + hydration/sleep
+          // detection stay (they read LogEntry data, a separate concern).
           const data = log.data as any;
           if (data?.mealType === 'lunch') {
             lunchCount++;
@@ -664,6 +668,13 @@ export async function getCarePlanStatsForRange(timeRange: TimeRange): Promise<Ca
       `${endDate}T23:59:59`,
     );
 
+    // Wave-1 clinician convergence (Fix #3): meals counted on the canonical
+    // INSTANCE unit (logged = completed||skipped) over this window — NOT raw
+    // nutrition LogEntries (which produced the 4.4/day overcount). avgMealsPerDay
+    // = logged / range, keeping the Phase 28 range-denominator convention.
+    const mealsCanon = await countCanonicalMealsLoggedInRange(startDateStr, endDate);
+    mealLogs = mealsCanon.logged;
+
     return {
       totalLogs: logs.length,
       medicationLogs,
@@ -697,7 +708,7 @@ export async function getCarePlanStatsForRange(timeRange: TimeRange): Promise<Ca
       //     to 3.5hr avg — worse than the original bug. Honest
       //     "average on tracked nights"; the gestalt 4hr floor keeps
       //     sparse-night noise out of the headline.
-      avgMealsPerDay: timeRange > 0 ? mealDays.reduce((a, b) => a + b, 0) / timeRange : 0,
+      avgMealsPerDay: timeRange > 0 ? mealsCanon.logged / timeRange : 0,
       avgHydrationPerDay: timeRange > 0 ? hydrationDays.reduce((a, b) => a + b, 0) / timeRange : 0,
       avgSleepHours: sleepDays.length > 0 ? sleepDays.reduce((a, b) => a + b, 0) / sleepDays.length : 0,
       avgWellnessPerDay: timeRange > 0 ? wellnessDays.reduce((a, b) => a + b, 0) / timeRange : 0,

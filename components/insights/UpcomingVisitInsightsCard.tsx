@@ -28,12 +28,10 @@ import {
   getUpcomingAppointments,
   type Appointment,
 } from '../../utils/appointmentStorage';
-import { getEventsByDateRange } from '../../storage/eventRepo';
-import { listDailyInstancesRange } from '../../storage/carePlanRepo';
 import { getActivePatientId } from '../../storage/patientRegistry';
 import { logError } from '../../utils/devLog';
 import {
-  computeDataCoverage,
+  loadDataCoverage as loadCanonicalCoverage,
   COVERAGE_WINDOW_DAYS,
   type DataCoverage,
 } from '../../utils/visitCoverage';
@@ -65,15 +63,11 @@ async function loadDataCoverage(): Promise<DataCoverage | null> {
     start.setDate(start.getDate() - (COVERAGE_WINDOW_DAYS - 1));
     const startStr = isoDate(start);
     const endStr = isoDate(end);
-    // Phase 11.7.4 — union read of events + completed instances.
-    // Pre-fix the events-only path missed sample-data writes (which
-    // go through the instance pipeline) and any future flow that
-    // writes only one or the other.
-    const [events, instances] = await Promise.all([
-      getEventsByDateRange(startStr, endStr, patientId),
-      listDailyInstancesRange(patientId, startStr, endStr),
-    ]);
-    return computeDataCoverage(events, instances, COVERAGE_WINDOW_DAYS);
+    // Wave-1 Fix #3 — visitCoverage owns the canonical wiring now. meds/notes/
+    // days come from the events+instances union; vitals + meals come from the
+    // canonical readers (store B / nutrition instances), so the chip can't
+    // diverge from the Insights tile or the VP report.
+    return await loadCanonicalCoverage(startStr, endStr, COVERAGE_WINDOW_DAYS, patientId);
   } catch (err) {
     logError('UpcomingVisitInsightsCard.coverage', err);
     return null;

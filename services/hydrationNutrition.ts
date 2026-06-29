@@ -13,7 +13,10 @@
 // ============================================================================
 
 import { getHistory as getHydrationHistory } from '../storage/hydrationRepo';
-import { listDailyInstancesRange } from '../storage/carePlanRepo';
+// Wave-1 clinician convergence (Fix #3): meals read through the canonical
+// instance reader (logged = completed||skipped; expected = plan-defined slots),
+// the single source shared with the Insights tile + visit chip.
+import { getCanonicalMealInstancesInRange } from '../utils/mealsCanonical';
 import { getEventsByDateRange } from '../storage/eventRepo';
 import type { CareEvent } from '../types/event';
 import { logError } from '../utils/devLog';
@@ -86,23 +89,18 @@ async function buildMeals(
   end: string,
 ): Promise<MealsSummary | null> {
   try {
-    const instances = await listDailyInstancesRange(patientId, start, end);
-    const nutrition = instances.filter(
-      (i: any) => i.itemType === 'nutrition',
-    );
-    if (nutrition.length === 0) return null;
+    // Canonical meal slots (logged = completed||skipped; expected = plan slots).
+    const slots = await getCanonicalMealInstancesInRange(start, end, patientId);
+    if (slots.length === 0) return null;
 
-    // Group by date and count completion status.
+    // Group by date: logged vs total scheduled slots that day.
     const byDate = new Map<string, { logged: number; total: number }>();
-    for (const inst of nutrition) {
-      const date = (inst as any).dueDate ?? (inst as any).date ?? '';
-      if (!date) continue;
-      const bucket = byDate.get(date) ?? { logged: 0, total: 0 };
+    for (const slot of slots) {
+      if (!slot.date) continue;
+      const bucket = byDate.get(slot.date) ?? { logged: 0, total: 0 };
       bucket.total += 1;
-      if (inst.status === 'completed' || inst.status === 'skipped') {
-        bucket.logged += 1;
-      }
-      byDate.set(date, bucket);
+      if (slot.logged) bucket.logged += 1;
+      byDate.set(slot.date, bucket);
     }
 
     let fullMealDays = 0;
@@ -113,14 +111,11 @@ async function buildMeals(
       else if (logged > 0) partialMealDays += 1;
     }
 
-    const refusedMeals = nutrition
-      .filter((i: any) => i.status === 'skipped' && i.skipReason === 'refused')
-      .map((i: any) => ({
-        date: i.dueDate ?? i.date ?? '',
-        meal: i.itemName ?? 'Meal',
-      }))
-      .filter((m: any) => m.date.length > 0)
-      .sort((a: any, b: any) => a.date.localeCompare(b.date));
+    const refusedMeals = slots
+      .filter(s => s.status === 'skipped' && s.skipReason === 'refused')
+      .map(s => ({ date: s.date, meal: s.name }))
+      .filter(m => m.date.length > 0)
+      .sort((a, b) => a.date.localeCompare(b.date));
 
     return { fullMealDays, partialMealDays, refusedMeals };
   } catch (err) {
