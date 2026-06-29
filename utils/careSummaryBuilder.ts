@@ -10,6 +10,7 @@ import { getUpcomingAppointments } from './appointmentStorage';
 import { getTodayVitalsLog, getMealsLogs, getTodaySleepLog, getTodayWaterLog, getVitalsLogs, getSleepLogs, getWaterLogs, type VitalsLog, type SleepLog, type WaterLog } from './centralStorage';
 import { listDailyInstances, listLogsByDate, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { ensureDailyInstances, getTodayDateString } from '../services/carePlanGenerator';
+import { getCareItemStatus } from './careItemStatus';
 import { getMedicalInfo, MedicalInfo } from './medicalInfo';
 import { getClinicalCareSettings, ClinicalCareSettings } from './clinicalCareSettings';
 import { getEmergencyContacts, EmergencyContact } from './emergencyContacts';
@@ -30,7 +31,7 @@ export interface TodaySummary {
   bathingStatus: string | null;
   mobilityStatus: string | null;
   vitalsReading: string | null;
-  mealsStatus: { logged: number; total: number; overdueNames: string[] } | null;
+  mealsStatus: { logged: number; total: number } | null;
   moodArc: string | null;
   overdueItems: string[];
   nextAppointment: { provider: string; specialty: string; date: string } | null;
@@ -136,11 +137,10 @@ export async function buildTodaySummary(): Promise<TodaySummary> {
   const mealInstances = instances.filter(i => i.itemType === 'nutrition');
   const mealsCompleted = mealInstances.filter(i => i.status === 'completed').length;
   const now = new Date();
-  const overdueNames = mealInstances
-    .filter(i => i.status === 'pending' && new Date(i.scheduledTime) < now)
-    .map(i => i.itemName);
+  // SEAM 4 — `overdueNames` (a dead, zero-grace parallel threshold) removed.
+  // Missed-vs-pending lives solely in getCareItemStatus now.
   const mealsStatus = mealInstances.length > 0
-    ? { logged: mealsCompleted, total: mealInstances.length, overdueNames }
+    ? { logged: mealsCompleted, total: mealInstances.length }
     : null;
 
   // Appetite from most recent centralStorage meals log today
@@ -390,9 +390,18 @@ export async function buildShiftReport(): Promise<ShiftReport> {
       const matchedMeal = todayMeals.find((m: any) =>
         m.mealType?.toLowerCase() === inst.itemName.toLowerCase()
       );
+      // SEAM 4 — missed-vs-pending derives from the SHARED helper, not raw
+      // persisted status: a pending meal reads 'missed' only once past its
+      // windowed boundary (windowEnd+120min), matching Now. completed/skipped
+      // pass through unchanged.
+      const displayStatus = (
+        inst.status === 'completed' ? 'completed'
+        : inst.status === 'skipped' ? 'skipped'
+        : getCareItemStatus(inst) === 'overdue' ? 'missed' : 'pending'
+      ) as MealsDetail['meals'][number]['status'];
       return {
         name: inst.itemName,
-        status: inst.status as MealsDetail['meals'][number]['status'],
+        status: displayStatus,
         appetite: matchedMeal?.appetite
           ? APPETITE_LABELS[matchedMeal.appetite] ?? matchedMeal.appetite
           : undefined,
@@ -756,9 +765,18 @@ export async function buildCareBrief(targetDate?: string): Promise<CareBrief> {
       const matchedMeal = todayMeals.find((m: any) =>
         m.mealType?.toLowerCase() === inst.itemName.toLowerCase()
       );
+      // SEAM 4 — missed-vs-pending derives from the SHARED helper, not raw
+      // persisted status: a pending meal reads 'missed' only once past its
+      // windowed boundary (windowEnd+120min), matching Now. completed/skipped
+      // pass through unchanged.
+      const displayStatus = (
+        inst.status === 'completed' ? 'completed'
+        : inst.status === 'skipped' ? 'skipped'
+        : getCareItemStatus(inst) === 'overdue' ? 'missed' : 'pending'
+      ) as MealsDetail['meals'][number]['status'];
       return {
         name: inst.itemName,
-        status: inst.status as MealsDetail['meals'][number]['status'],
+        status: displayStatus,
         appetite: matchedMeal?.appetite
           ? APPETITE_LABELS[matchedMeal.appetite] ?? matchedMeal.appetite
           : undefined,

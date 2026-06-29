@@ -7,14 +7,27 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
-import { parseTimeForDisplay, isOverdue } from '../../utils/nowHelpers';
+import { parseTimeForDisplay } from '../../utils/nowHelpers';
+import { getCareItemStatus, type CareItemStatus } from '../../utils/careItemStatus';
 
 // ============================================================================
 // HELPERS
 // ============================================================================
 
-function getTimeDelta(scheduledTime: string): { text: string; tone: 'late' | 'soon' | 'later' } | null {
+// SEAM 4 — the 'overdue' delta follows the SHARED missed-vs-pending helper, not
+// this local clock. A meal within its window reads careStatus 'due' even though
+// it's past scheduledTime, so it must NOT show "overdue" here (the timeline-row
+// bug, relocated to the next-up strip).
+function getTimeDelta(
+  scheduledTime: string,
+  careStatus: CareItemStatus,
+): { text: string; tone: 'late' | 'soon' | 'later' } | null {
   if (!scheduledTime) return null;
+
+  // Overdue framing ONLY when the shared helper says overdue.
+  if (careStatus === 'overdue') {
+    return { text: 'overdue', tone: 'late' };
+  }
 
   const now = new Date();
   let scheduled = new Date(scheduledTime);
@@ -26,10 +39,7 @@ function getTimeDelta(scheduledTime: string): { text: string; tone: 'late' | 'so
 
   const diffMs = now.getTime() - scheduled.getTime();
 
-  if (diffMs > 30 * 60 * 1000) {
-    return { text: 'overdue', tone: 'late' };
-  }
-
+  // Past scheduled but still within window (careStatus 'due') → "due now".
   if (diffMs > 0) {
     return { text: 'due now', tone: 'soon' };
   }
@@ -63,8 +73,9 @@ export function UpNextCard({ instance, onLogNow, onSkip }: UpNextCardProps) {
 
   if (!instance) return null;
 
-  const itemIsOverdue = isOverdue(instance.scheduledTime);
-  const delta = getTimeDelta(instance.scheduledTime);
+  const careStatus = getCareItemStatus(instance);
+  const itemIsOverdue = careStatus === 'overdue';
+  const delta = getTimeDelta(instance.scheduledTime, careStatus);
   const time = parseTimeForDisplay(instance.scheduledTime);
 
   return (

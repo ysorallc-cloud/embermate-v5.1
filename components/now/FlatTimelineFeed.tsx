@@ -39,7 +39,7 @@ import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, Fonts } from '../../theme/theme-tokens';
-import { isOverdue } from '../../utils/nowHelpers';
+import { getCareItemStatus } from '../../utils/careItemStatus';
 import { composeNowWhisper } from '../../utils/nowWhisper';
 import { TypeScale } from '../../theme/spacing';
 
@@ -90,7 +90,7 @@ function parseTimeShort(scheduledTime: string): string | null {
 function rowStatusOf(item: any): RowStatus {
   if (item.status === 'completed' || item.status === 'skipped') return 'done';
   if (item.status === 'missed') return 'overdue';
-  if (item.status === 'pending' && isOverdue(item.scheduledTime)) return 'overdue';
+  if (item.status === 'pending' && getCareItemStatus(item) === 'overdue') return 'overdue';
   return 'pending';
 }
 

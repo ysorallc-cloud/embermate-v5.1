@@ -58,7 +58,6 @@ import {
   type TodayStats,
   type StatData,
   type TimeWindow,
-  isOverdue,
   getRouteForInstanceType,
   getRouteForWellnessInstance,
   groupByTimeWindow,
@@ -67,6 +66,7 @@ import {
   OVERDUE_GRACE_MINUTES,
   formatNextScheduledTime,
 } from '../../utils/nowHelpers';
+import { getCareItemStatus } from '../../utils/careItemStatus';
 // Extracted hooks
 import { useNowPrompts } from '../../hooks/useNowPrompts';
 // useNowInsights removed — replaced by StatRings
@@ -140,7 +140,7 @@ function buildOverdueCallouts(
     const overdueInstances = instances.filter(
       (i: any) => i.itemType === cat.itemType &&
            (i.status === 'pending' || !i.status) &&
-           isOverdue(i.scheduledTime)
+           getCareItemStatus(i) === 'overdue'
     );
     if (overdueInstances.length === 0) continue;
 
@@ -451,11 +451,11 @@ export default function NowScreen() {
       .sort((a, b) => a.priorityScore - b.priorityScore);
 
     const overdue = pendingWithScores
-      .filter(w => isOverdue(w.instance.scheduledTime))
+      .filter(w => getCareItemStatus(w.instance) === 'overdue')
       .map(w => w.instance);
 
     const upcoming = pendingWithScores
-      .filter(w => !isOverdue(w.instance.scheduledTime))
+      .filter(w => getCareItemStatus(w.instance) !== 'overdue')
       .map(w => w.instance);
 
     const completed = allInstances.filter(

@@ -9,7 +9,7 @@ import { Colors } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { CATEGORY_CONFIG } from '../../constants/categoryLabels';
 import type { StatData, TodayStats } from '../../utils/nowHelpers';
-import { isOverdue } from '../../utils/nowHelpers';
+import { getCareItemStatus } from '../../utils/careItemStatus';
 import { CORE_BUCKETS, type BucketType } from '../../types/carePlanConfig';
 
 // ============================================================================
@@ -46,7 +46,7 @@ function isCategoryOverdue(itemType: string, instances: any[]): boolean {
   return instances.some(
     i => i.itemType === itemType &&
          (i.status === 'pending' || !i.status) &&
-         isOverdue(i.scheduledTime)
+         getCareItemStatus(i) === 'overdue'
   );
 }
 

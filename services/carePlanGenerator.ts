@@ -82,8 +82,10 @@ function resolveWellnessTime(
 // CONFIGURATION
 // ============================================================================
 
-// Grace period in minutes before marking as missed
-const MISSED_GRACE_PERIOD_MINUTES = 120; // 2 hours
+// Grace period in minutes before marking as missed (after the window END).
+// Exported so the shared status helper (utils/careItemStatus.ts) derives the
+// SAME windowed boundary live — no parallel threshold.
+export const MISSED_GRACE_PERIOD_MINUTES = 120; // 2 hours
 
 // ============================================================================
 // CARE PLAN CONFIG SYNC
@@ -1421,7 +1423,7 @@ function getDefaultWindowStart(label: TimeWindowLabel): string {
 /**
  * Get default end time for a window label
  */
-function getDefaultWindowEnd(label: TimeWindowLabel): string {
+export function getDefaultWindowEnd(label: TimeWindowLabel): string {
   switch (label) {
     case 'morning': return DEFAULT_TIME_WINDOWS.morning.end;
     case 'afternoon': return DEFAULT_TIME_WINDOWS.afternoon.end;

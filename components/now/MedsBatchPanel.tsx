@@ -8,7 +8,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { navigate } from '../../lib/navigate';
 import { Colors } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
-import { parseTimeForDisplay, isOverdue } from '../../utils/nowHelpers';
+import { parseTimeForDisplay } from '../../utils/nowHelpers';
+import { getCareItemStatus } from '../../utils/careItemStatus';
 
 interface MedInstance {
   id: string;
@@ -72,7 +73,7 @@ export function MedsBatchPanel({
     }
   };
 
-  const hasOverdue = pendingMeds.some(m => isOverdue(m.scheduledTime));
+  const hasOverdue = pendingMeds.some(m => getCareItemStatus(m) === 'overdue');
 
   return (
     <View style={[
@@ -102,7 +103,7 @@ export function MedsBatchPanel({
           {pendingMeds.map((med) => {
             const isChecked = selected.has(med.id);
             const timeStr = parseTimeForDisplay(med.scheduledTime);
-            const overdueItem = isOverdue(med.scheduledTime);
+            const overdueItem = getCareItemStatus(med) === 'overdue';
 
             return (
               <View key={med.id} style={styles.medRow}>

@@ -16,8 +16,8 @@ import { SchedulePeriodHeader } from './SchedulePeriodHeader';
 import { InlineCheckbox, type InlineCheckboxState } from './InlineCheckbox';
 import { SkipReasonSheet } from './SkipReasonSheet';
 import { getPeriodStatus } from '../../utils/scheduleStatus';
+import { getCareItemStatus } from '../../utils/careItemStatus';
 import {
-  isOverdue,
   groupByTimeWindow,
   getCurrentTimeWindow,
   type TodayStats,
@@ -180,7 +180,9 @@ function getTimeDelta(scheduledTime: string): { text: string; tone: 'late' | 'so
 }
 
 function getDotColor(instance: any): string {
-  const itemIsOverdue = isOverdue(instance.scheduledTime);
+  // Shared status helper (SEAM 4): meals flip overdue at windowEnd+120min,
+  // meds/vitals at scheduledTime+30min — one rule, both screens.
+  const itemIsOverdue = getCareItemStatus(instance) === 'overdue';
   if (itemIsOverdue) {
     const urgencyInfo = getUrgencyStatus(instance.scheduledTime, false, instance.itemType);
     if (urgencyInfo.tone === 'danger') return Colors.coral;
@@ -397,7 +399,9 @@ export function TimelineSection({
           const isPending = instance.status === 'pending' || !instance.status;
           const isMissed = instance.status === 'missed';
           const isDone = instance.status === 'completed' || instance.status === 'skipped';
-          const itemIsOverdue = isPending && isOverdue(instance.scheduledTime);
+          // Shared status helper (SEAM 4) — meals use Journal's windowed
+          // boundary (windowEnd+120min), meds/vitals keep +30min. One rule.
+          const itemIsOverdue = isPending && getCareItemStatus(instance) === 'overdue';
 
           // Overdue pending → render as missed
           if (itemIsOverdue || isMissed) {
@@ -426,11 +430,21 @@ export function TimelineSection({
 
           // Pending (not overdue) → show Log button
           if (isPending) {
+            // SEAM 4 — the row's overdue label + time-delta must follow the
+            // SHARED missed-vs-pending helper, NOT urgency's zero-grace clock.
+            // A meal within its window (windowEnd+120min) reads 'due' here even
+            // though getUrgencyStatus flags it past-scheduled — so we suppress
+            // the urgency "Late · Nh ago" framing until getCareItemStatus says
+            // overdue. (urgency.ts itself, SEAM 5, is untouched.)
+            const careStatus = getCareItemStatus(instance);
             const urgencyInfo = getUrgencyStatus(instance.scheduledTime, false, instance.itemType);
-            const statusLabel = urgencyInfo.itemUrgency
-              ? getDetailedUrgencyLabel(urgencyInfo.itemUrgency)
-              : urgencyInfo.label;
-            const timeDelta = urgencyInfo.itemUrgency
+            const isRowOverdue = careStatus === 'overdue';
+            const statusLabel = isRowOverdue
+              ? (urgencyInfo.itemUrgency ? getDetailedUrgencyLabel(urgencyInfo.itemUrgency) : urgencyInfo.label)
+              : careStatus === 'due'
+                ? 'Due'
+                : (urgencyInfo.itemUrgency ? getDetailedUrgencyLabel(urgencyInfo.itemUrgency) : urgencyInfo.label);
+            const timeDelta = isRowOverdue && urgencyInfo.itemUrgency
               ? getTimeDeltaString(urgencyInfo.itemUrgency)
               : null;
 
