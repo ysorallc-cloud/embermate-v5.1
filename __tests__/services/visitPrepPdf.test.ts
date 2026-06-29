@@ -186,7 +186,11 @@ describe('assembleVisitPrepData — medications edge cases', () => {
     expect(data.adherence.map(a => a.name)).toEqual(['Active']);
   });
 
-  it('counts completed + skipped as taken; missed is reported separately', async () => {
+  it('counts ONLY completed as adherent (skipped counts against); missed is reported separately', async () => {
+    // Wave-1 clinician convergence (LOCKED DEFINITION): a SKIPPED dose is NOT
+    // adherent. The prior behavior credited skipped → 75%; the locked rule
+    // drops it from the numerator. 2 completed / 4 total = 50%. missedDays
+    // still reports the missed count separately.
     mockGetMedications.mockResolvedValue([makeMed({ name: 'Lisinopril' })]);
     mockListInstances.mockResolvedValue([
       makeInstance({ itemName: 'Lisinopril', status: 'completed' }),
@@ -196,8 +200,8 @@ describe('assembleVisitPrepData — medications edge cases', () => {
     ]);
     const data = await assembleVisitPrepData(BASE_CONFIG);
     const entry = data.adherence.find(a => a.name === 'Lisinopril')!;
-    // 3 of 4 handled (2 completed + 1 skipped) → 75%
-    expect(entry.rate).toBe(75);
+    // 2 completed / 4 total → 50% (skipped + missed both count against).
+    expect(entry.rate).toBe(50);
     expect(entry.missedDays).toBe(1);
   });
 

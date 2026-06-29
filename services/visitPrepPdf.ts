@@ -298,8 +298,12 @@ export async function assembleVisitPrepData(config: VisitPrepConfig): Promise<Vi
           i => (i.itemName || '').toLowerCase().includes(med.name.toLowerCase()),
         );
         const total = matching.length || 1;
+        // Wave-1 clinician convergence — LOCKED DEFINITION: a SKIPPED dose is
+        // NOT adherent. Only 'completed' counts toward the rate; skipped (and
+        // missed/pending) count AGAINST it. The prior `|| i.status === 'skipped'`
+        // credited skips and made a half-skipped med read 100% on a doctor's PDF.
         const completed = matching.filter(
-          i => i.status === 'completed' || i.status === 'skipped',
+          i => i.status === 'completed',
         ).length;
         const missed = matching.filter(i => i.status === 'missed').length;
         adherence.push({

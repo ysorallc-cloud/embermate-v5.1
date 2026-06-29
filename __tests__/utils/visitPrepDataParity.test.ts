@@ -103,9 +103,12 @@ beforeEach(() => {
 describe('Phase 11.6 — Visit Prep adherence after medication-instance seed', () => {
   it('contract 6: adherence populates with at least one entry at rate > 0 (post-fix shape)', async () => {
     // Post-fix shape: 14 days of medication instances at ~90% adherence.
-    // Use 2 active meds × 14 days = 28 instances; 25 completed, 3 skipped
-    // (still counted as caregiver-acted). That's 100% adherence rate in
-    // the assembleVisitPrepData formula (completed | skipped / total).
+    // Use 2 active meds × 14 days = 28 instances.
+    //
+    // Wave-1 clinician convergence (LOCKED DEFINITION): a SKIPPED dose is NOT
+    // adherent — only 'completed' counts. So the rates below are completed/total,
+    // NOT the old (completed | skipped)/total. Warfarin = 12 completed / 14 = 86%;
+    // Metformin = 13 completed / 14 = 93%. (Pre-convergence both read 100%.)
     mockGetMedications.mockResolvedValue([
       { id: 'm1', name: 'Warfarin', dosage: '5mg', time: '08:00', timeSlot: 'morning', taken: false, active: true, createdAt: '2026-01-01T00:00:00Z' } as any,
       { id: 'm2', name: 'Metformin', dosage: '500mg', time: '08:00', timeSlot: 'morning', taken: false, active: true, createdAt: '2026-01-01T00:00:00Z' } as any,
@@ -130,13 +133,14 @@ describe('Phase 11.6 — Visit Prep adherence after medication-instance seed', (
     // showed 0 across all medications.
     const hasNonZero = data.adherence.some((entry) => entry.rate > 0);
     expect(hasNonZero).toBe(true);
-    // Both meds should report rates in the realistic range. With
-    // skipped counted as caregiver-acted (per visitPrepPdf line 282-284),
-    // both meds have rate === 100.
-    for (const entry of data.adherence) {
-      expect(entry.rate).toBeGreaterThanOrEqual(85);
-      expect(entry.rate).toBeLessThanOrEqual(100);
-    }
+    // LOCKED DEFINITION (skipped-against): exact rates, NOT a loose range —
+    // this is what stops a future regression from re-crediting skips. The 2
+    // skipped Warfarin doses and 1 skipped Metformin dose drop OUT of the
+    // numerator.
+    const warfarin = data.adherence.find((e) => e.name === 'Warfarin');
+    const metformin = data.adherence.find((e) => e.name === 'Metformin');
+    expect(warfarin!.rate).toBe(86);   // 12 completed / 14
+    expect(metformin!.rate).toBe(93);  // 13 completed / 14
   });
 
   it('contract 7: pre-fix shape (no past-day medication instances) still shows empty adherence', async () => {

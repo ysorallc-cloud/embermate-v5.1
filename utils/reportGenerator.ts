@@ -10,6 +10,7 @@ import { logError } from './devLog';
 import { StorageKeys } from './storageKeys';
 import { safeGetItem } from './safeStorage';
 import { getPatientRegistry, getActivePatientId } from '../storage/patientRegistry';
+import { computeCanonicalAdherence } from './adherenceCanonical';
 
 interface VitalLog {
   id: string;
@@ -146,7 +147,9 @@ export interface ComprehensiveReport {
   nextActions: string[];
 }
 
-export async function generateComprehensiveReport(): Promise<ComprehensiveReport> {
+export async function generateComprehensiveReport(
+  referenceDate: Date = new Date(),
+): Promise<ComprehensiveReport> {
   const now = new Date();
   
   // Phase 5.13.1.c — patient name from the registry directly. This is a
@@ -183,6 +186,15 @@ export async function generateComprehensiveReport(): Promise<ComprehensiveReport
   
   // 1. Calculate Medication Adherence
   const medicationAdherence = calculateMedicationAdherence(activeMeds, medLogs);
+  // Wave-1 clinician convergence: the HEADLINE adherence number (care-report's
+  // "Medication Adherence (7-day)" line) must come from the canonical source —
+  // DailyCareInstance.status, exactly what Now/Journal read — over the labeled
+  // 7-day window ending at referenceDate, with a SKIPPED dose counted AGAINST
+  // adherence (locked definition). This replaces the legacy `m.taken` today-
+  // snapshot that was mislabeled "7-day". The per-med medDetails (log-based,
+  // not rendered on the care-report adherence line) are left untouched.
+  const canonicalAdherence = await computeCanonicalAdherence(7, referenceDate);
+  medicationAdherence.overallAdherence = canonicalAdherence.rate;
   
   // 2. Analyze Vitals Stability
   const vitalsStability = analyzeVitalsStability(vitals);
