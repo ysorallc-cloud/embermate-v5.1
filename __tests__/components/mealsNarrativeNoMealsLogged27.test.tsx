@@ -18,9 +18,12 @@
 // Pinned contracts:
 //   1. pending has items — renders "No meals logged yet. {names}
 //      scheduled." (unchanged behavior).
-//   2. pending is empty (skipped/missed only) — renders "No meals
-//      logged yet." with no trailing " scheduled." clause and NO
-//      double space anywhere.
+//   2. skipped/missed only — UPDATED by the missed-surfacing fix: each
+//      meal is NAMED with its status ("Breakfast — skipped.", "Lunch —
+//      missed."), the generic "No meals logged yet." is suppressed so the
+//      miss isn't buried, and there is still no orphan "scheduled." nor
+//      double space. (The original Phase-27 contract asserted the generic
+//      line here — that encoded the silent-drop bug and is superseded.)
 //   3. Defensive: no double-space substring in either branch.
 // ============================================================================
 
@@ -99,10 +102,16 @@ describe('Phase 27 closeout — MealsNarrative "no meals logged yet" double-spac
     expect(prose).not.toMatch(/\s{2,}/);
   });
 
-  it('contract 2: pending is empty (skipped/missed only) — no trailing " scheduled." clause, no double space', () => {
+  it('contract 2: skipped/missed-only day NAMES each meal with its status (missed-surfacing fix supersedes the old generic line)', () => {
     // meals.total > 0, completed = 0, pending = 0 → all skipped/missed.
-    // Pre-fix the prose rendered "No meals logged yet.  scheduled."
-    // with a double space and an orphan "scheduled.".
+    // The ORIGINAL Phase-27 contract asserted this rendered the generic
+    // "No meals logged yet." — but that was the silent-drop bug: a missed
+    // meal vanished into a generic line instead of being named to the next
+    // caregiver. The missed-surfacing fix names each meal with its status,
+    // so the generic line is suppressed when missed/skipped exist (their
+    // specific lines carry the story). The empty-names "orphan scheduled."
+    // double-space path the original test guarded is now structurally
+    // impossible — the generic line no longer renders on this branch.
     const meals = {
       total: 2,
       meals: [
@@ -111,12 +120,15 @@ describe('Phase 27 closeout — MealsNarrative "no meals logged yet" double-spac
       ],
     };
     const prose = renderProse(meals);
-    expect(prose).toMatch(/No meals logged yet\./);
-    // The trailing " {names} scheduled." clause must NOT render when
-    // names is empty.
+    // Each meal named with its status — no longer dropped into a generic line.
+    expect(prose).toMatch(/Breakfast/);
+    expect(prose).toMatch(/skipped/);
+    expect(prose).toMatch(/Lunch/);
+    expect(prose).toMatch(/missed/);
+    // The generic "No meals logged yet." no longer buries the miss.
+    expect(prose).not.toMatch(/No meals logged yet\./);
+    // No orphan "scheduled." clause and no double space (original guard).
     expect(prose).not.toMatch(/\.\s+scheduled\./);
-    // And no double space anywhere in the prose (the simulator
-    // regression pattern).
     expect(prose).not.toMatch(/\s{2,}/);
   });
 

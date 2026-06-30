@@ -37,6 +37,16 @@ export function MealsNarrative({ meals, fluidTarget, swallowingIssues, hydration
 
   const completed = meals.meals.filter(m => m.status === 'completed');
   const pending = meals.meals.filter(m => m.status === 'pending');
+  // A meal whose window has passed un-logged reads 'missed' (careSummaryBuilder
+  // maps it via getCareItemStatus); an explicitly skipped meal reads 'skipped'.
+  // Both fell through the old completed/pending bucketing and were silently
+  // dropped from the handoff — a care item lost to the next caregiver. They are
+  // surfaced here like MedicationsNarrative does (missed flagged, skipped
+  // neutral), and — being closed facts, not still-actionable — are NOT
+  // suppressed by loggedOnly (that flag defers only still-PENDING items to
+  // Section 4's "Still pending").
+  const missed = meals.meals.filter(m => m.status === 'missed');
+  const skipped = meals.meals.filter(m => m.status === 'skipped');
   const allCompleted = completed.length === meals.total;
   const noneCompleted = completed.length === 0;
 
@@ -48,7 +58,7 @@ export function MealsNarrative({ meals, fluidTarget, swallowingIssues, hydration
   // noneCompleted + no hydration, the whole component returns null;
   // Section 2's bucket gate handles the empty-state copy at the
   // section level.
-  if (loggedOnly && noneCompleted && !hasHydration) return null;
+  if (loggedOnly && noneCompleted && !hasHydration && missed.length === 0 && skipped.length === 0) return null;
 
   const parts: React.ReactNode[] = [];
 
@@ -71,14 +81,19 @@ export function MealsNarrative({ meals, fluidTarget, swallowingIssues, hydration
     // rendered as "No meals logged yet.  scheduled." (double space,
     // orphan "scheduled.") when names was empty. Same render-layer
     // string-concat shape as Phase 27 Tuning 1's dose dedupe.
-    const names = pending.map(m => m.name).join(', ');
-    parts.push(
-      <Text key="none" style={styles.narrative}>
-        {names.length > 0 && !loggedOnly
-          ? `No meals logged yet. ${names} scheduled.`
-          : 'No meals logged yet.'}
-      </Text>
-    );
+    // When meals were missed/skipped, those specific lines (appended below)
+    // carry the story — don't prepend a generic "No meals logged yet." that
+    // reads as still-pending and buries the miss.
+    if (missed.length === 0 && skipped.length === 0) {
+      const names = pending.map(m => m.name).join(', ');
+      parts.push(
+        <Text key="none" style={styles.narrative}>
+          {names.length > 0 && !loggedOnly
+            ? `No meals logged yet. ${names} scheduled.`
+            : 'No meals logged yet.'}
+        </Text>
+      );
+    }
   } else {
     for (const m of completed) {
       let text = `${m.name} logged`;
@@ -99,6 +114,27 @@ export function MealsNarrative({ meals, fluidTarget, swallowingIssues, hydration
         </Text>
       );
     }
+  }
+
+  // Missed meals — flagged, always surfaced (a missed meal is a reportable
+  // handoff fact, not a still-pending item). Mirrors MedicationsNarrative's
+  // missed treatment.
+  for (const m of missed) {
+    parts.push(
+      <Text key={`m-${m.name}`} style={styles.narrative}>
+        <Text style={styles.bold}>{m.name}</Text>{' — '}
+        <Text style={styles.flagged}>missed.</Text>
+      </Text>
+    );
+  }
+
+  // Skipped meals — neutral, always surfaced (a logged caregiver decision).
+  for (const m of skipped) {
+    parts.push(
+      <Text key={`s-${m.name}`} style={styles.narrative}>
+        <Text style={styles.bold}>{m.name}</Text>{' — '}skipped.
+      </Text>
+    );
   }
 
   // Hydration tracking
