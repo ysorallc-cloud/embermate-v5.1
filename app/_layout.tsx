@@ -14,12 +14,20 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 // fontsLoaded so the first paint already carries Source Serif 4 metrics —
 // avoids a visible font-swap flash on cold start.
 import { useFonts } from 'expo-font';
+// Redesign Phase 0 (F2) — single typeface Poppins per EmberMate-v6-Design-Lock
+// §1. Weights: 300 light (earned line / VOICE via light-italic), 400 body,
+// 500 names/values, 600 labels/titles, 700 letter-spaced eyebrows. Serif
+// (SourceSerif4) retired entirely — the warm "voice" is now carried by
+// weight (300 light-italic) + the narrative rule, NOT a serif family.
 import {
-  SourceSerif4_400Regular,
-  SourceSerif4_400Regular_Italic,
-  SourceSerif4_500Medium,
-  SourceSerif4_600SemiBold,
-} from '@expo-google-fonts/source-serif-4';
+  Poppins_300Light,
+  Poppins_300Light_Italic,
+  Poppins_400Regular,
+  Poppins_400Regular_Italic,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+  Poppins_700Bold,
+} from '@expo-google-fonts/poppins';
 
 // Keep the branded splash visible until the first render is ready —
 // prevents the white-flash-on-cold-start that happens when the JS bundle
@@ -28,6 +36,21 @@ SplashScreen.preventAutoHideAsync().catch(() => {
   // Safe to ignore — preventAutoHide is best-effort. On web and older
   // Expo SDK versions it may not be available.
 });
+
+// Redesign Phase 0 (F2) — global default typeface. RN has no app-wide
+// fontFamily, so set it on Text: every text node without an explicit
+// fontFamily defaults to Poppins (Design-Lock §1 "Poppins everywhere"); an
+// explicit fontFamily still wins (own style applies after defaultProps.style).
+// Caveat: React 19 deprecates component defaultProps — if this warns on the
+// device build, the rebuilds move to a shared <AppText> wrapper. RN 0.81's
+// Text still merges defaultProps.style at the native layer.
+const _TextDefault = Text as unknown as { defaultProps?: { style?: unknown } };
+_TextDefault.defaultProps = _TextDefault.defaultProps ?? {};
+_TextDefault.defaultProps.style = [
+  { fontFamily: 'Poppins_400Regular' },
+  _TextDefault.defaultProps.style,
+];
+
 import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { requestNotificationPermissions } from '../utils/notificationService';
 import { useNotificationHandler } from '../utils/useNotificationHandler';
@@ -96,10 +119,13 @@ function RootLayout() {
   // typography needs: 400 regular (headlines), 400 italic (witness voice),
   // 500 medium (emphasis), 600 semibold (CTAs).
   const [fontsLoaded] = useFonts({
-    SourceSerif4_400Regular,
-    SourceSerif4_400Regular_Italic,
-    SourceSerif4_500Medium,
-    SourceSerif4_600SemiBold,
+    Poppins_300Light,
+    Poppins_300Light_Italic,
+    Poppins_400Regular,
+    Poppins_400Regular_Italic,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
   });
   // Phase 33 F3 — splash gate. The pre-existing logic dismissed splash
   // inline once runStartupSequence resolved (or rejected). F3 splits that

@@ -614,10 +614,28 @@ export const Typography = {
 // wanting system sans simply omit `fontFamily`. The website's --sans
 // includes the same system fallback chain — no visual delta.
 export const Fonts = {
-  serif: 'SourceSerif4_400Regular',
-  serifItalic: 'SourceSerif4_400Regular_Italic',
-  serifMedium: 'SourceSerif4_500Medium',
-  serifSemiBold: 'SourceSerif4_600SemiBold',
+  // Redesign Phase 0 (F2) — single typeface POPPINS (EmberMate-v6-Design-Lock
+  // §1). No serif family: the warm "voice" register is carried by weight
+  // (300 light-italic) + the narrative rule, NOT a serif. Role tokens below
+  // are the canonical API for new/rebuilt code (eyebrow/title/label/value/
+  // body/voice/light). The legacy `serif*` names are repointed to Poppins so
+  // the ~67 existing consumers pick up the swap with zero edits; they get
+  // renamed to role tokens during the per-screen rebuilds.
+  //
+  // Role → weight (Design-Lock §1):
+  eyebrow: 'Poppins_700Bold',          // 700 — letter-spaced caps eyebrows
+  title: 'Poppins_600SemiBold',        // 600 — titles
+  label: 'Poppins_600SemiBold',        // 600 — labels
+  value: 'Poppins_500Medium',          // 500 — names / values
+  body: 'Poppins_400Regular',          // 400 — body
+  bodyItalic: 'Poppins_400Regular_Italic',
+  voice: 'Poppins_300Light_Italic',    // 300 light-italic — warm narrative voice
+  light: 'Poppins_300Light',           // 300 — earned line
+  // Legacy serif* aliases (repointed to Poppins; retired in screen rebuilds):
+  serif: 'Poppins_400Regular',
+  serifItalic: 'Poppins_300Light_Italic', // was witness-voice serif italic → voice register
+  serifMedium: 'Poppins_500Medium',
+  serifSemiBold: 'Poppins_600SemiBold',
 };
 
 export const Shadows = {
