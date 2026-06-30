@@ -11,6 +11,10 @@
 // primary CTA across Welcome / Privacy / Name / Landing. The label
 // color stays #1a1612 near-black charcoal at fontWeight 600 (matches
 // the post-walk layout pass).
+//
+// Lives in constants/ (NOT app/(onboarding)/) — expo-router treats every
+// file under app/ as a route, and a constants file there triggered a
+// "missing the required default export" route warning on launch.
 // ============================================================================
 
 export const ONBOARDING_CTA_GRADIENT: readonly [string, string] = [

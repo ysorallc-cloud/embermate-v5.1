@@ -32,7 +32,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Fonts, Spacing } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { ONBOARDING_CTA_GRADIENT } from '../onboardingTokens';
+import { ONBOARDING_CTA_GRADIENT } from '../../../constants/onboardingTokens';
 
 // Post-walk width single-sourcing fix — the screen fills its
 // orchestrator wrapper (which reads useWindowDimensions). The root

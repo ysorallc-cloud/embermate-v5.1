@@ -75,7 +75,7 @@ describe('Onboarding redesign C4 — Landing screen', () => {
     // Onboarding redesign Round 3 — the four CTAs unify on the
     // bridge palette via the shared constant.
     expect(LANDING).toMatch(/ONBOARDING_CTA_GRADIENT/);
-    expect(LANDING).toMatch(/from\s+['"]\.\.\/onboardingTokens['"]/);
+    expect(LANDING).toMatch(/from\s+['"]\.\.\/\.\.\/\.\.\/constants\/onboardingTokens['"]/);
     expect(LANDING).not.toMatch(/#5fb88a/i);
   });
 

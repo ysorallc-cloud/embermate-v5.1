@@ -48,7 +48,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Fonts, Spacing } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { ONBOARDING_CTA_GRADIENT } from '../onboardingTokens';
+import { ONBOARDING_CTA_GRADIENT } from '../../../constants/onboardingTokens';
 import type { CareRelationship } from '../../../utils/onboardingToPlan';
 
 export interface NameScreenProps {

@@ -27,7 +27,7 @@ jest.mock('expo-linear-gradient', () => {
 jest.mock('../../app/(onboarding)/components/StaticAuroraBackground', () => ({
   StaticAuroraBackground: () => null,
 }));
-jest.mock('../../app/(onboarding)/onboardingTokens', () => ({
+jest.mock('../../constants/onboardingTokens', () => ({
   ONBOARDING_CTA_GRADIENT: ['#000', '#111'],
 }));
 jest.mock('../../contexts/ThemeContext', () => ({

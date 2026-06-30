@@ -35,7 +35,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Fonts, Spacing, BorderRadius } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { ONBOARDING_CTA_GRADIENT } from '../onboardingTokens';
+import { ONBOARDING_CTA_GRADIENT } from '../../../constants/onboardingTokens';
 
 // Post-walk width single-sourcing fix — root style is flex:1 only.
 

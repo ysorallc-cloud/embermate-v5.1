@@ -295,7 +295,11 @@ function RootLayout() {
         <PatientProvider>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
-          <Stack.Screen name="(onboarding)" />
+          {/* (onboarding) + settings: auto-discovered file routes whose folders
+              have no _layout.tsx (routes flatten), so a bare options-less
+              <Stack.Screen> matched no navigator node → "No route named …"
+              warning. Both stay reachable via Redirect/navigate; the redundant
+              declarations are dropped to keep the launch console clean. */}
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="calendar" options={{ presentation: 'modal' }} />
           <Stack.Screen name="medication-form" />
@@ -327,7 +331,6 @@ function RootLayout() {
           <Stack.Screen name="correlation-report" />
           <Stack.Screen name="log-note" />
           <Stack.Screen name="appointment-confirmation" />
-          <Stack.Screen name="settings" />
           <Stack.Screen name="medication-confirm" />
           <Stack.Screen name="log-mood" />
           <Stack.Screen name="log-sleep" />
