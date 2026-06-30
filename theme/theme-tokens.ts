@@ -21,60 +21,60 @@ const DarkColors = {
   // very-dark #141612 to #1f201c — calibrated half-step toward charcoal that
   // holds the warm cast without reading washed-out on device.
   // Phase 33 F1a (2026-05-17) aligned to the website source-of-truth
-  // `--bg: #1a1612` — deeper warm-brown than the Phase-0 sage-charcoal.
+  // `--bg: #141a16` — deeper warm-brown than the Phase-0 sage-charcoal.
   //
   // Post-F7 followup (2026-06-13, 07843628) briefly dropped to #0d0b08
   // to pair with the schedule-floats-on-page-bg restructure. That
   // direction was SUPERSEDED the same day by the
-  // embermate-now-full-approved visual target: warm v6.7 #1a1612 stays
+  // embermate-now-full-approved visual target: warm v6.7 #141a16 stays
   // the page bg ("rest" surface, warm gutter), and a NEW `zonePanel`
-  // token (#221d15, low-lift warm panel) handles the zone-panel surface
+  // token (#19211b, low-lift warm panel) handles the zone-panel surface
   // for the Now zone wrappers. Schedule / Health / Reflection sit on
   // zonePanel; bg shows as a gutter between them.
   //
-  // Migration chain: #141612 → #1f201c → #1a1612 → [#0d0b08 superseded]
-  //                  → #1a1612 (restored).
-  background: '#1a1612',
+  // Migration chain: #141612 → #1f201c → #141a16 → [#0d0b08 superseded]
+  //                  → #141a16 (restored).
+  background: '#141a16',
   backgroundAlt: '#050505',
   // Phase 0 lockstep lift — when bg moved from #141612 to #1f201c, the
-  // prior glass #2a2c25 (L* 17.59) only lifted L* 5.57 above the new bg,
+  // prior glass #19211b (L* 17.59) only lifted L* 5.57 above the new bg,
   // breaking the L* ≥ 8 dim-room legibility contract. Glass and its
   // siblings were lifted in lockstep so cards keep the "object on a
-  // surface" affordance. Phase 33 F1a left glass at #363830 against the
-  // realigned #1a1612 bg → glass→bg L* delta ~15.5.
+  // surface" affordance. Phase 33 F1a left glass at #26302a against the
+  // realigned #141a16 bg → glass→bg L* delta ~15.5.
   //
   // Post-F7 followup briefly took glass to #211e18 paired with #0d0b08
   // bg (cardContrast L* delta narrowed to ~8.3); SUPERSEDED the same
   // day by the embermate-now-full-approved visual target. Glass is
-  // restored to #363830 for cards that still card; the NEW `zonePanel`
-  // token (#221d15) handles the quieter zone-panel surface so panels
+  // restored to #26302a for cards that still card; the NEW `zonePanel`
+  // token (#19211b) handles the quieter zone-panel surface so panels
   // and cards sit at distinct elevation tiers (panel L* ~11 sits BELOW
   // glass L* ~23).
-  glass: '#363830',
-  glassHover: 'rgba(255, 245, 220, 0.06)',
+  glass: '#26302a',
+  glassHover: 'rgba(255, 255, 255, 0.06)',
   // Phase 3.5 — bumped opacity 0.08 → 0.10 so card edges read more
   // visibly against the warm-charcoal page bg. Border still reads as a
   // separator, not an edge; the lift just keeps cards from blending into
   // the surface at a glance.
-  glassBorder: 'rgba(255, 240, 215, 0.10)',
+  glassBorder: 'rgba(255, 255, 255, 0.10)',
   // v6.7 — inset row hairline (12pt inset inside cards). Quieter than
   // glassBorder (0.08) so it reads as a separator, not an edge.
-  hairlineInset: 'rgba(255, 240, 215, 0.06)',
-  glassActive: 'rgba(255, 245, 220, 0.12)',
-  // glassDim now occupies the slot the previous glass held (#2a2c25),
+  hairlineInset: 'rgba(255, 255, 255, 0.06)',
+  glassActive: 'rgba(255, 255, 255, 0.12)',
+  // glassDim now occupies the slot the previous glass held (#19211b),
   // preserving the dim-vs-glass tonal relationship after the lockstep lift.
-  glassDim: '#2a2c25',
-  glassFaint: 'rgba(255, 245, 220, 0.03)',
-  glassSubtle: 'rgba(255, 245, 220, 0.12)',
+  glassDim: '#19211b',
+  glassFaint: 'rgba(255, 255, 255, 0.03)',
+  glassSubtle: 'rgba(255, 255, 255, 0.12)',
   // Phase 33 F1a — RGB aligned to website's --border-strong source-of-truth
   // (245,220 → 240,215). Alpha 0.18 unchanged. Perceptually identical
   // (≤5/5 RGB step) but pins us to the canonical brand color base.
-  glassStrong: 'rgba(255, 240, 215, 0.18)',
-  glassBold: 'rgba(255, 245, 220, 0.25)',
-  surface: '#363830',
-  surfaceElevated: '#3e3a31',
+  glassStrong: 'rgba(255, 255, 255, 0.18)',
+  glassBold: 'rgba(255, 255, 255, 0.25)',
+  surface: '#26302a',
+  surfaceElevated: '#2e3a32',
   surfaceAlt: 'rgba(255, 255, 255, 0.03)',
-  surfaceHighlight: 'rgba(95, 184, 138, 0.08)',
+  surfaceHighlight: 'rgba(156, 207, 166, 0.08)',
   // ── Warm surfaces — re-tuned in v6.7 to lift L* ≥ 6 above the warmer
   //    sage-cream background (Phase 0: #1f201c, was #141612). Hues now share
   //    the warm-dark family rather than the previous cool blue tint. ────────
@@ -93,75 +93,75 @@ const DarkColors = {
   auroraBlue: 'hsla(165, 40%, 10%, 0.3)',
   auroraViolet: 'hsla(155, 45%, 12%, 0.25)',
   auroraRose: 'hsla(160, 35%, 10%, 0.2)',
-  accent: '#5fb88a',
-  accentLight: 'rgba(95, 184, 138, 0.15)',
-  accentBorder: 'rgba(95, 184, 138, 0.25)',
-  accentGlow: 'rgba(95, 184, 138, 0.40)',
-  accentFaint: 'rgba(95, 184, 138, 0.06)',
-  accentTint: 'rgba(95, 184, 138, 0.07)',
-  accentDim: 'rgba(95, 184, 138, 0.10)',
-  accentHint: 'rgba(95, 184, 138, 0.14)',
-  accentSubtle: 'rgba(95, 184, 138, 0.14)',
-  accentMuted: 'rgba(95, 184, 138, 0.50)',
+  accent: '#9ccfa6',
+  accentLight: 'rgba(156, 207, 166, 0.15)',
+  accentBorder: 'rgba(156, 207, 166, 0.25)',
+  accentGlow: 'rgba(156, 207, 166, 0.40)',
+  accentFaint: 'rgba(156, 207, 166, 0.06)',
+  accentTint: 'rgba(156, 207, 166, 0.07)',
+  accentDim: 'rgba(156, 207, 166, 0.10)',
+  accentHint: 'rgba(156, 207, 166, 0.14)',
+  accentSubtle: 'rgba(156, 207, 166, 0.14)',
+  accentMuted: 'rgba(156, 207, 166, 0.50)',
   // Phase 33 F7 — selected-chip fill on the wellness drawer's
-  // grounded ground (#221d18). 16% sage gives enough green
+  // grounded ground (#19211b). 16% sage gives enough green
   // presence to register as ON without shouting; the existing
   // accentDim at 10% composited too close to the bgRaised ground
   // (~ΔL 6) to read as selected. Named for the use case rather
   // than added to the generic accent* drift; future drawer surfaces
   // adopting the soft-fill-on-dark-ground chip pattern share this
   // token.
-  accentChipFill: 'rgba(95, 184, 138, 0.16)',
-  accentGradientStart: '#5fb88a',
+  accentChipFill: 'rgba(156, 207, 166, 0.16)',
+  accentGradientStart: '#9ccfa6',
   accentGradientMid: '#059669',
   accentGradientEnd: '#6EE7B7',
-  green: '#5fb88a',
-  greenTint: 'rgba(95, 184, 138, 0.10)',
-  greenLight: 'rgba(95, 184, 138, 0.13)',
-  greenHint: 'rgba(95, 184, 138, 0.16)',
-  greenMuted: 'rgba(95, 184, 138, 0.20)',
-  greenBorder: 'rgba(95, 184, 138, 0.25)',
-  greenStrong: 'rgba(95, 184, 138, 0.30)',
-  greenGlow: 'rgba(95, 184, 138, 0.40)',
-  amber: '#e5b04a',
-  amberFaint: 'rgba(229, 176, 74, 0.06)',
-  amberLight: 'rgba(229, 176, 74, 0.10)',
-  amberHint: 'rgba(229, 176, 74, 0.12)',
-  amberMuted: 'rgba(229, 176, 74, 0.15)',
-  amberBorder: 'rgba(229, 176, 74, 0.20)',
-  amberGlow: 'rgba(229, 176, 74, 0.35)',
+  green: '#9ccfa6',
+  greenTint: 'rgba(156, 207, 166, 0.10)',
+  greenLight: 'rgba(156, 207, 166, 0.13)',
+  greenHint: 'rgba(156, 207, 166, 0.16)',
+  greenMuted: 'rgba(156, 207, 166, 0.20)',
+  greenBorder: 'rgba(156, 207, 166, 0.25)',
+  greenStrong: 'rgba(156, 207, 166, 0.30)',
+  greenGlow: 'rgba(156, 207, 166, 0.40)',
+  amber: '#d6ab5e',
+  amberFaint: 'rgba(214, 171, 94, 0.06)',
+  amberLight: 'rgba(214, 171, 94, 0.10)',
+  amberHint: 'rgba(214, 171, 94, 0.12)',
+  amberMuted: 'rgba(214, 171, 94, 0.15)',
+  amberBorder: 'rgba(214, 171, 94, 0.20)',
+  amberGlow: 'rgba(214, 171, 94, 0.35)',
   // Phase 33 F1b — `red*` family renamed to `coral*` to match the
-  // website source-of-truth `--coral` (same hex #e6776e). The pre-rename
+  // website source-of-truth `--coral` (same hex #e3a684). The pre-rename
   // `red` name was a hex-derived color-name with no semantic value; the
   // website (and the actual hue) call it coral. Renamed across 32
   // consumer files in F1b. Semantic aliases `error` + `criticalAlert`
   // continue to point at the same hex and are unchanged.
-  coral: '#e6776e',
-  coralFaint: 'rgba(230, 119, 110, 0.06)',
-  coralLight: 'rgba(230, 119, 110, 0.10)',
-  coralHint: 'rgba(230, 119, 110, 0.12)',
-  coralMuted: 'rgba(230, 119, 110, 0.15)',
-  coralBorder: 'rgba(230, 119, 110, 0.20)',
-  coralStrong: 'rgba(230, 119, 110, 0.25)',
+  coral: '#e3a684',
+  coralFaint: 'rgba(227, 166, 132, 0.06)',
+  coralLight: 'rgba(227, 166, 132, 0.10)',
+  coralHint: 'rgba(227, 166, 132, 0.12)',
+  coralMuted: 'rgba(227, 166, 132, 0.15)',
+  coralBorder: 'rgba(227, 166, 132, 0.20)',
+  coralStrong: 'rgba(227, 166, 132, 0.25)',
   rose: '#FB7185',
   roseLight: 'rgba(251, 113, 133, 0.10)',
   roseBorder: 'rgba(251, 113, 133, 0.20)',
   sky: '#7DD3FC',
   skyLight: 'rgba(125, 211, 252, 0.10)',
   skyBorder: 'rgba(125, 211, 252, 0.20)',
-  gold: '#e5b04a',
-  goldLight: 'rgba(229, 176, 74, 0.10)',
-  goldBorder: 'rgba(229, 176, 74, 0.20)',
+  gold: '#d6ab5e',
+  goldLight: 'rgba(214, 171, 94, 0.10)',
+  goldBorder: 'rgba(214, 171, 94, 0.20)',
   violet: '#C4B5FD',
   violetLight: 'rgba(196, 181, 253, 0.10)',
   violetBorder: 'rgba(196, 181, 253, 0.20)',
   violetBright: 'rgba(196, 181, 253, 0.9)',
-  blue: '#93C5FD',
-  blueFaint: 'rgba(147, 197, 253, 0.06)',
-  blueTint: 'rgba(147, 197, 253, 0.08)',
-  blueLight: 'rgba(147, 197, 253, 0.10)',
-  blueWash: 'rgba(147, 197, 253, 0.15)',
-  blueBorder: 'rgba(147, 197, 253, 0.20)',
+  blue: '#8fa8c8',
+  blueFaint: 'rgba(143, 168, 200, 0.06)',
+  blueTint: 'rgba(143, 168, 200, 0.08)',
+  blueLight: 'rgba(143, 168, 200, 0.10)',
+  blueWash: 'rgba(143, 168, 200, 0.15)',
+  blueBorder: 'rgba(143, 168, 200, 0.20)',
   indigo: '#A5B4FC',
   indigoLight: 'rgba(165, 180, 252, 0.10)',
   indigoBorder: 'rgba(165, 180, 252, 0.20)',
@@ -209,75 +209,75 @@ const DarkColors = {
   // (sageDim 0.06 → accentDim 0.10) — slight visual lift on 1 consumer.
 
   /** @deprecated Phase 33 F1b — misnamed (carries LAVENDER hex). Use `caregiverAccent` directly. */
-  sage: '#6b8cae', // alias to caregiverAccent (1.00 solid, ✓ exact)
+  sage: '#8fa8c8', // alias to caregiverAccent (1.00 solid, ✓ exact)
   /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentBg`. Alpha shift +0.02 from 0.04 → 0.06. */
-  sageHint: 'rgba(107, 140, 174, 0.06)', // alias to caregiverAccentBg
+  sageHint: 'rgba(143, 168, 200, 0.06)', // alias to caregiverAccentBg
   /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentBg`. Alpha shift +0.01 from 0.05 → 0.06. */
-  sageTint: 'rgba(107, 140, 174, 0.06)', // alias to caregiverAccentBg
+  sageTint: 'rgba(143, 168, 200, 0.06)', // alias to caregiverAccentBg
   /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentBg`. F7 purple retirement (2026-06-12) lifted alpha from 0.06 → 0.08 to track the dusty-blue caregiverAccentBg's new 0.08 rung. */
-  sageFaint: 'rgba(107, 140, 174, 0.08)', // alias to caregiverAccentBg
+  sageFaint: 'rgba(143, 168, 200, 0.08)', // alias to caregiverAccentBg
   /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentMuted` (alpha 0.08, ✓ exact). */
-  sageLight: 'rgba(107, 140, 174, 0.08)', // alias to caregiverAccentMuted
+  sageLight: 'rgba(143, 168, 200, 0.08)', // alias to caregiverAccentMuted
   /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentLight` (alpha 0.10, ✓ exact). */
-  sageSubtle: 'rgba(107, 140, 174, 0.10)', // alias to caregiverAccentLight
+  sageSubtle: 'rgba(143, 168, 200, 0.10)', // alias to caregiverAccentLight
   /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentHint` (alpha 0.12, ✓ exact). */
-  sageBorder: 'rgba(107, 140, 174, 0.12)', // alias to caregiverAccentHint
+  sageBorder: 'rgba(143, 168, 200, 0.12)', // alias to caregiverAccentHint
   /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentWash` (alpha 0.15, ✓ exact). */
-  sageWash: 'rgba(107, 140, 174, 0.15)', // alias to caregiverAccentWash
+  sageWash: 'rgba(143, 168, 200, 0.15)', // alias to caregiverAccentWash
   /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentStrong`. Alpha shift +0.03 from 0.22 → 0.25. */
-  sageGlow: 'rgba(107, 140, 174, 0.30)', // alias to caregiverAccentStrong
+  sageGlow: 'rgba(143, 168, 200, 0.30)', // alias to caregiverAccentStrong
   /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentMid` (NEW, alpha 0.35, ✓ exact). */
-  sageMuted: 'rgba(107, 140, 174, 0.35)', // alias to caregiverAccentMid (NEW)
+  sageMuted: 'rgba(143, 168, 200, 0.35)', // alias to caregiverAccentMid (NEW)
   /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentBold` (NEW, alpha 0.70, ✓ exact). */
-  sageStrong: 'rgba(107, 140, 174, 0.70)', // alias to caregiverAccentBold (NEW)
+  sageStrong: 'rgba(143, 168, 200, 0.70)', // alias to caregiverAccentBold (NEW)
   /** @deprecated Phase 33 F1b — correctly-sage RGB (only sage* token that was). Use `accentDim`. Alpha shift +0.04 from 0.06 → 0.10 (per user instruction). */
-  sageDim: 'rgba(95, 184, 138, 0.10)', // alias to accentDim
-  amberBright: '#e5b04a',
-  amberBrightTint: 'rgba(229, 176, 74, 0.08)',
-  amberBrightStrong: 'rgba(229, 176, 74, 0.75)',
-  greenBright: '#5fb88a',
-  coralBright: '#e6776e', // Phase 33 F1b — renamed from redBright
-  blueBright: '#93C5FD',
+  sageDim: 'rgba(156, 207, 166, 0.10)', // alias to accentDim
+  amberBright: '#d6ab5e',
+  amberBrightTint: 'rgba(214, 171, 94, 0.08)',
+  amberBrightStrong: 'rgba(214, 171, 94, 0.75)',
+  greenBright: '#9ccfa6',
+  coralBright: '#e3a684', // Phase 33 F1b — renamed from redBright
+  blueBright: '#8fa8c8',
   skyBright: '#7DD3FC',
-  success: '#5fb88a',
-  warning: '#e5b04a',
-  warningLight: 'rgba(229, 176, 74, 0.10)',
-  warningBorder: 'rgba(229, 176, 74, 0.25)',
-  error: '#e6776e',
+  success: '#9ccfa6',
+  warning: '#d6ab5e',
+  warningLight: 'rgba(214, 171, 94, 0.10)',
+  warningBorder: 'rgba(214, 171, 94, 0.25)',
+  error: '#e3a684',
   // criticalAlert is the canonical name in the v6.7 spec; aliased to error
   // so existing call sites continue working while new code can prefer the
   // semantic name.
-  criticalAlert: '#e6776e',
+  criticalAlert: '#e3a684',
   // Phase 33 F1b — v7-reserved coral (#e89a7a) deleted. The reservation
   // was a Phase 7 hold for a future 4th-accent design pass that never
   // came. Phase 33 instead renames the `red` family (color-named at the
-  // canonical #e6776e — which the website calls `--coral`) to `coral*`,
+  // canonical #e3a684 — which the website calls `--coral`) to `coral*`,
   // claiming the name for the actual coral hue in active use. Three
   // declarations retired here:
   //   coral: '#e89a7a'                     (0 consumers)
   //   coralLight: 'rgba(232,154,122,0.10)' (0 consumers)
   //   coralBorder: 'rgba(232,154,122,0.25)' (0 consumers)
   // The new coral* family declarations live in the red→coral rename
-  // block above (search for "coral: '#e6776e'").
+  // block above (search for "coral: '#e3a684'").
   // Phase 33 F1a — primary text aligned to website source-of-truth
-  // `--text: #f4ddb8` (warm cream). The pure-white #FFFFFF carried over
+  // `--text: #edf0ea` (warm cream). The pure-white #FFFFFF carried over
   // from the v6.7 palette was the single largest source of brand drift —
   // pure white on warm-dark reads clinical, the cream reads warm. This
   // single token flip cascades to ~480 c.textPrimary consumer sites in
   // one line; per-site adjustments stay in F1b/F9 for sites that bypass
   // the token (sage CTAs that should carry near-black, etc.).
-  textPrimary: '#f4ddb8',
+  textPrimary: '#edf0ea',
   // v6.7 visual-consistency lock: text colors moved from rgba-on-white to
   // solid hex so the apparent color stays constant across page-bg / glass
   // / youCardSurface and contrast is deterministic. textSecondary doubles
-  // as the eyebrow color (>= 4.5:1 on both #1a1612 and #2a2c25).
-  textSecondary: '#c4c1b3',
-  textTertiary: '#8a8a82',
+  // as the eyebrow color (>= 4.5:1 on both #141a16 and #19211b).
+  textSecondary: '#8b958c',
+  textTertiary: '#5e685f',
   textSoft: 'rgba(255, 255, 255, 0.42)',
   // Phase 33 F1a — flipped from rgba(255,255,255,0.48) to website's solid
-  // `--text-muted: #6a6a64`. The alpha-on-white form blended with surface
+  // `--text-muted: #5e685f`. The alpha-on-white form blended with surface
   // hue (subtly cooler on warm bg); the solid hex is hue-stable.
-  textMuted: '#6a6a64',
+  textMuted: '#5e685f',
   textDisabled: 'rgba(255, 255, 255, 0.28)',
   textHalf: 'rgba(255, 255, 255, 0.42)',
   textPlaceholder: 'rgba(255, 255, 255, 0.35)',
@@ -288,20 +288,20 @@ const DarkColors = {
   // → 0.20 to match purpleBorder; the 0.25 value is now caregiverAccentStrong.
   // F7 purple retirement (2026-06-12) — caregiverAccent family
   // migrated from warm lavender (#aa8adc / rgba(170,138,220,...)) to
-  // dusty blue (#6b8cae / rgba(107,140,174,...)). Token NAME preserved
+  // dusty blue (#8fa8c8 / rgba(143, 168, 200,...)). Token NAME preserved
   // for back-compat across hundreds of consumers; only the canonical
   // hex/rgba VALUES flip. The caregiver→clinician handoff lane stays
   // the same conceptual semantic — just in a calmer hue.
-  caregiverAccent: '#6b8cae',
+  caregiverAccent: '#8fa8c8',
   caregiverAccentText: '#5a7a9a',
-  caregiverAccentBg: 'rgba(107, 140, 174, 0.08)',
-  caregiverAccentFaint: 'rgba(107, 140, 174, 0.06)',
-  caregiverAccentMuted: 'rgba(107, 140, 174, 0.08)',
-  caregiverAccentLight: 'rgba(107, 140, 174, 0.10)',
-  caregiverAccentHint: 'rgba(107, 140, 174, 0.12)',
-  caregiverAccentWash: 'rgba(107, 140, 174, 0.15)',
-  caregiverAccentBorder: 'rgba(107, 140, 174, 0.20)',
-  caregiverAccentStrong: 'rgba(107, 140, 174, 0.30)',
+  caregiverAccentBg: 'rgba(143, 168, 200, 0.08)',
+  caregiverAccentFaint: 'rgba(143, 168, 200, 0.06)',
+  caregiverAccentMuted: 'rgba(143, 168, 200, 0.08)',
+  caregiverAccentLight: 'rgba(143, 168, 200, 0.10)',
+  caregiverAccentHint: 'rgba(143, 168, 200, 0.12)',
+  caregiverAccentWash: 'rgba(143, 168, 200, 0.15)',
+  caregiverAccentBorder: 'rgba(143, 168, 200, 0.20)',
+  caregiverAccentStrong: 'rgba(143, 168, 200, 0.30)',
   // Phase 33 F1b — Option C ladder extensions (audit F1b-1). The
   // pre-Phase-33 sage* lavender-alias ladder had high-alpha rungs at
   // 0.35 and 0.70 with no corresponding caregiverAccent value. F1b
@@ -316,8 +316,8 @@ const DarkColors = {
   // F7 purple retirement (2026-06-12) — alpha ladder extensions
   // migrated to dusty blue alongside the rest of the caregiverAccent
   // family.
-  caregiverAccentMid: 'rgba(107, 140, 174, 0.35)',
-  caregiverAccentBold: 'rgba(107, 140, 174, 0.70)',
+  caregiverAccentMid: 'rgba(143, 168, 200, 0.35)',
+  caregiverAccentBold: 'rgba(143, 168, 200, 0.70)',
   // ── Ember (Phase 33 F1b adds) ─────────────────────────────────────────
   // Website source-of-truth `--ember: #ff8c42` and `--ember-deep: #e8642a`.
   // Warm-glow accents used by the website for atmospheric layers and
@@ -328,14 +328,14 @@ const DarkColors = {
   // ── You tab — slightly warmer card surface for content warmth (Prompt 2) ──
   // Lifted in lockstep with bg (Phase 0): L* 22.09 vs bg L* 12.01 = delta
   // 10.08, restoring "warm card sitting on a surface" affordance.
-  youCardSurface: '#383528',
-  youCardBorder: 'rgba(255, 240, 215, 0.10)',
+  youCardSurface: '#2a342c',
+  youCardBorder: 'rgba(255, 255, 255, 0.10)',
   youAffirmationText: '#d4d1c3',
   // Reset pills sit slightly darker than the You card surface so they read
   // as recessed buttons within the card (their old #252420 was lower L*
   // than glassDim; now lifted to keep the same relative depth).
   youResetPillSurface: '#2f2d24',
-  youResetPillBorder: 'rgba(255, 235, 205, 0.10)',
+  youResetPillBorder: 'rgba(255, 255, 255, 0.10)',
   // ── Warm text ──
   textWarmPrimary: '#e0e8f0',
   textWarmSecondary: '#b0b8c0',
@@ -347,7 +347,7 @@ const DarkColors = {
   textAlertSecondary: '#a09880',
   textAlertHint: '#8a7a5a',
   // Phase 33 F1a — flipped to website's `--text-bright: #fff4d6`
-  // (emphasis cream, slightly brighter than the #f4ddb8 base text).
+  // (emphasis cream, slightly brighter than the #edf0ea base text).
   // Q-33.11 lock: the alpha-on-white shape was an accident of the old
   // palette — the semantic ("brighter emphasis") is what 15 consumer
   // sites want. All 15 audited as clean `color:` references with no
@@ -358,22 +358,22 @@ const DarkColors = {
   textHighContrast: '#FFFFFF',
   border: 'rgba(255, 255, 255, 0.08)',
   borderLight: 'rgba(255, 255, 255, 0.05)',
-  borderMedium: 'rgba(95, 184, 138, 0.22)',
-  borderStrong: 'rgba(95, 184, 138, 0.35)',
+  borderMedium: 'rgba(156, 207, 166, 0.22)',
+  borderStrong: 'rgba(156, 207, 166, 0.35)',
   // Mirrors the page background (Phase 0 lifted both in lockstep so the
   // tab strip stays seamless with the surface above it). Slice-1's
-  // brief flip to #0d0b08 was superseded; restored to #1a1612 alongside
+  // brief flip to #0d0b08 was superseded; restored to #141a16 alongside
   // the warm-bg restore.
-  tabBarBackground: '#1a1612',
-  tabBarBorder: 'rgba(95, 184, 138, 0.15)',
-  tabBarActive: '#5fb88a',
+  tabBarBackground: '#141a16',
+  tabBarBorder: 'rgba(156, 207, 166, 0.15)',
+  tabBarActive: '#9ccfa6',
   tabBarInactive: 'rgba(255, 255, 255, 0.40)',
   overlay: 'rgba(0, 0, 0, 0.90)',
   menuSurface: '#0A0A0A',
   gradientBackground: ['#000000', '#050505'],
-  gradientAuroraToday: ['rgba(95, 184, 138, 0.10)', 'transparent'],
-  gradientAuroraHub: ['rgba(95, 184, 138, 0.06)', 'transparent'],
-  gradientAuroraFamily: ['rgba(95, 184, 138, 0.08)', 'transparent'],
+  gradientAuroraToday: ['rgba(156, 207, 166, 0.10)', 'transparent'],
+  gradientAuroraHub: ['rgba(156, 207, 166, 0.06)', 'transparent'],
+  gradientAuroraFamily: ['rgba(156, 207, 166, 0.08)', 'transparent'],
   // Phase 2.6.1 — flat-lifted to the page-bg charcoal. Pre-lift these
   // were '#000000' / '#050505', and every sub-screen (Care Plan flow,
   // log forms, settings, etc.) wraps its SafeAreaView in a
@@ -384,35 +384,35 @@ const DarkColors = {
   // underneath. The gradient JSX surface itself is preserved (35
   // consumer sites today) for a future deliberate design call that
   // wants depth back.
-  // Phase 33 F1a moved both to #1a1612 in lockstep with `background`.
+  // Phase 33 F1a moved both to #141a16 in lockstep with `background`.
   // Slice-1's brief flip to #0d0b08 was superseded; both restored to
-  // #1a1612 alongside the warm-bg restore. The lockstep is enforced by
+  // #141a16 alongside the warm-bg restore. The lockstep is enforced by
   // care-plan-page-background.test.tsx (gradient-stops-equal-bg pin).
-  backgroundGradientStart: '#1a1612',
-  backgroundGradientEnd: '#1a1612',
-  // Phase 2.6.2 — lifted to the Phase 0 glass-tier value (#363830). Pre-lift
+  backgroundGradientStart: '#141a16',
+  backgroundGradientEnd: '#141a16',
+  // Phase 2.6.2 — lifted to the Phase 0 glass-tier value (#26302a). Pre-lift
   // was '#1A1A1A', which sat L* 2.7 BELOW the new warm-charcoal bg — making
   // buttons read darker than the page they sat on. Same root cause as the
   // gradient tokens (Phase 2.6.1): pre-warmth-lift legacy that escaped
   // Phase 0's audit because it's consumed mainly by sub-screens (Care Plan,
   // log forms, medication form), not the four main tabs. If on device this
   // reads too prominent for back-button purposes, drop one step to #2e2f29.
-  // Phase 33 F1b — PRESERVED at #363830 per audit F1-1 decision. The
-  // website's `--bg-elevated: #221d18` is one-step-from-bg (L* delta ~2);
+  // Phase 33 F1b — PRESERVED at #26302a per audit F1-1 decision. The
+  // website's `--bg-elevated: #19211b` is one-step-from-bg (L* delta ~2);
   // the app's `backgroundElevated` is interactive-card-surface (L* delta
-  // ~12 against new bg #1a1612). Different semantics; F1b adds bgRaised
+  // ~12 against new bg #141a16). Different semantics; F1b adds bgRaised
   // below for the website semantic without flattening the 7 care-plan/
   // medication-form consumers that depend on this lift.
-  backgroundElevated: '#363830',
-  // Phase 33 F1b — website source-of-truth `--bg-elevated: #221d18`
-  // (one-step-from-bg elevation, L* delta ~2 over the new #1a1612 bg).
+  backgroundElevated: '#26302a',
+  // Phase 33 F1b — website source-of-truth `--bg-elevated: #19211b`
+  // (one-step-from-bg elevation, L* delta ~2 over the new #141a16 bg).
   // Different semantic from `backgroundElevated` above which is
   // substantially lifted (~L* 12) interactive-card surface. No app
   // consumers yet — declared for forward use (Batch B Section 3 chrome
   // candidate; subtle-tier card backgrounds; etc.).
-  bgRaised: '#221d18',
+  bgRaised: '#19211b',
   // Now-zone panel surface (post-slice-1 followup, 2026-06-13). Quiet-warm
-  // low-lift panel — L* ~11 sits roughly 3.5 above the #1a1612 page bg.
+  // low-lift panel — L* ~11 sits roughly 3.5 above the #141a16 page bg.
   // Designed so the Now zone wrappers (Schedule / Health / Reflection)
   // each sit on zonePanel with the warm page bg reading as a gutter
   // between them. Distinct from `glass` (cool, L* ~23 — substantial card
@@ -420,7 +420,7 @@ const DarkColors = {
   // for a different semantic role per Phase 33 F1b). Within the warm
   // family (no green/cool tint), pulling the panel toward warmth so it
   // reads as a "warmer rest surface" rather than a cool card.
-  zonePanel: '#221d15',
+  zonePanel: '#19211b',
   switchThumbOn: '#FFFFFF',
   switchThumbOff: '#F4F3F4',
   switchThumb: '#F4F3F4',
