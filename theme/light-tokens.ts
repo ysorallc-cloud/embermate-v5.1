@@ -1,6 +1,10 @@
 // ============================================================================
-// EMBERMATE WARM LINEN LIGHT THEME
-// Rich linen background, opaque white cards, sage accents
+// EMBERMATE SAGE LIGHT THEME (Design-Lock §2 light column — PRIMARY mode)
+// Sage-green ambient page → sheet → white cards; coral/gold/sage/blue accents.
+// Remapped from the retired warm-linen/emerald palette in redesign-p0 F1b.
+// STILL UNWIRED: getLightColors + light-default re-enable are deferred to the
+// light-screen rebuild (red→coral key-parity gap + 766 dark-assuming literals
+// make light-default unreadable until Phase-1 screens migrate).
 // NOTE: Not a route - utility file only
 // ============================================================================
 
@@ -8,33 +12,33 @@ export default null;
 
 export const LightColors = {
   // Base — deep parchment cream
-  background: '#e8dcbe',
-  backgroundAlt: '#e0d4b6',
+  background: '#dbe5dc',
+  backgroundAlt: '#d0dad1',
 
   // Surfaces — warm-tinted white card surface
-  glass: '#fdfaf0',
-  glassHover: '#fdfaf0',
-  glassBorder: 'rgba(0, 0, 0, 0.06)',
+  glass: '#ffffff',
+  glassHover: '#ffffff',
+  glassBorder: 'rgba(40, 60, 45, 0.08)',
   glassActive: 'rgba(0, 0, 0, 0.08)',
-  glassDim: '#F5F3EF',
-  glassFaint: '#F5F3EF',
+  glassDim: '#e7eee7',
+  glassFaint: '#e7eee7',
   glassSubtle: 'rgba(0, 0, 0, 0.07)',
   glassStrong: 'rgba(0, 0, 0, 0.12)',
   glassBold: 'rgba(0, 0, 0, 0.18)',
 
   // Surfaces — cards + elevated
-  surface: '#fdfaf0',
+  surface: '#ffffff',
   surfaceElevated: '#ffffff',
-  surfaceAlt: '#F5F3EF',
-  surfaceHighlight: 'rgba(74, 107, 93, 0.08)',
+  surfaceAlt: '#e7eee7',
+  surfaceHighlight: 'rgba(63, 125, 87, 0.08)',
   // ── Warm surfaces (light) ──
-  warmSurface: '#fdf8ec',
+  warmSurface: '#ffffff',
   warmSurfaceBorder: '#E2E4E8',
   warmSurfaceAlert: '#FFF8F0',
   warmSurfaceAlertBorder: '#F0DCC8',
   warmSurfaceQuiet: '#F0F2F4',
   warmSurfaceQuietBorder: '#E0E2E4',
-  warmSurfaceGreen: '#F0F8F4',
+  warmSurfaceGreen: '#e3ede4',
   warmSurfaceGreenBorder: '#D0E8D8',
   warmSurfacePurple: '#F4F0F8',
   warmSurfacePurpleBorder: '#DCD0E8',
@@ -47,52 +51,52 @@ export const LightColors = {
   auroraRose: 'hsla(30, 25%, 85%, 0.2)',
 
   // Primary Accent — mint green
-  accent: '#047857',
-  accentButton: '#059669',
-  accentSoftBg: '#ecfdf5',
+  accent: '#3f7d57',
+  accentButton: '#3f7d57',
+  accentSoftBg: '#e3ede4',
   accentSoftBorder: 'rgba(5, 150, 105, 0.4)',
-  accentLight: 'rgba(4, 120, 87, 0.10)',
-  accentBorder: 'rgba(4, 120, 87, 0.20)',
-  accentGlow: 'rgba(4, 120, 87, 0.25)',
-  accentFaint: 'rgba(4, 120, 87, 0.04)',
-  accentTint: 'rgba(4, 120, 87, 0.05)',
-  accentDim: 'rgba(4, 120, 87, 0.06)',
-  accentHint: 'rgba(4, 120, 87, 0.10)',
-  accentSubtle: 'rgba(4, 120, 87, 0.10)',
-  accentMuted: 'rgba(4, 120, 87, 0.35)',
+  accentLight: 'rgba(63, 125, 87, 0.10)',
+  accentBorder: 'rgba(63, 125, 87, 0.20)',
+  accentGlow: 'rgba(63, 125, 87, 0.25)',
+  accentFaint: 'rgba(63, 125, 87, 0.04)',
+  accentTint: 'rgba(63, 125, 87, 0.05)',
+  accentDim: 'rgba(63, 125, 87, 0.06)',
+  accentHint: 'rgba(63, 125, 87, 0.10)',
+  accentSubtle: 'rgba(63, 125, 87, 0.10)',
+  accentMuted: 'rgba(63, 125, 87, 0.35)',
   // Phase 33 F7 — selected-chip fill (light-theme sage). Matches
   // the dark-theme accentChipFill at the light-mode sage RGB
   // (4,120,87). Same role: soft sage chip fill on the drawer ground.
-  accentChipFill: 'rgba(4, 120, 87, 0.10)',
-  accentGradientStart: '#047857',
-  accentGradientMid: '#059669',
-  accentGradientEnd: '#10b981',
+  accentChipFill: 'rgba(63, 125, 87, 0.10)',
+  accentGradientStart: '#3f7d57',
+  accentGradientMid: '#3f7d57',
+  accentGradientEnd: '#5a9e72',
 
   // Semantic Colors
-  green: '#3D7A5F',
-  greenTint: 'rgba(61, 122, 95, 0.06)',
-  greenLight: 'rgba(61, 122, 95, 0.08)',
-  greenHint: 'rgba(61, 122, 95, 0.10)',
-  greenMuted: 'rgba(61, 122, 95, 0.12)',
-  greenBorder: 'rgba(61, 122, 95, 0.18)',
-  greenStrong: 'rgba(61, 122, 95, 0.22)',
-  greenGlow: 'rgba(61, 122, 95, 0.28)',
+  green: '#3f7d57',
+  greenTint: 'rgba(63, 125, 87, 0.06)',
+  greenLight: 'rgba(63, 125, 87, 0.08)',
+  greenHint: 'rgba(63, 125, 87, 0.10)',
+  greenMuted: 'rgba(63, 125, 87, 0.12)',
+  greenBorder: 'rgba(63, 125, 87, 0.18)',
+  greenStrong: 'rgba(63, 125, 87, 0.22)',
+  greenGlow: 'rgba(63, 125, 87, 0.28)',
 
-  amber: '#A16207',
-  amberFaint: 'rgba(161, 98, 7, 0.05)',
-  amberLight: 'rgba(161, 98, 7, 0.08)',
-  amberHint: 'rgba(161, 98, 7, 0.10)',
-  amberMuted: 'rgba(161, 98, 7, 0.12)',
-  amberBorder: 'rgba(161, 98, 7, 0.18)',
-  amberGlow: 'rgba(161, 98, 7, 0.25)',
+  amber: '#b8852f',
+  amberFaint: 'rgba(184, 133, 47, 0.05)',
+  amberLight: 'rgba(184, 133, 47, 0.08)',
+  amberHint: 'rgba(184, 133, 47, 0.10)',
+  amberMuted: 'rgba(184, 133, 47, 0.12)',
+  amberBorder: 'rgba(184, 133, 47, 0.18)',
+  amberGlow: 'rgba(184, 133, 47, 0.25)',
 
-  red: '#B91C1C',
-  redFaint: 'rgba(185, 28, 28, 0.05)',
-  redLight: 'rgba(185, 28, 28, 0.08)',
-  redHint: 'rgba(185, 28, 28, 0.10)',
-  redMuted: 'rgba(185, 28, 28, 0.12)',
-  redBorder: 'rgba(185, 28, 28, 0.18)',
-  redStrong: 'rgba(185, 28, 28, 0.22)',
+  red: '#c0673f',
+  redFaint: 'rgba(192, 103, 63, 0.05)',
+  redLight: 'rgba(192, 103, 63, 0.08)',
+  redHint: 'rgba(192, 103, 63, 0.10)',
+  redMuted: 'rgba(192, 103, 63, 0.12)',
+  redBorder: 'rgba(192, 103, 63, 0.18)',
+  redStrong: 'rgba(192, 103, 63, 0.22)',
 
   rose: '#9F1239',
   roseLight: 'rgba(159, 18, 57, 0.08)',
@@ -103,7 +107,7 @@ export const LightColors = {
   skyLight: 'rgba(61, 122, 138, 0.08)',
   skyBorder: 'rgba(61, 122, 138, 0.18)',
 
-  gold: '#B8860B',
+  gold: '#b8852f',
   goldLight: 'rgba(184, 134, 11, 0.08)',
   goldBorder: 'rgba(184, 134, 11, 0.18)',
 
@@ -112,12 +116,12 @@ export const LightColors = {
   violetBorder: 'rgba(109, 90, 138, 0.18)',
   violetBright: '#6D5A8A',
 
-  blue: '#4A6B8A',
-  blueFaint: 'rgba(74, 107, 138, 0.05)',
-  blueTint: 'rgba(74, 107, 138, 0.06)',
-  blueLight: 'rgba(74, 107, 138, 0.08)',
-  blueWash: 'rgba(74, 107, 138, 0.12)',
-  blueBorder: 'rgba(74, 107, 138, 0.18)',
+  blue: '#5a78a0',
+  blueFaint: 'rgba(90, 120, 160, 0.05)',
+  blueTint: 'rgba(90, 120, 160, 0.06)',
+  blueLight: 'rgba(90, 120, 160, 0.08)',
+  blueWash: 'rgba(90, 120, 160, 0.12)',
+  blueBorder: 'rgba(90, 120, 160, 0.18)',
 
   indigo: '#5A5A8A',
   indigoLight: 'rgba(90, 90, 138, 0.08)',
@@ -132,52 +136,52 @@ export const LightColors = {
   cyanBorder: 'rgba(61, 122, 122, 0.18)',
 
   // Sage tones
-  sage: '#4A6B5D',
-  sageHint: 'rgba(74, 107, 93, 0.03)',
-  sageTint: 'rgba(74, 107, 93, 0.04)',
-  sageFaint: 'rgba(74, 107, 93, 0.05)',
-  sageLight: 'rgba(74, 107, 93, 0.06)',
-  sageSubtle: 'rgba(74, 107, 93, 0.08)',
-  sageBorder: 'rgba(74, 107, 93, 0.12)',
-  sageWash: 'rgba(74, 107, 93, 0.15)',
-  sageGlow: 'rgba(74, 107, 93, 0.20)',
-  sageMuted: 'rgba(74, 107, 93, 0.28)',
-  sageSoft: 'rgba(74, 107, 93, 0.45)',
-  sageStrong: 'rgba(74, 107, 93, 0.55)',
-  sageBright: 'rgba(74, 107, 93, 0.75)',
-  sageDim: 'rgba(74, 107, 93, 0.05)',
+  sage: '#3f7d57',
+  sageHint: 'rgba(63, 125, 87, 0.03)',
+  sageTint: 'rgba(63, 125, 87, 0.04)',
+  sageFaint: 'rgba(63, 125, 87, 0.05)',
+  sageLight: 'rgba(63, 125, 87, 0.06)',
+  sageSubtle: 'rgba(63, 125, 87, 0.08)',
+  sageBorder: 'rgba(63, 125, 87, 0.12)',
+  sageWash: 'rgba(63, 125, 87, 0.15)',
+  sageGlow: 'rgba(63, 125, 87, 0.20)',
+  sageMuted: 'rgba(63, 125, 87, 0.28)',
+  sageSoft: 'rgba(63, 125, 87, 0.45)',
+  sageStrong: 'rgba(63, 125, 87, 0.55)',
+  sageBright: 'rgba(63, 125, 87, 0.75)',
+  sageDim: 'rgba(63, 125, 87, 0.05)',
 
   // Chart variants
-  amberBright: '#A16207',
-  amberBrightTint: 'rgba(161, 98, 7, 0.06)',
-  amberBrightStrong: 'rgba(161, 98, 7, 0.6)',
-  greenBright: '#3D7A5F',
-  redBright: '#B91C1C',
-  blueBright: '#4A6B8A',
+  amberBright: '#b8852f',
+  amberBrightTint: 'rgba(184, 133, 47, 0.06)',
+  amberBrightStrong: 'rgba(184, 133, 47, 0.6)',
+  greenBright: '#3f7d57',
+  redBright: '#c0673f',
+  blueBright: '#5a78a0',
   skyBright: '#3D7A8A',
 
   // Status — v6.6 semantic palette
-  success: '#047857',
-  warning: '#b45309',
-  warningLight: 'rgba(180, 83, 9, 0.08)',
-  warningBorder: 'rgba(180, 83, 9, 0.20)',
-  error: '#b91c1c',
+  success: '#3f7d57',
+  warning: '#b8852f',
+  warningLight: 'rgba(184, 133, 47, 0.08)',
+  warningBorder: 'rgba(184, 133, 47, 0.20)',
+  error: '#c0673f',
   // Named status tokens for explicit usage
-  statusWarning: '#b45309',
+  statusWarning: '#b8852f',
   statusWarningSoft: '#fef3c7',
-  statusDanger: '#b91c1c',
+  statusDanger: '#c0673f',
   statusDangerSoft: '#fee2e2',
-  statusSuccess: '#047857',
+  statusSuccess: '#3f7d57',
   statusSuccessSoft: '#d1fae5',
 
   // Text — v6.6 light palette
-  textPrimary: '#0f172a',
-  textSecondary: '#374151',
-  textTertiary: '#6b7280',
-  textSoft: '#6b7280',
-  textMuted: '#6b7280',
+  textPrimary: '#26302a',
+  textSecondary: '#7f8c82',
+  textTertiary: '#a8b3aa',
+  textSoft: '#a8b3aa',
+  textMuted: '#a8b3aa',
   textDisabled: '#9ca3af',
-  textHalf: '#6b7280',
+  textHalf: '#a8b3aa',
   textPlaceholder: '#9ca3af',
   textInverse: '#ffffff',
   // ── Caregiver accent (lavender) ──
@@ -190,23 +194,23 @@ export const LightColors = {
   // purple hexes are deliberately not named in this comment so the
   // post-F7 purple-retirement grep returns zero results outside
   // node_modules.)
-  caregiverAccent: '#6b8cae',
-  caregiverAccentText: '#5a7a9a',
-  caregiverAccentBg: 'rgba(107, 140, 174, 0.08)',
-  caregiverAccentFaint: 'rgba(107, 140, 174, 0.06)',
-  caregiverAccentMuted: 'rgba(107, 140, 174, 0.08)',
-  caregiverAccentLight: 'rgba(107, 140, 174, 0.10)',
-  caregiverAccentHint: 'rgba(107, 140, 174, 0.12)',
-  caregiverAccentWash: 'rgba(107, 140, 174, 0.15)',
-  caregiverAccentBorder: 'rgba(107, 140, 174, 0.20)',
-  caregiverAccentStrong: 'rgba(107, 140, 174, 0.30)',
+  caregiverAccent: '#5a78a0',
+  caregiverAccentText: '#5a78a0',
+  caregiverAccentBg: 'rgba(90, 120, 160, 0.08)',
+  caregiverAccentFaint: 'rgba(90, 120, 160, 0.06)',
+  caregiverAccentMuted: 'rgba(90, 120, 160, 0.08)',
+  caregiverAccentLight: 'rgba(90, 120, 160, 0.10)',
+  caregiverAccentHint: 'rgba(90, 120, 160, 0.12)',
+  caregiverAccentWash: 'rgba(90, 120, 160, 0.15)',
+  caregiverAccentBorder: 'rgba(90, 120, 160, 0.20)',
+  caregiverAccentStrong: 'rgba(90, 120, 160, 0.30)',
   // ── Warm text (light) ──
   textWarmPrimary: '#1A1A2E',
   textWarmSecondary: '#4A4A5A',
   textWarmMuted: '#7A7A8A',
   textWarmHint: '#9A9AA8',
   textWarmDim: '#B0B0BC',
-  textAlertLabel: '#B8860B',
+  textAlertLabel: '#b8852f',
   textAlertPrimary: '#4A3520',
   textAlertSecondary: '#7A6A50',
   textAlertHint: '#9A8A70',
@@ -216,16 +220,16 @@ export const LightColors = {
   textHighContrast: '#1A231F',
 
   // Borders — v6.6 light palette
-  border: 'rgba(0, 0, 0, 0.06)',
+  border: 'rgba(40, 60, 45, 0.08)',
   borderLight: 'rgba(0, 0, 0, 0.04)',
   borderSubtle: 'rgba(0, 0, 0, 0.10)',
-  borderMedium: 'rgba(4, 120, 87, 0.18)',
+  borderMedium: 'rgba(63, 125, 87, 0.18)',
   borderStrong: 'rgba(0, 0, 0, 0.18)',
 
   // Tab Bar
   tabBarBackground: '#FFFFFF',
-  tabBarBorder: 'rgba(0, 0, 0, 0.06)',
-  tabBarActive: '#4A6B5D',
+  tabBarBorder: 'rgba(40, 60, 45, 0.08)',
+  tabBarActive: '#3f7d57',
   tabBarInactive: '#A8A29E',
 
   // Overlay
@@ -233,14 +237,14 @@ export const LightColors = {
   menuSurface: '#FFFFFF',
 
   // Gradients
-  gradientBackground: ['#E8E4DE', '#E0DCD6'],
-  gradientAuroraToday: ['rgba(74, 107, 93, 0.05)', 'transparent'],
+  gradientBackground: ['#cfe0d2', '#dbe5dc'],
+  gradientAuroraToday: ['rgba(63, 125, 87, 0.05)', 'transparent'],
   gradientAuroraHub: ['rgba(109, 90, 138, 0.05)', 'transparent'],
   gradientAuroraFamily: ['rgba(184, 134, 11, 0.05)', 'transparent'],
 
   // Compatibility
-  backgroundGradientStart: '#E8E4DE',
-  backgroundGradientEnd: '#E0DCD6',
+  backgroundGradientStart: '#cfe0d2',
+  backgroundGradientEnd: '#dbe5dc',
 
   // Background variants
   backgroundElevated: '#FFFFFF',
