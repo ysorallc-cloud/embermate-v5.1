@@ -20,6 +20,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { Fonts } from '../../theme/theme-tokens';
 import { SectionEyebrow } from '../SectionEyebrow';
 import { formatTime } from '../../utils/text/primitives';
+import { useSaveConfirmation } from '../../hooks/useSaveConfirmation';
 
 export interface JournalNotesCardProps {
   date: string;
@@ -73,9 +74,11 @@ export function JournalNotesCard({
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [text, setText] = useState(savedText ?? '');
-  const [saving, setSaving] = useState(false);
-  const [justSaved, setJustSaved] = useState(false);
-  const justSavedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Save-confirmation pattern (Option C) lives in the shared hook: justSaved
+  // is owned by the save action and reset on the DAY identity, immune to the
+  // post-save savedText echo. See hooks/useSaveConfirmation.
+  const { justSaved, saving, confirmSave } = useSaveConfirmation({ identityKey: date });
 
   // Phase 27 F6 — internal ref on the TextInput. When the parent
   // supplies an inputRef prop, we mirror our internal ref into it so
@@ -97,32 +100,12 @@ export function JournalNotesCard({
   //
   // Option C confirmation ownership: this effect must NOT touch justSaved.
   // The save confirmation (visible pulse + a11y "Saved" announcement) is
-  // owned by handleSave alone and is immune to savedText prop echoes —
-  // otherwise the post-save lift would reset justSaved before the caregiver
-  // could perceive it (the bug this design closes). The confirmation reset
-  // lives in the date-keyed effect below, not here.
+  // owned by the useSaveConfirmation hook, which keys its reset to the DAY
+  // identity (`date`) — so this savedText echo cannot clear it (the bug this
+  // design closes). Day-switch resets happen inside the hook, not here.
   useEffect(() => {
     setText(savedText ?? '');
   }, [savedText]);
-
-  // Confirmation lifecycle is keyed to the DAY, not to savedText. A real
-  // day-switch (date prop change) clears any stale "✓ Saved" badge that
-  // belonged to the previous day; a savedText echo within the SAME day
-  // cannot reach justSaved. This is the structural guard that removes the
-  // whole "echo clears the confirmation" bug class rather than detecting
-  // and suppressing one specific echo (which would silently re-break the
-  // a11y announcement from any future savedText-lifting path). `date` is
-  // a stable per-day string, so this fires only on actual day changes.
-  useEffect(() => {
-    setJustSaved(false);
-  }, [date]);
-
-  // Clean up the just-saved timer on unmount.
-  useEffect(() => {
-    return () => {
-      if (justSavedTimer.current) clearTimeout(justSavedTimer.current);
-    };
-  }, []);
 
   const isDirty = text.trim() !== (savedText ?? '').trim() && text.trim().length > 0;
   const hasSaved = (savedText ?? '').trim().length > 0;
@@ -136,16 +119,8 @@ export function JournalNotesCard({
   const handleSave = useCallback(async () => {
     if (!isDirty || saving) return;
     const trimmed = text.trim();
-    setSaving(true);
-    try {
-      await onSave(trimmed);
-      setJustSaved(true);
-      if (justSavedTimer.current) clearTimeout(justSavedTimer.current);
-      justSavedTimer.current = setTimeout(() => setJustSaved(false), 3000);
-    } finally {
-      setSaving(false);
-    }
-  }, [isDirty, saving, text, onSave]);
+    await confirmSave(() => onSave(trimmed));
+  }, [isDirty, saving, text, onSave, confirmSave]);
 
   // Four-state save UI:
   //   fresh      — never saved, input empty/unchanged → outlined "Save", disabled
