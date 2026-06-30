@@ -242,6 +242,13 @@ export const LightColors = {
   gradientAuroraHub: ['rgba(109, 90, 138, 0.05)', 'transparent'],
   gradientAuroraFamily: ['rgba(184, 134, 11, 0.05)', 'transparent'],
 
+  // Hero-plane gradient (Design-Lock §3 light column) — calm two-stop.
+  heroGradientStart: '#cfe0d2',
+  heroGradientEnd: '#dbe5dc',
+  heroGlow: 'rgba(63, 125, 87, 0.08)',
+  // Figure-ground middle tier (Design-Lock §2/§3): page → SHEET → white card.
+  sheet: '#e7eee7',
+
   // Compatibility
   backgroundGradientStart: '#cfe0d2',
   backgroundGradientEnd: '#dbe5dc',

@@ -390,6 +390,16 @@ const DarkColors = {
   // care-plan-page-background.test.tsx (gradient-stops-equal-bg pin).
   backgroundGradientStart: '#141a16',
   backgroundGradientEnd: '#141a16',
+  // Hero-plane gradient (Design-Lock §3) — calm near-solid two-stop, NOT a
+  // busy multi-radial. The HeroSheet scaffold paints heroGradientStart→End
+  // with one faint heroGlow; the content sheet rises over it (figure-ground).
+  heroGradientStart: '#1c241e',
+  heroGradientEnd: '#161d18',
+  heroGlow: 'rgba(156, 207, 166, 0.10)',
+  // Figure-ground middle tier (Design-Lock §2/§3): page bg → SHEET → card.
+  // Sheet sits between the page and the cards (dark #19211b, lighter than the
+  // page, darker than surface cards). The HeroSheet scaffold paints this.
+  sheet: '#19211b',
   // Phase 2.6.2 — lifted to the Phase 0 glass-tier value (#26302a). Pre-lift
   // was '#1A1A1A', which sat L* 2.7 BELOW the new warm-charcoal bg — making
   // buttons read darker than the page they sat on. Same root cause as the
