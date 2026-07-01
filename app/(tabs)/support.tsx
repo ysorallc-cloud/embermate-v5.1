@@ -222,20 +222,10 @@ export default function SupportScreen() {
             <Text style={styles.greeting}>
               {composeYouGreeting({ hour: new Date().getHours(), name: caregiverName })}
             </Text>
-            {caregiverName.length > 0 && (
-              <View
-                style={styles.caregiverChip}
-                accessibilityLabel={`Caregiver: ${caregiverName}. This is your space.`}
-                accessibilityRole="text"
-              >
-                <View style={styles.caregiverChipAvatar}>
-                  <Text style={styles.caregiverChipAvatarText}>
-                    {caregiverName.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-                <Text style={styles.caregiverChipName}>{'This is your space'}</Text>
-              </View>
-            )}
+            {/* You rebuild (S4) — the lavender "This is your space" chip is
+                retired with the full de-purple. The warm top now flows
+                greeting → reflect line → breath with no chip and no header
+                divider (the first hairline rule comes after the breath). */}
           </View>
 
           {/* ═══ Daily affirmation — Phase 11.2: witness signal
@@ -250,19 +240,22 @@ export default function SupportScreen() {
             onTap={() => setBreathingVisible(true)}
           />
 
-          {/* ═══ Reflection card (mood + text + save) ═══ */}
+          {/* Hairline rule — warm top (reflect + breath) closes here. */}
+          <View style={styles.rule} />
+
+          {/* Check-in — de-boxed faces + free-text + Save/F6 (unchanged). */}
           <ReflectionCard />
 
           {/* ═══ F7 C5 — Mood strip (7-dot timeline + weekRecap) ═══
               Sits between the ReflectionCard's daily check-in and the
               support tile row. SECTION_GAP carries the rhythm; the
               strip itself is open fabric — no card chrome. */}
-          <View style={{ height: SECTION_GAP }} />
+          <View style={styles.rule} />
           <MoodStrip
             days={moodDays}
             onWellnessTap={() => navigate('/caregiver-wellness')}
           />
-          <View style={{ height: SECTION_GAP }} />
+          <View style={styles.rule} />
 
           {/* ═══ Phase 29 Batch B F4 — Action cards row.
                 Replaces QuickResetPills (Breathe folded into the orb
@@ -282,6 +275,8 @@ export default function SupportScreen() {
                 affirmation bump. Phase 29 Batch B F4 — planAheadCard
                 wrapper retired alongside the ResourcesList compact
                 variant; chevron rows are the chrome now. ═══ */}
+          {/* Hairline rule — receded resources zone. */}
+          <View style={styles.rule} />
           <Text style={styles.planAheadHeader}>When you have a moment</Text>
           <ResourcesList variant="compact" />
 
@@ -334,11 +329,20 @@ function createStyles(c: typeof Colors) {
       paddingBottom: 96, // allow: tab-bar clearance (Phase 26 F5)
     },
     headerWrap: {
+      // You rebuild (S4) — no header divider; the warm top (greeting →
+      // reflect → breath) is one open beat, the first hairline rule comes
+      // after the breath.
       paddingTop: 32,
-      paddingBottom: 24, // allow: tap-target padding (Apple HIG ≥44pt)
+      paddingBottom: 4,
       paddingHorizontal: 4,
-      borderBottomWidth: 0.5,
-      borderBottomColor: c.glassHover,
+    },
+    // Hairline section divider (mockup `.rule`) — the You tab separates
+    // sections with hairlines instead of boxes; only SUPPORT keeps borders.
+    rule: {
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: c.hairlineInset,
+      marginTop: Spacing.lg,
+      marginHorizontal: 10,
     },
     // Settings gear — pinned to the header's upper-right, aligned with
     // the greeting's top. Absolute so it doesn't disturb the greeting /
@@ -369,58 +373,8 @@ function createStyles(c: typeof Colors) {
       color: c.textPrimary,
       letterSpacing: -0.5,
     },
-    // Phase 26 F3 — caregiver chip. Mirrors the patient chip pattern in
-    // NowHeader (height 22, borderRadius 11, 16pt avatar, 10pt name)
-    // but tints lavender via caregiverAccent tokens so the You-lane
-    // identity carries across header + tab bar.
-    //
-    // Phase 29 F1 — chip relocates from inline-with-title to its own
-    // row below the greeting. `alignSelf: 'flex-start'` keeps the chip
-    // tight to its content; `marginTop: 10` carries the breathing room
-    // pre-29 came from the headerTitleRow's gap to the title baseline.
-    // Inner Text copy changes from `{caregiverName}` to "This is your
-    // space" — see render block above.
-    caregiverChip: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      alignSelf: 'flex-start' as const,
-      marginTop: 10,
-      backgroundColor: c.caregiverAccentBg,
-      borderWidth: 0.5,
-      borderColor: c.caregiverAccentStrong,
-      borderRadius: 11,
-      height: 22,
-      paddingHorizontal: 8, // allow: tap-target padding (Apple HIG ≥44pt)
-      gap: 5,
-    },
-    // Phase 33b extension lavender no-fill canon — site #1. Pre-cleanup
-    // the 16×16 avatar carried a saturated `c.caregiverAccent` fill with
-    // a cream initial on top. Under the new canon, lavender is permitted
-    // only on eyebrow-scale text and thin accents — never as a fill. The
-    // chip preserves its caregiver-lane identity via a dark fill + 1pt
-    // lavender border, and the initial flips to lavender so the chip
-    // remains visible (cream-on-dark without the fill would be a silent
-    // invisible-text regression).
-    caregiverChipAvatar: {
-      width: 16,
-      height: 16,
-      borderRadius: 8,
-      backgroundColor: c.background,
-      borderWidth: 1,
-      borderColor: c.caregiverAccent,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-    },
-    caregiverChipAvatarText: {
-      fontSize: 9,
-      fontWeight: '600' as const,
-      color: c.caregiverAccent,
-    },
-    caregiverChipName: {
-      fontSize: 10,
-      color: c.caregiverAccentText,
-      fontWeight: '500' as const,
-    },
+    // You rebuild (S4) — caregiverChip* styles retired with the lavender
+    // "This is your space" chip (full de-purple; the warm top is chip-less).
     // Phase 29 Batch B F4 — wellnessLink / wellnessLabel / wellnessChevron
     // style entries retired alongside the wellnessLink JSX row. The
     // Wellness action card in ActionCardsRow now carries the route to

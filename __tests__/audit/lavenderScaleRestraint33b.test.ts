@@ -86,17 +86,12 @@ const SOURCE_FILES = [...APP_FILES, ...COMP_FILES];
 // catches entries that no longer consume bare caregiverAccent.
 
 const WHITELIST: Array<{ path: string; rationale: string }> = [
-  // (1) You-lane defining surfaces (Q-33b.8 — 3-surface cap)
+  // (1) You-lane defining surfaces
   //
-  // Note: BreathingOrbCard + AffirmationHeader were considered for the
-  // Q-33b.8 You-lane cap but currently consume only ALPHA variants
-  // (caregiverAccentBg / Light / etc.) — not the BARE solid token this
-  // contract pins. They're canon-compliant on this axis without being
-  // listed. Only ReflectionCard uses the bare solid for chrome.
-  {
-    path: 'components/support/ReflectionCard.tsx',
-    rationale: 'Q-33b.8 You-lane defining chrome — the primary witness-voice card',
-  },
+  // You rebuild (S4) — ReflectionCard was de-boxed (open fabric) and its bare
+  // caregiverAccent chrome removed, so it left the whitelist. BreathingOrbCard
+  // + AffirmationHeader never consumed the bare solid (alpha variants only, now
+  // sage). The You tab is fully de-purpled; no You surface holds bare lavender.
   // (2) Atmospheric / decorative
   //
   // Note: AuroraBackground uses inline rgba(170, 138, 220, X) lavender
@@ -113,10 +108,9 @@ const WHITELIST: Array<{ path: string; rationale: string }> = [
   // SectionEyebrow tint, neither of which consumes bare `c.caregiverAccent`
   // inside BreathingExercise itself.
   // (3) Caregiver chip identity surfaces
-  {
-    path: 'app/(tabs)/support.tsx',
-    rationale: 'You-tab caregiver chip identity — small lavender chip mirrors patient chip across tabs',
-  },
+  // You rebuild (S4) — app/(tabs)/support.tsx left the whitelist: the lavender
+  // "This is your space" chip was retired in the full de-purple, so the file
+  // no longer consumes bare c.caregiverAccent.
   {
     path: 'app/(tabs)/journal.tsx',
     rationale: 'caregiver chip parity with Now/Journal identity strip + BUILDING TOWARD eyebrow (canon-compliant tint)',

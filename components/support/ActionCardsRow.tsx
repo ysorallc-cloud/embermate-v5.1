@@ -108,11 +108,10 @@ export function ActionCardsRow({
           accessibilityLabel={c.accessibilityLabel}
           accessibilityHint={c.accessibilityHint}
         >
-          {/* F7 C5 — lavender icon accent → dusty blue (#6b8cae). The
-              You-lane caregiverAccent identity stays on the broader
-              tab; the support tiles step into the dusty handoff palette
-              per F7 spec. */}
-          <Ionicons name={c.iconName} size={13} color="#6b8cae" />
+          {/* You rebuild (S4) — support-tile icons → SAGE. The prior dusty-blue
+              (#6b8cae) was the You-blue error; §5 blue-never-on-You. These
+              tiles are the only containers on the tab (mockup), icons sage. */}
+          <Ionicons name={c.iconName} size={13} color={colors.accent} />
           <Text style={styles.label}>{c.label}</Text>
           <Text style={styles.subtitle}>{c.subtitle}</Text>
         </TouchableOpacity>

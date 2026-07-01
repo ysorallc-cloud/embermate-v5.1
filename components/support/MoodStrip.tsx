@@ -27,8 +27,6 @@ import {
   type WeekRecapDay,
 } from '../../utils/text/composers/weekRecap';
 
-const DUSTY = '#6b8cae';
-
 const DAY_LABEL = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const MOOD_EMOJI: Record<1 | 2 | 3 | 4 | 5, string> = {
@@ -128,11 +126,14 @@ const createStyles = (c: typeof Colors) =>
     },
     headerLabel: {
       ...TypeScale.micro,
-      color: c.textTertiary,
+      // You rebuild (S4) — THIS WEEK is the self-care/wellness eyebrow → SAGE
+      // (the mockup colors it, in blue; §5 blue-never-on-You → sage).
+      color: c.accent,
     },
     headerLink: {
       ...TypeScale.body,
-      color: DUSTY,
+      // "Your wellness →" → SAGE (was DUSTY blue #6b8cae, the You-blue error).
+      color: c.accent,
       fontWeight: '500',
     },
     dotRow: {

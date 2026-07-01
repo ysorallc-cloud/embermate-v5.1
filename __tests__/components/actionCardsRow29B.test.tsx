@@ -21,6 +21,7 @@ import TestRenderer, { act } from 'react-test-renderer';
 
 const themeColors = {
   caregiverAccent: '#aa8adc',
+  accent: '#9ccfa6', // sage
   textPrimary: '#fff',
   textTertiary: '#9aa0a6',
 };
@@ -104,13 +105,11 @@ describe('Phase 29 Batch B F2 — ActionCardsRow', () => {
     expect(ionicons[0].props.name).toBe('call-outline');
     expect(ionicons[1].props.name).toBe('heart-outline');
     expect(ionicons[2].props.name).toBe('pulse-outline');
-    // F7 C5 — icon accent migrated lavender (#aa8adc caregiverAccent)
-    // → dusty blue (#6b8cae). The You-lane caregiver identity stays on
-    // the broader tab; the support tiles step into the dusty handoff
-    // palette per F7 spec.
+    // You rebuild (S4) — support-tile icons → SAGE (colors.accent). The prior
+    // dusty-blue (#6b8cae) was the You-blue error; §5 blue-never-on-You.
     for (const icon of ionicons) {
       expect(icon.props.size).toBe(13);
-      expect(icon.props.color).toBe('#6b8cae');
+      expect(icon.props.color).toBe('#9ccfa6');
     }
   });
 

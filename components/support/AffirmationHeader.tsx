@@ -47,25 +47,21 @@ export function AffirmationHeader({ date, witness }: AffirmationHeaderProps) {
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    // Phase 2 (You tab content warmth) — generous padding gives the
-    // affirmation breathing room, since it carries the emotional thesis.
-    paddingTop: 10,
-    paddingBottom: 22, // allow: tap-target padding (Apple HIG ≥44pt)
-    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-    alignItems: 'center',
+    // You rebuild (S4) — the affirmation is the mockup's "reflect" line: an
+    // open, left-aligned italic note with a SAGE left rule (the mockup's blue
+    // border is the known You-blue error; §5 blue-never-on-You). No box.
+    marginTop: 20,
+    paddingLeft: 14, // allow: reflect-rule text gap (mockup .reflect padding-left)
+    borderLeftWidth: 2,
+    borderLeftColor: c.accentMuted, // sage 50% (was rgba blue in the mockup)
   },
   text: {
     fontFamily: Fonts.serifItalic,
     fontStyle: 'italic',
-    // Phase 7.1 — bump to 18pt / 30 line-height so the affirmation has
-    // presence proportional to its emotional weight on the You tab.
-    // Stays the warmest line on the page; same voice (serif italic),
-    // larger volume.
-    fontSize: 18,
-    lineHeight: 30, // 1.65 × 18, rounded
+    fontSize: 16,
+    lineHeight: 26, // ~1.6
     letterSpacing: 0.1,
     color: (c as any).youAffirmationText || c.textPrimary,
-    textAlign: 'center',
-    maxWidth: 320,
+    textAlign: 'left',
   },
 });

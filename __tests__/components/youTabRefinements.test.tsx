@@ -115,25 +115,20 @@ const styleOf = (node: any) => {
   return Object.assign({}, ...styles.filter(Boolean));
 };
 
-describe('ReflectionCard — Phase 29 Batch B F3 lavender lane chrome', () => {
-  it('card uses caregiverAccentBg (lavender lane chrome) — youCardSurface retired', () => {
-    // Phase 29 Batch B F3 — primary lane-coded card chrome matching the
-    // Phase 27/28 JournalSection pattern. The pre-F3 youCardSurface
-    // warm-cream bg retired with the broader You-lane lavender
-    // migration; ReflectionCard now reads as a peer of Journal SOAP
-    // cards across surfaces (Tier 3 of the lane-coherence rule).
-    const tree = (ReflectionCard as any)({});
-    const root = tree;
-    const merged = styleOf(root);
-    expect(merged.backgroundColor).toBe('rgba(170, 138, 220, 0.06)');
-    expect(merged.backgroundColor).not.toBe('#383528');
-  });
-
-  it('card has 3px full-hex caregiverAccent left border (matches JournalSection primary-card chrome)', () => {
+describe('ReflectionCard — DE-BOXED (You rebuild S4, full de-purple)', () => {
+  it('card has no lavender background (de-boxed to open fabric)', () => {
+    // The mockup flattens the check-in; only the SUPPORT tiles keep
+    // containers. The prior lavender lane-card bg is gone.
     const tree = (ReflectionCard as any)({});
     const merged = styleOf(tree);
-    expect(merged.borderLeftWidth).toBe(3);
-    expect(merged.borderLeftColor).toBe('#aa8adc');
+    expect(merged.backgroundColor).toBeUndefined();
+  });
+
+  it('card has no left border (open fabric, not a lane-coded card)', () => {
+    const tree = (ReflectionCard as any)({});
+    const merged = styleOf(tree);
+    expect(merged.borderLeftWidth).toBeUndefined();
+    expect(merged.borderLeftColor).toBeUndefined();
   });
 
   it('Save button is filled sage `c.accent` (Phase 33b extension lavender no-fill canon — reframed from Phase 29 Batch B F3 lavender recolor)', () => {

@@ -39,34 +39,24 @@ describe('ReflectionCard — file + exports', () => {
   });
 });
 
-describe('ReflectionCard — card surface (Phase 29 Batch B F3 lavender chrome)', () => {
-  // Phase 29 Batch B F3 — ReflectionCard wraps in caregiver-lane primary
-  // chrome matching the Phase 27/28 JournalSection pattern (full-hex
-  // caregiverAccent left border + caregiverAccentBg body tint).
-  // ReflectionCard is the You tab's writing primary, directly analogous
-  // to a Journal SOAP card; same chrome treatment = cross-surface
-  // primary-card consistency (Tier 3 of the lane-coherence rule).
-  it('card backgroundColor uses caregiverAccentBg (lavender lane chrome)', () => {
+describe('ReflectionCard — DE-BOXED (You rebuild S4, full de-purple)', () => {
+  // The mockup flattens the check-in to open fabric (only the SUPPORT tiles
+  // keep containers). The prior lavender lane-card chrome (caregiverAccentBg
+  // body + caregiverAccent left rule + border + radius) is removed. The
+  // free-text reflection + Save/F6 round-trip are UNCHANGED — only chrome.
+  it('card has NO lavender box chrome (no bg/border/borderLeft/radius)', () => {
     const block = styleBlock('card');
     expect(block).not.toBe('');
-    expect(block).toMatch(/backgroundColor:\s*(c|colors)\.caregiverAccentBg\b/);
+    expect(block).not.toMatch(/caregiverAccent/);
+    expect(block).not.toMatch(/backgroundColor:/);
+    expect(block).not.toMatch(/borderWidth:/);
+    expect(block).not.toMatch(/borderLeftWidth:/);
+    expect(block).not.toMatch(/borderRadius:/);
   });
 
-  it('card border: 0.5px caregiverAccentWash (0.15 alpha)', () => {
+  it('card is an open section — keeps only rhythm (marginBottom)', () => {
     const block = styleBlock('card');
-    expect(num(block, 'borderWidth')).toBe(0.5);
-    expect(block).toMatch(/borderColor:\s*(c|colors)\.caregiverAccentWash\b/);
-  });
-
-  it('card left border: 3px caregiverAccent full hex (matches JournalSection primary-card chrome)', () => {
-    const block = styleBlock('card');
-    expect(num(block, 'borderLeftWidth')).toBe(3);
-    expect(block).toMatch(/borderLeftColor:\s*(c|colors)\.caregiverAccent\b(?!\w)/);
-  });
-
-  it('card borderRadius: 9', () => {
-    const block = styleBlock('card');
-    expect(num(block, 'borderRadius')).toBe(9);
+    expect(num(block, 'marginBottom')).toBeGreaterThan(0);
   });
 });
 
@@ -106,14 +96,13 @@ describe('ReflectionCard — Section 2: 5-emoji mood selector', () => {
     expect(num(block, 'height')).toBe(36);
   });
 
-  it('selected mood button gets a 1.5px caregiverAccent ring (Phase 29 Batch B F3 — lane coherence inside lavender card)', () => {
-    // Pre-F3 the ring used c.accent (sage). After F3 wraps ReflectionCard
-    // in lavender chrome, a sage ring inside a lavender card is exactly
-    // the within-surface lane-orphan pattern Tier 1 of the lane-coherence
-    // rule forbids. Reframed: ring tracks the card's lane (caregiverAccent).
+  it('selected mood button gets a 1.5px SAGE ring (You rebuild — de-purple; §5 self-care = sage)', () => {
+    // De-boxed + de-purpled: the ring returns to sage (c.accent), the You
+    // accent after the lavender chrome retired. Never caregiverAccent, never blue.
     const block = styleBlock('moodButtonSelected');
     expect(num(block, 'borderWidth')).toBe(1.5);
-    expect(block).toMatch(/borderColor:\s*(c|colors)\.caregiverAccent\b(?!\w)/);
+    expect(block).toMatch(/borderColor:\s*(c|colors)\.accent\b(?!\w)/);
+    expect(block).not.toMatch(/caregiverAccent/);
   });
 
   it('unselected emoji renders at 0.4 opacity; selected at 1.0', () => {

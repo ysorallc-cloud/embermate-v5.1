@@ -54,9 +54,9 @@ describe('AffirmationHeader — typography contract', () => {
     expect(block).toMatch(/fontStyle:\s*['"]italic['"]/);
   });
 
-  it('text fontSize is 18pt (Phase 7.1 affirmation presence bump)', () => {
+  it('text fontSize is 16pt (You rebuild — reflect line)', () => {
     const block = styleBlock('text');
-    expect(num(block, 'fontSize')).toBe(18);
+    expect(num(block, 'fontSize')).toBe(16);
   });
 
   it('text uses the youAffirmationText cream tint', () => {
@@ -64,46 +64,38 @@ describe('AffirmationHeader — typography contract', () => {
     expect(block).toMatch(/youAffirmationText|c\.textPrimary/);
   });
 
-  it('text lineHeight is ≈ 1.65× the font size (Phase 7.1 → 30pt)', () => {
+  it('text lineHeight is ≈ 1.6× the font size (You rebuild → 26pt)', () => {
     const block = styleBlock('text');
     const lh = num(block, 'lineHeight');
     expect(lh).not.toBeNull();
-    // 18 × 1.65 = 29.7, rounded to 30.
-    expect(lh as number).toBeGreaterThanOrEqual(29);
-    expect(lh as number).toBeLessThanOrEqual(31);
+    expect(lh as number).toBeGreaterThanOrEqual(24);
+    expect(lh as number).toBeLessThanOrEqual(28);
   });
 
-  it('text is centered', () => {
+  it('text is left-aligned (reflect line, not centered)', () => {
     const block = styleBlock('text');
-    expect(block).toMatch(/textAlign:\s*['"]center['"]/);
-  });
-
-  it('container constrains the line width to ~320pt for natural wrapping at 18pt', () => {
-    // Either via a maxWidth on the container or on the text node.
-    // Phase 7.1 widened the cap from 280 → 320 so the larger type
-    // doesn't produce 2-word orphan lines.
-    const containerBlock = styleBlock('container');
-    const textBlock = styleBlock('text');
-    const containerMax = num(containerBlock, 'maxWidth');
-    const textMax = num(textBlock, 'maxWidth');
-    const winner = containerMax ?? textMax;
-    expect(winner).not.toBeNull();
-    expect(winner as number).toBeGreaterThanOrEqual(300);
-    expect(winner as number).toBeLessThanOrEqual(340);
+    expect(block).toMatch(/textAlign:\s*['"]left['"]/);
   });
 });
 
-describe('AffirmationHeader — spacing contract', () => {
-  it('container has the v6.7 generous padding (10/22/14)', () => {
+describe('AffirmationHeader — reflect-line rule (§5 blue-never-on-You)', () => {
+  it('container carries a SAGE left rule — never blue, never lavender', () => {
     const block = styleBlock('container');
-    expect(num(block, 'paddingTop')).toBe(10);
-    expect(num(block, 'paddingBottom')).toBe(22);
-    expect(num(block, 'paddingHorizontal')).toBe(14);
+    expect(num(block, 'borderLeftWidth')).toBeGreaterThanOrEqual(1);
+    // sage: c.accent / accentMuted / accentLight. NOT caregiverAccent (lavender),
+    // NOT a raw hex/blue rgba (the mockup's border was the You-blue error).
+    expect(block).toMatch(/borderLeftColor:\s*c\.accent(?:Muted|Light)?\b/);
+    expect(block).not.toMatch(/caregiverAccent/);
   });
 
-  it('container centers its child horizontally (alignItems center)', () => {
+  it('container is an open, left-inset reflect line (paddingLeft for the rule gap)', () => {
     const block = styleBlock('container');
-    expect(block).toMatch(/alignItems:\s*['"]center['"]/);
+    expect(num(block, 'paddingLeft')).toBeGreaterThanOrEqual(10);
+  });
+
+  it('container is NOT centered (left-aligned open fabric)', () => {
+    const block = styleBlock('container');
+    expect(block).not.toMatch(/alignItems:\s*['"]center['"]/);
   });
 });
 

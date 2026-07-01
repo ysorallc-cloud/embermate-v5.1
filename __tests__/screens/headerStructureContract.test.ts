@@ -1,7 +1,13 @@
 // ============================================================================
-// Header structure contract — all four tabs must share the same shell.
+// Header structure contract — the header tabs share the same shell.
 // Title font + weight, subtitle metrics, paddings, and rhythm are unified.
 // Content (title text, subtitle copy) varies; structure does not.
+//
+// EXCEPTIONS (sage+Poppins redesign — each tab earns its signature):
+//   • Insights leads with the HeroSheet plane (no ScreenHeader shell).
+//   • You (support.tsx) is a calm "warm top" — greeting flows into the reflect
+//     line with NO header divider and a tight bottom padding (4), so the warm
+//     top reads as one open beat. Its header intentionally diverges here.
 // ============================================================================
 
 import { readFileSync } from 'fs';
@@ -219,8 +225,8 @@ describe('Header structure contract — paddingBottom 24 before content', () => 
     expect(num(block, 'paddingBottom')).toBe(24);
   });
 
-  it('Support header bottom padding: 24', () => {
+  it('Support header bottom padding: 4 (You rebuild — warm top, no divider)', () => {
     const block = styleBlock(read('app/(tabs)/support.tsx'), 'headerWrap');
-    expect(num(block, 'paddingBottom')).toBe(24);
+    expect(num(block, 'paddingBottom')).toBe(4);
   });
 });

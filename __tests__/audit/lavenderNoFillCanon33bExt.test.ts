@@ -187,10 +187,10 @@ describe('Phase 33b extension — lavender no-fill canon', () => {
     expect(m![1]).toMatch(/c\.caregiverAccent\b/);
   });
 
-  it('#1 support.tsx caregiverChipAvatarText is lavender (flipped from cream so the chip initial reads on the dark fill)', () => {
+  it('#1 support.tsx caregiver chip site is RETIRED (You rebuild — full de-purple)', () => {
+    // The lavender "This is your space" chip (avatar + text) was removed in the
+    // You rebuild; the site no longer exists, so there is no lavender fill to pin.
     const src = readFileSync(join(ROOT, 'app/(tabs)/support.tsx'), 'utf8');
-    const m = src.match(/caregiverChipAvatarText:\s*\{[\s\S]{0,200}?color:\s*([^,\n]+?),/);
-    expect(m).not.toBeNull();
-    expect(m![1]).toMatch(/c\.caregiverAccent\b/);
+    expect(src).not.toMatch(/caregiverChipAvatarText:/);
   });
 });

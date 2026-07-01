@@ -26,31 +26,34 @@ function num(block: string, prop: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
-describe('Phase 7.1 — affirmation header presence bump', () => {
+describe('Affirmation header — reflect line (You rebuild S4)', () => {
   const text = styleBlock('text');
+  const container = styleBlock('container');
 
-  it('fontSize bumps to 18pt', () => {
-    expect(num(text, 'fontSize')).toBe(18);
+  it('fontSize is 16pt (reflect line)', () => {
+    expect(num(text, 'fontSize')).toBe(16);
   });
 
-  it('lineHeight bumps to 30pt (≈ 1.65 × 18)', () => {
-    expect(num(text, 'lineHeight')).toBe(30);
+  it('lineHeight is 26pt (≈ 1.6 × 16)', () => {
+    expect(num(text, 'lineHeight')).toBe(26);
   });
 
   it('color resolves through the youAffirmationText token (preserves the override pattern)', () => {
-    // The token-or-fallback pattern must survive the bump — this is how
-    // a future warmer cream tint can land without touching the component.
+    // The token-or-fallback pattern must survive — this is how a future
+    // warmer cream tint can land without touching the component.
     expect(text).toMatch(/youAffirmationText[\s\S]{0,40}\|\|[\s\S]{0,40}c\.textPrimary/);
   });
 
-  it('still serif italic (Fonts.serifItalic + italic, post-Phase-33 F7)', () => {
-    // Phase 33 F7 — Georgia literal swept to Fonts.serifItalic token.
+  it('still serif italic (Fonts.serifItalic + italic)', () => {
     expect(text).toMatch(/fontFamily:\s*Fonts\.serifItalic\b/);
     expect(text).toMatch(/fontStyle:\s*['"]italic['"]/);
   });
 
-  it('maxWidth widens to 320pt to avoid orphan lines at the larger size', () => {
-    const m = num(text, 'maxWidth');
-    expect(m).toBe(320);
+  it('is a left-ruled reflect line — SAGE border-left, no width cap', () => {
+    // Left-aligned open note with a sage rule (§5 blue-never-on-You),
+    // not the old centered narrow column.
+    expect(num(text, 'maxWidth')).toBeNull();
+    expect(text).toMatch(/textAlign:\s*['"]left['"]/);
+    expect(container).toMatch(/borderLeftColor:\s*c\.accent(?:Muted|Light)?\b/);
   });
 });

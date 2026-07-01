@@ -129,8 +129,8 @@ describe('You tab — header structure contract (post-Phase-29 reframe)', () => 
     expect(num(styleBlock('headerWrap'), 'paddingTop')).toBe(32);
   });
 
-  it('headerWrap paddingBottom: 24 (unchanged)', () => {
-    expect(num(styleBlock('headerWrap'), 'paddingBottom')).toBe(24);
+  it('headerWrap paddingBottom: 4 (You rebuild — no header divider; warm top flows into the reflect line)', () => {
+    expect(num(styleBlock('headerWrap'), 'paddingBottom')).toBe(4);
   });
 
   it('absence pin: pre-29 sans-serif title style block retired', () => {

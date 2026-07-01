@@ -181,23 +181,21 @@ describe('Phase 29 Batch A — F3 BreathingOrbCard', () => {
     return tree;
   }
 
-  it('contract F3.1: renders the "Tap to take a breath" prompt and the 60-second subtitle', () => {
+  it('contract F3.1 (You rebuild): renders the "Take a breath" line + the "60 seconds, right here" hint', () => {
     const tree = render();
     const allText = findAll(tree.root, (n: any) => n.type === 'Text')
       .map(flatText)
       .join(' | ');
-    expect(allText).toContain('Tap to take a breath');
-    expect(allText).toContain('60 seconds');
-    expect(allText).toContain('stays on this screen');
+    expect(allText).toContain('Take a breath');
+    expect(allText).toContain('60 seconds, right here');
   });
 
-  it('contract F3.2: prompt text uses Source Serif 4 italic via Fonts.serifItalic (Phase 33 F7)', () => {
-    // Phase 33 F7 — Georgia literal swept to Fonts.serifItalic token,
-    // which resolves at runtime to 'Poppins_300Light_Italic'.
+  it('contract F3.2 (You rebuild): the "Take a breath" emphasis uses Fonts.serifItalic', () => {
     const tree = render();
+    // The emphasis is the innermost (shortest) Text containing "Take a breath".
     const promptNode = findAll(tree.root, (n: any) =>
-      n.type === 'Text' && flatText(n).includes('Tap to take a breath'),
-    )[0];
+      n.type === 'Text' && flatText(n).includes('Take a breath'),
+    ).sort((a: any, b: any) => flatText(a).length - flatText(b).length)[0];
     expect(promptNode).toBeDefined();
     const style = promptNode.props.style;
     const flat = Array.isArray(style) ? Object.assign({}, ...style) : style;
@@ -246,37 +244,24 @@ describe('Phase 29 Batch A — F3 BreathingOrbCard', () => {
     expect(matches).toHaveLength(1);
   });
 
-  it('contract F3.8 (Batch A.1 F1): orb SVG renders 4 stroke-only rings with the alpha progression (0.05, 0.10, 0.18, 0.28) + a filled core', () => {
-    // Phase 29 Batch A.1 F1 — at-rest orb gets visual weight via 4
-    // concentric rings radiating outside the orb core. Outer rings
-    // fade away (alpha 0.05); the innermost ring is brightest
-    // (alpha 0.28). The progression — not the count alone — is what
-    // produces the radiating-out gesture; a future regression that
-    // collapses to one ring or flattens the alpha ladder fails here.
+  it('contract F3.8 (You rebuild): at-rest orb is a SAGE gradient teaser — no lavender rings (OrbRings moved to the modal)', () => {
+    // The 4-ring lavender OrbRings SVG is gone from the at-rest card; it lives
+    // in the BreathingExercise modal now. The de-carded teaser is a small sage
+    // gradient orb — never lavender/blue (§5 blue-never-on-You + de-purple).
     const tree = render();
     const circles = findAll(tree.root, (n: any) => n.type === 'Circle');
+    expect(circles).toHaveLength(0);
 
-    // 4 rings (stroke-only) + 1 core (filled) = 5 Circles at minimum.
-    expect(circles.length).toBeGreaterThanOrEqual(5);
-
-    // Pull the stroke values from every fill="none" Circle. The set
-    // must be exactly the four ring alphas — no missing rings, no
-    // duplicated alphas, no extra stroke-only Circles drifting in.
-    const ringStrokes = circles
-      .filter((c: any) => c.props.fill === 'none')
-      .map((c: any) => c.props.stroke);
-    const expected = new Set([
-      'rgba(170, 138, 220, 0.05)',
-      'rgba(170, 138, 220, 0.10)',
-      'rgba(170, 138, 220, 0.18)',
-      'rgba(170, 138, 220, 0.28)',
-    ]);
-    expect(new Set(ringStrokes)).toEqual(expected);
-
-    // Core defense: there must be exactly one Circle whose fill is
-    // NOT "none" (the gradient-filled core).
-    const filledCircles = circles.filter((c: any) => c.props.fill !== 'none');
-    expect(filledCircles).toHaveLength(1);
+    const grads = findAll(tree.root, (n: any) => n.type === 'LinearGradient');
+    expect(grads.length).toBeGreaterThanOrEqual(1);
+    const colors = grads[0].props.colors as string[];
+    expect(colors).toContain('#9ccfa6'); // sage accent
+    // No lavender / blue anywhere in the orb gradient.
+    for (const col of colors) {
+      if (typeof col === 'string') {
+        expect(col).not.toMatch(/170,\s*138,\s*220|6b8cae|9bb0d0|5d7396/);
+      }
+    }
   });
 
   it('contract F3.7 (Phase 29 Batch B F4 reframe): orb is the sole BreathingExercise entry; autoStart is hardcoded true', () => {
@@ -340,25 +325,16 @@ describe('Phase 29 Batch A — F1 greeting + chip relocation', () => {
     expect(STRIPPED).not.toMatch(/<Text\s+style=\{styles\.title\}\s*>\s*You\s*<\/Text>/);
   });
 
-  it('contract 4: caregiver chip JSX renders AFTER the greeting in source order', () => {
-    // The greeting comes from composeYouGreeting (called inline in the
-    // render path). The chip is a <View style={styles.caregiverChip}>.
-    // Locate both and assert ordering.
-    const greetingIdx = STRIPPED.search(/composeYouGreeting\s*\(/);
-    const chipIdx = STRIPPED.search(/style=\{styles\.caregiverChip\}/);
-    expect(greetingIdx).toBeGreaterThan(-1);
-    expect(chipIdx).toBeGreaterThan(-1);
-    expect(chipIdx).toBeGreaterThan(greetingIdx);
+  it('contract 4 (You rebuild): the greeting still renders via composeYouGreeting', () => {
+    // The chip that used to follow the greeting is retired (de-purple); the
+    // greeting itself stays as the warm-top opener.
+    expect(STRIPPED.search(/composeYouGreeting\s*\(/)).toBeGreaterThan(-1);
+    expect(STRIPPED).not.toMatch(/style=\{styles\.caregiverChip\}/);
   });
 
-  it('contract 5: chip body Text reads "This is your space" (not the bare {caregiverName} ref)', () => {
-    // Phase 26 F3 originally rendered the caregiver name inside the chip
-    // (<Text style={styles.caregiverChipName}>{caregiverName}</Text>).
-    // Phase 29 reframes the chip as an identity statement carried at the
-    // top of the tab — the name is no longer a slot, the chip is the
-    // statement. Avatar dot still carries the initial, preserved.
-    expect(STRIPPED).toMatch(/['"]This is your space['"]/);
-    expect(STRIPPED).not.toMatch(/<Text\s+style=\{styles\.caregiverChipName\}\s*>\s*\{caregiverName\}\s*<\/Text>/);
+  it('contract 5 (You rebuild): the "This is your space" chip copy is retired', () => {
+    expect(STRIPPED).not.toMatch(/This is your space/);
+    expect(STRIPPED).not.toMatch(/caregiverChipName/);
   });
 });
 

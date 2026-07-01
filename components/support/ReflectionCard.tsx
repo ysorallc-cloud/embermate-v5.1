@@ -202,21 +202,12 @@ export function ReflectionCard() {
 // STYLES
 // ============================================================================
 
+// You rebuild (S4) — the check-in is DE-BOXED to open fabric (the mockup
+// flattens everything except the SUPPORT tiles). The old lavender lane-card
+// styling retired with the full de-purple; the free-text reflection + the
+// Save/F6 round-trip are UNCHANGED — only presentation dropped.
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   card: {
-    // Phase 29 Batch B F3 — primary lane-coded card chrome. Matches the
-    // Phase 27/28 JournalSection caregiverAccent-tint pattern (full-hex
-    // left border at 3px + caregiverAccentBg body) so ReflectionCard
-    // reads as a peer of Journal's SOAP cards across surfaces (Tier 3
-    // of the lane-coherence rule). The pre-F3 youCardSurface chrome
-    // retired with the broader You-lane lavender migration.
-    backgroundColor: c.caregiverAccentBg,
-    borderWidth: 0.5,
-    borderColor: c.caregiverAccentWash,
-    borderLeftWidth: 3,
-    borderLeftColor: c.caregiverAccent,
-    borderRadius: 9,
-    padding: 16,
     marginBottom: 12,
   },
   sectionLabel: {
@@ -242,12 +233,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'transparent',
   },
+  // You rebuild (S4) — selected-mood ring → SAGE (the You accent after the
+  // de-purple; §5 self-care = sage).
   moodButtonSelected: {
     borderWidth: 1.5,
-    // Phase 29 Batch B F3 — sage ring inside lavender card was a
-    // within-surface lane orphan (Tier 1 rule). Ring now tracks the
-    // card's lane.
-    borderColor: c.caregiverAccent,
+    borderColor: c.accent,
   },
   moodEmoji: {
     fontSize: 22,

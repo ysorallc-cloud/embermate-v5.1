@@ -62,65 +62,23 @@ describe('Phase 26 F3 — caregiver chip in support.tsx headerWrap', () => {
     expect(STRIPPED).toMatch(/getCaregiverProfile\(\)/);
   });
 
-  it('contract 3 (Phase 29 reframe): chip lives on its own row below the greeting, NOT inline with a title', () => {
-    // Phase 26 F3's original contract here pinned a chip+title same-
-    // baseline row (headerTitleRow with flexDirection row, gap 12).
-    // Phase 29 F1 retired the H1 title in favor of a Georgia italic
-    // greeting and relocated the chip to its own row below. The chip's
-    // own style block now carries the layout it needs (alignSelf
-    // flex-start + marginTop 10); the headerTitleRow row container
-    // is gone. This contract flips to defend the new shape.
+  it('contract 3 (You rebuild S4): the caregiverChip style block is RETIRED (full de-purple)', () => {
+    // The lavender "This is your space" chip is removed in the You rebuild.
+    // The warm top now flows greeting → reflect line → breath, chip-less.
+    expect(STRIPPED).not.toMatch(/\bcaregiverChip\s*:\s*\{/);
     expect(STRIPPED).not.toMatch(/\bheaderTitleRow\s*:\s*\{/);
-    // The chip's own style picks up the layout duties: alignSelf
-    // flex-start + a marginTop > 0 puts it on its own line below the
-    // greeting.
-    const chipBlock = STRIPPED.match(/\bcaregiverChip\s*:\s*\{[\s\S]*?\n\s*\}/);
-    expect(chipBlock).toBeTruthy();
-    expect(chipBlock![0]).toMatch(/alignSelf:\s*['"]flex-start['"]/);
-    expect(chipBlock![0]).toMatch(/marginTop:\s*\d+/);
   });
 
-  it('contract 4: caregiverChip style routes through caregiverAccent tokens (NOT accent / accentTint)', () => {
-    const chipBlock = STRIPPED.match(/\bcaregiverChip\s*:\s*\{[\s\S]*?\n\s*\}/);
-    expect(chipBlock).toBeTruthy();
-    const b = chipBlock![0];
-    // Mirror the patient chip dimensions.
-    expect(b).toMatch(/height:\s*22/);
-    expect(b).toMatch(/borderRadius:\s*11/);
-    // Lavender — not sage.
-    expect(b).toMatch(/caregiverAccent/);
-    expect(b).not.toMatch(/c\.accentTint\b/);
-    expect(b).not.toMatch(/borderColor:\s*c\.accentBorder\b/);
+  it('contract 4 (You rebuild S4): no lavender chip chrome remains (caregiverChip* family gone)', () => {
+    expect(STRIPPED).not.toMatch(/caregiverChipAvatar|caregiverChipName/);
+    expect(STRIPPED).not.toMatch(/styles\.caregiverChip\b/);
   });
 
-  it('contract 5: chip render is gated on caregiverName being truthy + non-whitespace', () => {
-    // Acceptable gating shapes — the chip is identity, not a slot, so
-    // an empty caregiverName must not render the chip:
-    //   {caregiverName ? <Chip/> : null}
-    //   {caregiverName && <Chip/>}
-    //   {caregiverName.trim().length > 0 && <Chip/>}
-    //   {caregiverName.length > 0 && <Chip/>}        ← trim happens at the
-    //                                                  useEffect setState
-    //                                                  upstream, so .length
-    //                                                  here is whitespace-safe
-    const chipJsxRegion = STRIPPED.match(
-      /styles\.caregiverChip[\s\S]{0,300}/,
-    );
-    expect(chipJsxRegion).toBeTruthy();
-    const around = STRIPPED.slice(
-      Math.max(0, chipJsxRegion!.index! - 400),
-      chipJsxRegion!.index! + chipJsxRegion![0].length,
-    );
-    expect(around).toMatch(/caregiverName\s*(?:\?|&&|\.trim|\.length)/);
+  it('contract 5 (You rebuild S4): the "This is your space" chip copy is retired', () => {
+    expect(STRIPPED).not.toMatch(/This is your space/);
   });
 
-  it('contract 6 (Phase 29 reframe): subtitle "A space for you, not your loved one." retired', () => {
-    // Phase 29 F1 retired the subtitle line. Its meaning is now carried
-    // by the chip's identity-statement copy ("This is your space") which
-    // sits below the time-aware greeting. The pre-29 subtitle literal
-    // should not appear anywhere in source.
+  it('contract 6: the pre-29 subtitle "A space for you..." stays retired', () => {
     expect(STRIPPED).not.toMatch(/A space for you, not your loved one/);
-    // The chip's body Text now carries the identity statement directly.
-    expect(STRIPPED).toMatch(/['"]This is your space['"]/);
   });
 });
