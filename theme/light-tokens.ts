@@ -19,6 +19,10 @@ export const LightColors = {
   glass: '#ffffff',
   glassHover: '#ffffff',
   glassBorder: 'rgba(40, 60, 45, 0.08)',
+  // Inset row hairline (light) — parity with dark hairlineInset. Quieter than
+  // glassBorder (.08) so it reads as a separator, not an edge. Added for the
+  // Now rebuild (timeline spine line + ScheduleCard row dividers).
+  hairlineInset: 'rgba(40, 60, 45, 0.06)',
   glassActive: 'rgba(0, 0, 0, 0.08)',
   glassDim: '#e7eee7',
   glassFaint: '#e7eee7',
@@ -256,6 +260,11 @@ export const LightColors = {
   heroGlow: 'rgba(63, 125, 87, 0.08)',
   // Figure-ground middle tier (Design-Lock §2/§3): page → SHEET → white card.
   sheet: '#e7eee7',
+  // Zone-panel surface (light) — parity with dark zonePanel #19211b. A low-lift
+  // sage-white panel that sits just above the page bg (#dbe5dc) to hold the
+  // Now zones (Schedule / Health / Reflection), matching the mockup's quiet
+  // panel. Added for the Now rebuild.
+  zonePanel: '#eef3ee',
 
   // Compatibility
   backgroundGradientStart: '#cfe0d2',
