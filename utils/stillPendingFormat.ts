@@ -16,7 +16,6 @@
 // ============================================================================
 
 import type { DailyCareInstance } from '../types/carePlan';
-import { getCareItemStatus } from './careItemStatus';
 
 export interface PendingTonightItem {
   /** Stable id for React keys. */
@@ -42,20 +41,7 @@ function clockLabel(d: Date): string {
 export function formatStillPendingTonight(
   instances: DailyCareInstance[],
 ): PendingTonightItem[] {
-  const pending = instances.filter((i) => {
-    if (i.status !== 'pending') return false;
-    // A meal past its window+120 is MISSED, not still-pending — it surfaces in
-    // §2's meal narrative. Route the meal pending-vs-missed boundary through
-    // getCareItemStatus (the same canonical helper §2 uses) so an overdue meal
-    // doesn't contradict itself across §2 (missed) and §4 (still pending).
-    //
-    // SCOPED TO NUTRITION ONLY. Meds/vitals/wellness keep their existing
-    // persisted-pending behavior here — generalizing the windowed missed-vs-
-    // pending boundary to every type is a deliberate separate change (PART B,
-    // the status view-model selector), not this Journal §2/§4 coherence fix.
-    if (i.itemType === 'nutrition' && getCareItemStatus(i) === 'overdue') return false;
-    return true;
-  });
+  const pending = instances.filter((i) => i.status === 'pending');
   // Sort by scheduledTime ascending — earliest first.
   pending.sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
   return pending.map((i) => ({
