@@ -7,7 +7,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { safeGetItem, safeSetItem } from '../utils/safeStorage';
-import { Colors, _syncColors, getDarkColors } from '../theme/theme-tokens';
+import { Colors, _syncColors, getDarkColors, getLightColors } from '../theme/theme-tokens';
 import { HighContrastDarkOverrides } from '../theme/high-contrast-tokens';
 import { StorageKeys } from '../utils/storageKeys';
 
@@ -45,10 +45,10 @@ const HC_STORAGE_KEY = StorageKeys.HIGH_CONTRAST;
 
 const ThemeContext = createContext<ThemeContextValue>({
   colors: Colors,
-  mode: 'dark',
+  mode: 'light',
   setMode: () => {},
-  themeMode: 'dark',
-  resolvedTheme: 'dark',
+  themeMode: 'light',
+  resolvedTheme: 'light',
   highContrast: false,
   setThemeMode: () => {},
   setHighContrast: () => {},
@@ -59,10 +59,9 @@ const ThemeContext = createContext<ThemeContextValue>({
 // ============================================================================
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Persisted preference is loaded but does NOT influence the rendered theme
-  // in v6.7 — see TODO at top of file. Kept in state so the Settings UI (if
-  // ever re-enabled) can read/write it without re-plumbing.
-  const [themeMode, setThemeModeState] = useState<ThemeMode>('dark');
+  // Light is the default (Design-Lock §2: light primary, dark the option).
+  // A stored preference is honored; a fresh install with none resolves light.
+  const [themeMode, setThemeModeState] = useState<ThemeMode>('light');
   const [highContrast, setHighContrastState] = useState(false);
 
   // Load saved preferences (kept for forward compat — does not change render)
@@ -99,15 +98,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     safeSetItem(HC_STORAGE_KEY, enabled ? 'true' : 'false');
   }, []);
 
-  // light mode disabled in v6.7 — always resolve to dark.
-  const resolvedTheme: 'dark' | 'light' = 'dark';
+  // Resolve the active theme from the mode. Light is primary (Lock §2), so
+  // both 'light' and 'auto' resolve light; only an explicit 'dark' is dark.
+  // ('auto' → follow-system is deferred — it needs useColorScheme, which the
+  // RN test mock doesn't provide; not required for the light-default floor.)
+  const resolvedTheme: 'dark' | 'light' = themeMode === 'dark' ? 'dark' : 'light';
 
-  // Build final colors: dark base, with high-contrast overlay if enabled.
+  // Build final colors from the resolved theme. High-contrast overrides are
+  // dark-tuned, so they apply only in dark for now (a light HC set is a later
+  // accessibility task, out of scope for the parity reconcile).
   const colors = useMemo(() => {
-    const base = getDarkColors() as typeof Colors;
-    if (!highContrast) return base;
+    const base = (resolvedTheme === 'light' ? getLightColors() : getDarkColors()) as typeof Colors;
+    if (!highContrast || resolvedTheme !== 'dark') return base;
     return { ...base, ...HighContrastDarkOverrides } as typeof Colors;
-  }, [highContrast]);
+  }, [highContrast, resolvedTheme]);
 
   // Keep global Colors object in sync so files that read Colors.X at render
   // time (including static StyleSheet.create references) pick up updates.

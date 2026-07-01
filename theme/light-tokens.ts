@@ -90,13 +90,17 @@ export const LightColors = {
   amberBorder: 'rgba(184, 133, 47, 0.18)',
   amberGlow: 'rgba(184, 133, 47, 0.25)',
 
-  red: '#c0673f',
-  redFaint: 'rgba(192, 103, 63, 0.05)',
-  redLight: 'rgba(192, 103, 63, 0.08)',
-  redHint: 'rgba(192, 103, 63, 0.10)',
-  redMuted: 'rgba(192, 103, 63, 0.12)',
-  redBorder: 'rgba(192, 103, 63, 0.18)',
-  redStrong: 'rgba(192, 103, 63, 0.22)',
+  // Coral family — parity with DarkColors `coral*` (light-mode reconcile).
+  // The dark theme's Phase-33 F1b rename (red* → coral*) never reached light;
+  // consumers read `colors.coral` (0 read `colors.red`), so the stale `red*`
+  // keys are retired and `coral*` added at the same light hue (#c0673f).
+  coral: '#c0673f',
+  coralFaint: 'rgba(192, 103, 63, 0.05)',
+  coralLight: 'rgba(192, 103, 63, 0.08)',
+  coralHint: 'rgba(192, 103, 63, 0.10)',
+  coralMuted: 'rgba(192, 103, 63, 0.12)',
+  coralBorder: 'rgba(192, 103, 63, 0.18)',
+  coralStrong: 'rgba(192, 103, 63, 0.22)',
 
   rose: '#9F1239',
   roseLight: 'rgba(159, 18, 57, 0.08)',
@@ -156,7 +160,7 @@ export const LightColors = {
   amberBrightTint: 'rgba(184, 133, 47, 0.06)',
   amberBrightStrong: 'rgba(184, 133, 47, 0.6)',
   greenBright: '#3f7d57',
-  redBright: '#c0673f',
+  coralBright: '#c0673f',
   blueBright: '#5a78a0',
   skyBright: '#3D7A8A',
 
@@ -166,6 +170,10 @@ export const LightColors = {
   warningLight: 'rgba(184, 133, 47, 0.08)',
   warningBorder: 'rgba(184, 133, 47, 0.20)',
   error: '#c0673f',
+  // criticalAlert — coral-family alias, parity with DarkColors (both point at
+  // the coral hex, like `error`). Closes the 8 light consumers left undefined
+  // by the red→coral rename. Part of the coral reconcile.
+  criticalAlert: '#c0673f',
   // Named status tokens for explicit usage
   statusWarning: '#b8852f',
   statusWarningSoft: '#fef3c7',

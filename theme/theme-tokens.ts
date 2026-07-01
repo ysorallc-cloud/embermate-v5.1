@@ -1,10 +1,12 @@
 // ============================================================================
-// EMBERMATE MIDNIGHT CALM THEME TOKENS
-// Deep midnight with soft purple accents.
-// TODO: light mode disabled in v6.7 — light-tokens module is preserved on disk
-// for future re-enablement but is intentionally not imported here.
+// EMBERMATE SAGE THEME TOKENS
+// Sage-green palette, both modes from one token set (Design-Lock §2).
+// Light re-enabled in the redesign light-parity reconcile — getLightColors
+// wires the light-tokens module below; ThemeContext resolves light-default.
 // NOTE: Not a route - utility file only
 // ============================================================================
+
+import { LightColors } from './light-tokens';
 
 // Prevent Expo Router warning (this is not a route component)
 export default null;
@@ -455,6 +457,16 @@ export function _syncColors(newColors: Partial<typeof Colors>) {
 /** Get the dark color palette (used by ThemeContext) */
 export function getDarkColors(): typeof DarkColors {
   return DarkColors;
+}
+
+// Light-mode color map (Design-Lock §2 light column). Cast to the DarkColors
+// shape because the two sets are not yet at full key parity — the coral*
+// reconcile closed the known consumer gap (colors.coral), but other keys may
+// still be dark-only. Reads of a missing key resolve to undefined at runtime;
+// those surface as the 766 dark-assuming hardcoded literals that migrate
+// per-screen in Phase 1 (NOT here).
+export function getLightColors(): typeof DarkColors {
+  return LightColors as unknown as typeof DarkColors;
 }
 // Canonical 4pt spacing scale (May 1 spacing-rhythm pass — Phase 1).
 // All values are multiples of 4. The legacy block (xs=4, sm=8, md=12,
