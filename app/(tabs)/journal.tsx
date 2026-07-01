@@ -136,7 +136,9 @@ import { buildShapeOfDay } from '../../utils/buildShapeOfDay';
 import { getDailyOutcomes } from '../../utils/dailyOutcomes';
 import type { DailyOutcomes } from '../../utils/text/types';
 import { isDayComplete, markDayComplete } from '../../utils/dayComplete';
-import { shouldRenderJournalEmptyDay } from '../../utils/journalEmptyDayCheck';
+import { shouldRenderJournalEmptyDay, getOutstandingItemNames } from '../../utils/journalEmptyDayCheck';
+import { listDailyInstances, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
+import type { DailyCareInstance } from '../../types/carePlan';
 
 // ============================================================================
 // MAIN COMPONENT
@@ -185,6 +187,11 @@ export default function JournalTab() {
     pending: { count: 0, names: [] },
   });
   const [dayCompleteFlag, setDayCompleteFlag] = useState(false);
+  // Option A floor — the day's care instances, for the "Still to do"
+  // outstanding-items line + the empty-day gate. Overdue (missed) items are
+  // derived from these via getCareItemStatus so Journal names what's
+  // outstanding rather than falsely reading the day as empty.
+  const [dayInstances, setDayInstances] = useState<DailyCareInstance[]>([]);
   // Phase 31 F3 — handoffSheetVisible state retired alongside the
   // HandoffSheet modal. Share CTA now fires generateAndShareHandoff
   // directly; no modal-open state to track.
@@ -371,7 +378,16 @@ export default function JournalTab() {
   //      the empty-day check at line ~632 reading stale state.
   const refreshOutcomes = useCallback(() => {
     getDailyOutcomes(selectedDate).then(setOutcomes).catch(() => {});
+    listDailyInstances(DEFAULT_PATIENT_ID, selectedDate).then(setDayInstances).catch(() => {});
   }, [selectedDate]);
+
+  // Option A floor — names of the day's OVERDUE (missed) items, via the
+  // canonical getCareItemStatus (consumed, not re-derived). Drives the empty-
+  // day gate (a miss = content) and the "Still to do" line in §3.
+  const outstandingNames = useMemo(
+    () => getOutstandingItemNames(dayInstances),
+    [dayInstances],
+  );
 
   // Load outcomes + day-complete flag for the selected date.
   useEffect(() => {
@@ -905,6 +921,7 @@ export default function JournalTab() {
               // consolidatedNotes, so it surfaces through hasNotes.
               hasTone: false,
               hasCompletedInstances: outcomes.logged.count > 0,
+              hasOutstandingItems: outstandingNames.length > 0,
             });
           })() && (
             <JournalEmptyDay
@@ -942,6 +959,7 @@ export default function JournalTab() {
               // consolidatedNotes, so it surfaces through hasNotes.
               hasTone: false,
               hasCompletedInstances: outcomes.logged.count > 0,
+              hasOutstandingItems: outstandingNames.length > 0,
             });
             if (isEmpty) return null;
             const hasGestalt = (moodLine ?? '').trim().length > 0;
@@ -1031,6 +1049,15 @@ export default function JournalTab() {
                   <SoapSectionFrame eyebrow="What was logged" tint="neutral">
                     {!hasAnyLogged && (
                       <Text style={s.section2Empty}>Nothing logged yet today.</Text>
+                    )}
+                    {/* Option A floor — name what's outstanding (overdue via
+                        getCareItemStatus) so Journal never reads as an empty
+                        day when care is missed. Neutral "still to do" framing;
+                        per-type "missed" naming is PART B. */}
+                    {outstandingNames.length > 0 && (
+                      <Text style={s.section2Outstanding}>
+                        Still to do: {outstandingNames.join(', ')}.
+                      </Text>
                     )}
                     {hasMedsLogged && (
                       <View style={s.bucketGroup}>
@@ -1360,6 +1387,15 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     lineHeight: 19,
     color: c.textSecondary,
     fontStyle: 'italic' as const,
+  },
+  // Option A floor — "Still to do: …" outstanding-items line. Amber for
+  // gentle attention (something's overdue) without the alarm of coral;
+  // neutral "still to do" copy, not per-type "missed" naming (PART B).
+  section2Outstanding: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: c.amber,
+    marginBottom: 4,
   },
   // Phase 27 F6 — Section 4 sub-eyebrows. 8pt size matches the global
   // SectionEyebrow typography; amber at 0.7 alpha is the spec'd weight
