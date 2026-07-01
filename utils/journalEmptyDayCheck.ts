@@ -24,6 +24,12 @@
 // own future commit.
 // ============================================================================
 
+import { getCareItemStatus, CareItemStatusInput } from './careItemStatus';
+
+/** Minimal shape getOutstandingItemNames needs — a status-computable
+ *  instance that also carries a display name. DailyCareInstance satisfies it. */
+export type OutstandingInstance = CareItemStatusInput & { itemName: string };
+
 export interface JournalEmptyDayCheckInput {
   /** True for any date that isn't today. Past days use NarrativeView. */
   isViewingPast: boolean;
@@ -37,13 +43,21 @@ export interface JournalEmptyDayCheckInput {
    *  completed instances. Sourced from outcomes.logged.count > 0 in
    *  the consumer (journal.tsx) — same source the counter line uses. */
   hasCompletedInstances: boolean;
+  /** True if any of the day's care items is OVERDUE (past its window,
+   *  un-logged) per getCareItemStatus. A missed item is CONTENT — the day
+   *  is not empty; something needs attention — so the restorative empty
+   *  state (which says "the day is still open") must NOT render over a
+   *  genuine miss. Computed by the consumer via getOutstandingItemNames so
+   *  the same canonical helper governs both the gate and the "Still to do"
+   *  line. Optional (defaults false) for back-compat with existing callers. */
+  hasOutstandingItems?: boolean;
 }
 
 /**
  * Returns true when the JournalEmptyDay composition should render —
  * i.e. the selected today has no events, no completed instances, no
- * notes, and no caregiver-authored tone. Past days never render
- * JournalEmptyDay.
+ * notes, no caregiver-authored tone, AND nothing overdue. Past days never
+ * render JournalEmptyDay.
  */
 export function shouldRenderJournalEmptyDay(
   input: JournalEmptyDayCheckInput,
@@ -54,5 +68,24 @@ export function shouldRenderJournalEmptyDay(
     && !input.hasNotes
     && !input.hasTone
     && !input.hasCompletedInstances
+    && !input.hasOutstandingItems
   );
+}
+
+/**
+ * Names of the day's care items that are OVERDUE (past their window,
+ * un-logged) — the "Still to do" list Journal surfaces so it names what's
+ * outstanding instead of falsely claiming "the day is still open."
+ *
+ * Routes through getCareItemStatus (the canonical missed-vs-pending helper)
+ * — it CONSUMES the helper and derives no status of its own. Persisted
+ * status is never read here; a merely-pending (not-yet-overdue) item is
+ * correctly excluded so a genuinely-still-open morning stays quiet.
+ */
+export function getOutstandingItemNames(
+  instances: OutstandingInstance[],
+): string[] {
+  return instances
+    .filter((i) => getCareItemStatus(i) === 'overdue')
+    .map((i) => i.itemName);
 }
