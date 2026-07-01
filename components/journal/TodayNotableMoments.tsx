@@ -108,7 +108,7 @@ export function TodayNotableMoments({ dateKey, wrapInSection = false }: TodayNot
       style={styles.row}
       testID={`today-notable-${m.category}`}
     >
-      <Text style={styles.dot}>{'·'}</Text>
+      <View style={styles.dot} />
       <Text style={styles.text}>{m.text}</Text>
     </View>
   ));
@@ -153,7 +153,7 @@ const createStyles = (c: any) => StyleSheet.create({
   // pattern (height 1, near-transparent overlay color).
   sectionDivider: {
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: c.hairlineInset,
     marginVertical: Spacing.md,
     marginHorizontal: -16,
   },
@@ -161,12 +161,18 @@ const createStyles = (c: any) => StyleSheet.create({
     flexDirection: 'row' as const,
     alignItems: 'flex-start' as const,
     paddingVertical: 4,
-    gap: 8,
+    gap: 11,
   },
+  // Journal rebuild — un-boxed coral flag dot (journal-aligned `.fdot`):
+  // 6px coral circle, nudged down to sit on the first text line. Replaces
+  // the neutral '·' text glyph.
   dot: {
-    fontSize: 14,
-    color: c.textTertiary,
-    lineHeight: 22,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: c.coral,
+    marginTop: 6,
+    flexShrink: 0,
   },
   text: {
     flex: 1,
