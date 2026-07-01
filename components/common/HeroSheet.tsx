@@ -21,7 +21,7 @@ import {
   StyleProp,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 
 export interface HeroSheetProps {
@@ -137,7 +137,7 @@ const createStyles = (c: typeof Colors) =>
       borderTopLeftRadius: 28,
       borderTopRightRadius: 28,
       paddingTop: 10,
-      paddingHorizontal: 16,
+      paddingHorizontal: Spacing.md,
       paddingBottom: 32,
       minHeight: 400,
       // Seam shadow — the sheet casts up onto the hero.

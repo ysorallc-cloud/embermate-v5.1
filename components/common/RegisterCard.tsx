@@ -20,7 +20,7 @@ import {
   StyleProp,
   AccessibilityRole,
 } from 'react-native';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { CardRegister, getRegisterColor } from '../../theme/registerColors';
 
@@ -112,10 +112,10 @@ const createStyles = (c: typeof Colors) =>
       borderWidth: 1,
       borderColor: c.glassBorder,
       borderRadius: 16,
-      paddingVertical: 16,
+      paddingVertical: Spacing.md,
       // Content clears the left bar (3px bar + 13pt breathing room).
-      paddingLeft: 16,
-      paddingRight: 16,
+      paddingLeft: Spacing.md,
+      paddingRight: Spacing.md,
     },
     accentBar: {
       position: 'absolute',
