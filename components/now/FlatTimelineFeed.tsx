@@ -7,18 +7,21 @@
 // F7 spec retires that grouping in favour of a single time-ordered list
 // with quiet band rows marking period transitions.
 //
-// LAYOUT
+// LAYOUT (Now rebuild — reconciled to embermate-now-full-approved)
 //   • Left rail (30px) — time labels right-aligned, 9px textMuted.
-//   • Spine — 1px vertical line at left:32px (rgba(244,221,184,0.07)).
+//   • Spine — 1px vertical line at left:32px (c.hairlineInset).
 //   • Rows sorted by scheduledTime asc.
-//   • Period bands inline at the first item of each period (display
-//     only — no expand/collapse, not interactive).
+//   • Period bands inline at the first item; band-dot color by period via
+//     bandDotColor (morning=sage, evening=gold, else neutral).
 //
-// THREE ROW STATES
-//   Done     — opacity 0.28, cream text, sage fill circle, NOT tappable.
-//   Overdue  — coral card (bg 0.08, border 0.20, radius 9), coral
-//              "OVERDUE · time" eyebrow, 28px coral ring, TAPPABLE.
-//   Pending  — opacity 0.55, muted text, 28px faint ring, TAPPABLE.
+// SPINE NODE (stamped — PART-B): the row status is computed ONCE
+// (rowStatusOf → getCareItemStatus, stamped on FlatItem.status), mapped to a
+// visual VM by stampNode (pure, via the F3 register map), and rendered by the
+// presentational TimelineNode which receives only {shape,color,panelColor}.
+//   Done     → sage FILL node   · opacity 0.28, NOT tappable.
+//   Overdue  → coral RING node  · coral card + "OVERDUE · time" eyebrow, TAPPABLE.
+//   Pending  → neutral RING node (hollow) · opacity 0.55, TAPPABLE.
+//   (No gold node — gold lives on the evening band + schedule eyebrow only.)
 //
 // WHISPER LINE above the feed (italic-serif, muted, data-driven) — copy
 // lives in utils/nowWhisper (composeNowWhisper), unit-tested:
@@ -40,17 +43,18 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, Fonts } from '../../theme/theme-tokens';
 import { getCareItemStatus } from '../../utils/careItemStatus';
+import { getRegisterColor } from '../../theme/registerColors';
 import { composeNowWhisper } from '../../utils/nowWhisper';
 import { TypeScale } from '../../theme/spacing';
 
 type RowStatus = 'done' | 'overdue' | 'pending';
 type PeriodKey = 'morning' | 'afternoon' | 'evening' | 'night';
 
-const PERIOD_META: Record<PeriodKey, { label: string; dot: string; emoji: string; startHour: number; endHour: number }> = {
-  morning:   { label: 'MORNING',   dot: 'rgba(127, 184, 138, 0.45)', emoji: '☀',  startHour: 5,  endHour: 12 },
-  afternoon: { label: 'AFTERNOON', dot: 'rgba(122, 112, 96, 0.40)',  emoji: '⛅', startHour: 12, endHour: 17 },
-  evening:   { label: 'EVENING',   dot: 'rgba(212, 152, 72, 0.60)',  emoji: '🌙', startHour: 17, endHour: 21 },
-  night:     { label: 'NIGHT',     dot: 'rgba(122, 112, 96, 0.40)',  emoji: '🌑', startHour: 21, endHour: 5  },
+const PERIOD_META: Record<PeriodKey, { label: string; emoji: string; startHour: number; endHour: number }> = {
+  morning:   { label: 'MORNING',   emoji: '☀',  startHour: 5,  endHour: 12 },
+  afternoon: { label: 'AFTERNOON',  emoji: '⛅', startHour: 12, endHour: 17 },
+  evening:   { label: 'EVENING',    emoji: '🌙', startHour: 17, endHour: 21 },
+  night:     { label: 'NIGHT',      emoji: '🌑', startHour: 21, endHour: 5  },
 };
 
 const COMING_UP = 'COMING UP';
@@ -93,6 +97,59 @@ function rowStatusOf(item: any): RowStatus {
   if (item.status === 'pending' && getCareItemStatus(item) === 'overdue') return 'overdue';
   return 'pending';
 }
+
+// ── Spine-node stamp (PART-B stamped-status) ─────────────────────────────
+// The row status is computed ONCE from getCareItemStatus (via rowStatusOf,
+// stamped onto FlatItem.status). stampNode maps that already-computed status
+// to the node's visual VM — a pure lookup, NOT a second status derivation.
+// Node colors route through the F3 register map so the spine shares the app's
+// one semantic source: done→sage(fill), overdue→coral(ring), pending→
+// neutral(hollow ring). No gold node (mockup: gold is band + eyebrow only).
+export type NodeShape = 'fill' | 'ring';
+export interface TimelineNodeVM { shape: NodeShape; color: string }
+
+export function stampNode(status: RowStatus, c: typeof Colors): TimelineNodeVM {
+  switch (status) {
+    case 'done':    return { shape: 'fill', color: getRegisterColor(c, 'sage') };
+    case 'overdue': return { shape: 'ring', color: getRegisterColor(c, 'coral') };
+    case 'pending':
+    default:        return { shape: 'ring', color: getRegisterColor(c, 'neutral') };
+  }
+}
+
+// Band-dot color by period (mockup: morning=sage, evening=gold, else neutral).
+function bandDotColor(period: PeriodKey, c: typeof Colors): string {
+  if (period === 'morning') return getRegisterColor(c, 'sage');
+  if (period === 'evening') return getRegisterColor(c, 'gold');
+  return getRegisterColor(c, 'neutral');
+}
+
+// Presentational spine node — receives ONLY the stamped {shape,color} VM and
+// the panel color it sits on (to "cut" the spine line). Never sees the
+// instance or re-derives status. This is the PART-B contract at the leaf.
+export function TimelineNode({ shape, color, panelColor }: TimelineNodeVM & { panelColor: string }) {
+  return (
+    <View
+      pointerEvents="none"
+      style={[
+        NODE_BASE,
+        shape === 'fill'
+          ? { backgroundColor: color }
+          : { borderWidth: 2, borderColor: color, backgroundColor: panelColor },
+      ]}
+    />
+  );
+}
+
+// Node geometry — absolute on the spine (left:32), 12px so its center sits on
+// the line. Shared by all three states; only fill-vs-ring + color vary.
+const NODE_BASE = {
+  position: 'absolute' as const,
+  left: 26,
+  width: 12,
+  height: 12,
+  borderRadius: 6,
+};
 
 // F7 fix (2026-06-13) — wellness rows display per-window names per the
 // C6c-A rename. The underlying CarePlanItem.name is the generic
@@ -225,7 +282,7 @@ export function FlatTimelineFeed({ allPending, completed, onItemPress }: FlatTim
             return (
               <View key={`band-${row.period}-${idx}`} style={styles.bandRow} testID={`band-${row.period}`}>
                 <View style={styles.bandLeftRail} />
-                <View style={[styles.bandDot, { backgroundColor: meta.dot }]} />
+                <View style={[styles.bandDot, { backgroundColor: bandDotColor(row.period, colors) }]} />
                 <Text style={styles.bandLabel}>{meta.label}</Text>
                 {row.firstTime ? <Text style={styles.bandMeta}>{` · ${row.firstTime}`}</Text> : null}
                 <View style={{ flex: 1 }} />
@@ -255,9 +312,7 @@ export function FlatTimelineFeed({ allPending, completed, onItemPress }: FlatTim
                 <View style={styles.leftRail}>
                   <Text style={styles.timeLabel}>{flat.timeShort}</Text>
                 </View>
-                <View style={styles.spineMarkerDone}>
-                  <Text style={styles.spineMarkerCheck}>{'✓'}</Text>
-                </View>
+                <TimelineNode {...stampNode(flat.status, colors)} panelColor={colors.zonePanel} />
                 <View style={styles.itemBody}>
                   <Text style={styles.itemTitle} numberOfLines={1}>{displayNameFor(flat.item)}</Text>
                 </View>
@@ -282,7 +337,7 @@ export function FlatTimelineFeed({ allPending, completed, onItemPress }: FlatTim
                 <View style={styles.leftRail}>
                   <Text style={styles.timeLabel}>{flat.timeShort}</Text>
                 </View>
-                <View style={styles.spineMarkerOverdue} />
+                <TimelineNode {...stampNode(flat.status, colors)} panelColor={colors.zonePanel} />
                 <View style={styles.itemBody}>
                   <Text style={styles.overdueEyebrow}>{`OVERDUE · ${flat.timeShort}`}</Text>
                   <Text style={styles.itemTitleOverdue} numberOfLines={1}>{displayNameFor(flat.item)}</Text>
@@ -306,7 +361,7 @@ export function FlatTimelineFeed({ allPending, completed, onItemPress }: FlatTim
               <View style={styles.leftRail}>
                 <Text style={styles.timeLabel}>{flat.timeShort}</Text>
               </View>
-              <View style={styles.spineMarkerPending} />
+              <TimelineNode {...stampNode(flat.status, colors)} panelColor={colors.zonePanel} />
               <View style={styles.itemBody}>
                 <Text style={styles.itemTitlePending} numberOfLines={1}>{displayNameFor(flat.item)}</Text>
               </View>
@@ -341,7 +396,7 @@ const createStyles = (c: typeof Colors) =>
       top: 4,
       bottom: 4,
       width: 1,
-      backgroundColor: 'rgba(244, 221, 184, 0.07)',
+      backgroundColor: c.hairlineInset,
     },
 
     // ── Band row ────────────────────────────────────────────────
@@ -377,7 +432,7 @@ const createStyles = (c: typeof Colors) =>
     },
     bandStatusRemaining: {
       ...TypeScale.secondary,
-      color: '#d49848', // ember review tone
+      color: c.gold, // ember review tone
       fontWeight: '600',
     },
 
@@ -406,21 +461,6 @@ const createStyles = (c: typeof Colors) =>
     itemRowDone: {
       opacity: 0.28,
     },
-    spineMarkerDone: {
-      position: 'absolute',
-      left: 26,
-      width: 14,
-      height: 14,
-      borderRadius: 7,
-      backgroundColor: c.accent,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    spineMarkerCheck: {
-      color: c.textPrimary,
-      fontSize: 9,
-      fontWeight: '700',
-    },
     itemTitle: {
       fontSize: 13,
       color: c.textPrimary,
@@ -446,27 +486,17 @@ const createStyles = (c: typeof Colors) =>
     itemRowOverdue: {
       flexDirection: 'row' as const,
       alignItems: 'center',
-      backgroundColor: 'rgba(192, 107, 90, 0.08)',
+      backgroundColor: c.coralFaint,
       borderWidth: 1,
-      borderColor: 'rgba(192, 107, 90, 0.20)',
+      borderColor: c.coralBorder,
       borderRadius: 9,
       paddingVertical: 9,
       paddingHorizontal: 11, // allow: overdue card horizontal pad per F7 spec
       marginVertical: 4,
     },
-    spineMarkerOverdue: {
-      position: 'absolute',
-      left: 26,
-      width: 12,
-      height: 12,
-      borderRadius: 6,
-      borderWidth: 2,
-      borderColor: 'rgba(192, 107, 90, 0.70)',
-      backgroundColor: 'rgba(192, 107, 90, 0.10)',
-    },
     overdueEyebrow: {
       ...TypeScale.micro,
-      color: '#c06b5a',
+      color: c.coral,
       marginBottom: 2,
     },
     itemTitleOverdue: {
@@ -479,7 +509,7 @@ const createStyles = (c: typeof Colors) =>
       height: 28,
       borderRadius: 14,
       borderWidth: 2,
-      borderColor: 'rgba(192, 107, 90, 0.60)',
+      borderColor: c.coral,
       backgroundColor: 'transparent',
     },
 
@@ -489,16 +519,6 @@ const createStyles = (c: typeof Colors) =>
       alignItems: 'center',
       paddingVertical: 8,
       opacity: 0.55,
-    },
-    spineMarkerPending: {
-      position: 'absolute',
-      left: 27,
-      width: 10,
-      height: 10,
-      borderRadius: 5,
-      borderWidth: 1.5,
-      borderColor: 'rgba(244, 221, 184, 0.15)',
-      backgroundColor: c.background,
     },
     itemTitlePending: {
       fontSize: 12,
@@ -510,7 +530,7 @@ const createStyles = (c: typeof Colors) =>
       height: 28,
       borderRadius: 14,
       borderWidth: 2,
-      borderColor: 'rgba(244, 221, 184, 0.15)',
+      borderColor: c.textTertiary,
       backgroundColor: 'transparent',
     },
 
@@ -526,7 +546,7 @@ const createStyles = (c: typeof Colors) =>
       height: 1,
       borderTopWidth: 1,
       borderStyle: 'dashed' as const,
-      borderColor: 'rgba(244, 221, 184, 0.10)',
+      borderColor: c.hairlineInset,
     },
     comingUpLabel: {
       ...TypeScale.micro,
