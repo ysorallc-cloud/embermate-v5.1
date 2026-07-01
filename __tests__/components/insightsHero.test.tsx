@@ -1,8 +1,9 @@
 // ============================================================================
-// InsightsHero — branch render: ring+read (ready) vs PatternsComing (pre-data).
+// InsightsHero — branch render: ring+read (ready) vs calm hero (pre-data).
 //
 // Guards the empty-ring decision at the composition layer: when readiness is
-// not ready, the ring must NOT render — PatternsComing takes its place.
+// not ready, the ring must NOT render — the hero stays calm (title + subtitle)
+// and the honest pre-data state lives in the sheet (InsightsEmptyStatePreview).
 // ============================================================================
 
 import React from 'react';
@@ -93,19 +94,18 @@ describe('InsightsHero — ready (enough logged history)', () => {
 describe('InsightsHero — pre-data (thin history) → NO ring', () => {
   const tree = (InsightsHero as any)({
     title: 'Insights',
+    subtitle: 'Building the picture',
     readiness: getRingReadiness({ daysLogged: 2 }, { total: 6 }),
     adherence: { rate: 0, taken: 0, total: 6, windowDays: 14 },
   });
 
-  it('renders PatternsComing, NOT the ring — the empty-ring decision', () => {
-    expect(byTestID(tree, 'insights-patterns-coming').length).toBe(1);
+  it('renders NO ring and NO read-line — the empty-ring decision', () => {
     expect(byTestID(tree, 'insights-adherence-ring').length).toBe(0);
     expect(byTestID(tree, 'insights-read-line').length).toBe(0);
   });
 
-  it('the pre-data surface counts logged days toward the threshold', () => {
-    const pc = byTestID(tree, 'insights-patterns-coming')[0];
-    expect(pc.props.copy.headline).toBe('PATTERNS COMING');
-    expect(pc.props.copy.progressLabel).toBe('2 of 7 days logged');
+  it('keeps the hero calm — title + subtitle still render', () => {
+    expect(flattenText(tree)).toContain('Insights');
+    expect(flattenText(tree)).toContain('Building the picture');
   });
 });

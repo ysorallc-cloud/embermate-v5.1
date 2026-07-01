@@ -49,6 +49,10 @@ import { InsightsReadCard } from '../../components/insights/InsightsReadCard';
 import { InsightsDataCard } from '../../components/insights/InsightsDataCard';
 import { PatternsZone } from '../../components/insights/PatternsZone';
 import { UpcomingVisitInsightsCard } from '../../components/insights/UpcomingVisitInsightsCard';
+import { HeroSheet } from '../../components/common/HeroSheet';
+import { InsightsHero } from '../../components/insights/InsightsHero';
+import { getRingReadiness } from '../../utils/insightsHero';
+import { loadDataCoverage, type DataCoverage } from '../../utils/visitCoverage';
 import { usePatient } from '../../contexts/PatientContext';
 import {
   loadUnderstandPageData,
@@ -384,6 +388,7 @@ export default function UnderstandScreen() {
   // appointment context; one entry point per surface.
   const [vitalTiles, setVitalTiles] = useState<VitalTile[]>([]);
   const [adherence, setAdherence] = useState<AdherenceData | null>(null);
+  const [coverage, setCoverage] = useState<DataCoverage | null>(null);
   // Phase 15.10 — top-ranked pattern state retired with the "This
   // Week" callout that consumed it.
   // Phase 15.8 — next upcoming appointment in the canonical 14-day
@@ -445,6 +450,23 @@ export default function UnderstandScreen() {
         setAdherence(null);
       }
 
+      // Data coverage — the ring's readiness gate reads daysLogged from here
+      // (same canonical coverage as UpcomingVisitInsightsCard's "N of M days").
+      try {
+        const now = new Date();
+        const start = new Date(now);
+        start.setDate(start.getDate() - timeRange);
+        const cov = await loadDataCoverage(
+          toLocalDateString(start),
+          toLocalDateString(now),
+          timeRange,
+        );
+        setCoverage(cov);
+      } catch (err) {
+        logError('UnderstandScreen.loadCoverage', err);
+        setCoverage(null);
+      }
+
       // Phase 28 Batch B F5 — provider-prep useEffect retired alongside
       // the visit-context note. UpcomingVisitInsightsCard remains the
       // sole appointment-context surface on Insights (it consumes
@@ -500,146 +522,89 @@ export default function UnderstandScreen() {
   // Compute derived data
   const dataGaps = pageData ? computeDataGaps(pageData, timeRange) : [];
 
+  // Phase 1 Insights rebuild (insights-hero) — the signature adherence ring
+  // leads on the HeroSheet plane; THE DATA + UPCOMING VISIT ride the sheet.
+  // Ring readiness gates on canonical coverage (daysLogged) + doses (total);
+  // below threshold the hero shows PatternsComing, never a 0%/grey ring.
+  const readiness = getRingReadiness(coverage, adherence);
+  // The ring reads the SAME adherence object the DataCard headline uses (now
+  // canonical after the reconcile) — one object → ring % == card % by
+  // construction. windowDays comes from the selected range for "PAST N DAYS".
+  const ringAdherence = adherence
+    ? { rate: adherence.rate, taken: adherence.taken, total: adherence.total, windowDays: timeRange }
+    : null;
+
   return (
-    <View style={styles.container}>
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
-          }
-        >
-          {/* Header */}
-          {/* Phase 15.8 — subtitle anchors to upcoming appointment when
-              one exists in the canonical 14-day window; otherwise falls
-              back to the daysOfData copy chain. Helper lives in
-              utils/insightsSubtitle so the copy rules can be pinned
-              with pure-function tests. */}
-          <ScreenHeader
-            title="Insights"
-            subtitle={computeInsightsSubtitle({
-              daysOfData: pageData?.daysOfData ?? 0,
-              patientName,
-              upcomingAppointment: upcomingAppointment ? {
-                provider: upcomingAppointment.provider,
-                daysUntil: daysUntilAppointment(upcomingAppointment.date),
-              } : null,
-            })}
-            rightAction={
-              // F7 — settings gear retired from Insights header. Time-range
-              // chips (7d/14d/30d) stay as the sole right-side affordance.
-              // Settings is reached from the You tab where it belongs.
-              pageData && !pageData.isSampleData && pageData.daysOfData >= EMPTY_STATE_DAYS_THRESHOLD ? (
-                <TimeRangeToggle value={timeRange} onChange={setTimeRange} />
-              ) : null
-            }
+    <HeroSheet
+      testID="insights"
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
+      }
+      hero={
+        <InsightsHero
+          title="Insights"
+          // Phase 15.8 — subtitle anchors to the upcoming appointment when one
+          // sits in the canonical window; else the daysOfData copy chain.
+          subtitle={computeInsightsSubtitle({
+            daysOfData: pageData?.daysOfData ?? 0,
+            patientName,
+            upcomingAppointment: upcomingAppointment ? {
+              provider: upcomingAppointment.provider,
+              daysUntil: daysUntilAppointment(upcomingAppointment.date),
+            } : null,
+          })}
+          // Range chips ride with the ring — meaningless over the pre-data state.
+          segment={readiness.ready ? <TimeRangeToggle value={timeRange} onChange={setTimeRange} /> : null}
+          readiness={readiness}
+          adherence={ringAdherence}
+        />
+      }
+    >
+      {/* Pre-data honest state — the existing "PATTERNS COMING" preview
+          (what-we'll-watch + start-logging tip). Shown in the sheet while the
+          hero stays calm; the ring replaces neither, it just appears above
+          once there's enough history. Per Flag B: keep the current behavior,
+          never a 0%/grey ring. */}
+      {pageData && !pageData.isSampleData && pageData.daysOfData < EMPTY_STATE_DAYS_THRESHOLD && (() => {
+        const days = pageData.daysOfData;
+        const events = days > 0 ? 1 : 0;
+        const state = classifyInsightsState(days, events);
+        const gating = gatingForState(state, days);
+        if (!gating.showPatternsComing) return null;
+        return (
+          <InsightsEmptyStatePreview
+            daysOfData={days}
+            patientName={patientName}
+            showTipCard={gating.showTipCard}
           />
-          {/* F7 — TITLE_CLEARANCE below ScreenHeader before first zone. */}
-          <View style={{ height: TITLE_CLEARANCE }} />
+        );
+      })()}
 
-          {/* v6.7 Phase 4 — consolidated empty state for under-14-day
-              windows. Replaces the prior Patterns Coming + What we'll be
-              watching split AND the legacy "No data yet" / "Building
-              your picture" banners; one consolidated card + a redirect
-              tip card carry the full under-14-days messaging.
+      {/* THE DATA — vitals tiles + adherence grid + data gaps. Rides the
+          sheet directly (no fold); the ring is the fold above it. */}
+      <InsightsDataCard
+        timeRange={timeRange}
+        vitalTiles={vitalTiles}
+        adherence={adherence}
+        dataGaps={dataGaps}
+      />
 
-              Phase 3.7.3 — the tip card ("Start logging from Now") only
-              renders in the empty state. Once the user has logged at
-              least one event ('building'), they're already on the
-              right track and the tip becomes redundant. */}
-          {/* Phase 28a — the daysOfData < EMPTY_STATE_DAYS_THRESHOLD
-              gate is what fixes the co-render bug. Pre-28a the
-              empty-state preview rendered for the entire building
-              state (days 1-13), but the pulse + data-gaps surfaces
-              below independently rendered starting at day 7. The
-              7-13 day window stacked both groups. Now the empty-
-              state preview hides at-or-above day 7, exactly aligned
-              with where the partial-populated surfaces start.
-              !isSampleData stays as defensive documentation that
-              two distinct sample-data paths exist (synthetic-preview
-              via getSampleData() vs seeded data via
-              sampleDataGenerator); the guard protects both. */}
-          {pageData && !pageData.isSampleData && pageData.daysOfData < EMPTY_STATE_DAYS_THRESHOLD && (() => {
-            const days = pageData.daysOfData;
-            const events = days > 0 ? 1 : 0;
-            const state = classifyInsightsState(days, events);
-            const gating = gatingForState(state, days);
-            if (!gating.showPatternsComing) return null;
-            return (
-              <InsightsEmptyStatePreview
-                daysOfData={days}
-                patientName={patientName}
-                showTipCard={gating.showTipCard}
-              />
-            );
-          })()}
+      <View style={{ height: SECTION_GAP }} />
 
-          {/* ═══ F7 PATTERNS ZONE (z1, coral cards) ═══
-              Each pattern surfaces as its own coral card under the
-              "📈 PATTERNS · understand" eyebrow. Null-renders when
-              there are no patterns; the parent doesn't gate. */}
-          <PatternsZone patterns={patternStackData} />
+      {/* UPCOMING VISIT — caregiver handoff lane (blue). Outside the readiness
+          gate so a soon appointment surfaces even in pre-data. */}
+      <UpcomingVisitInsightsCard />
 
-          <View style={{ height: SECTION_GAP }} />
+      {/* Disclaimer \u2014 gated to the ring-ready (populated) state; on pre-data
+          there is nothing to disclaim and the line only adds anxiety. */}
+      {readiness.ready && (
+        <Text style={styles.footerNote}>
+          Analysis based on {timeRange} days of data {'\u00B7'} Not a medical diagnosis
+        </Text>
+      )}
 
-          {/* ═══ F7 THE READ zone (sage, gestalt prose + metric tiles) ═══
-              InsightsReadCard's internal "{N} patterns worth discussing"
-              callout is suppressed by passing patterns={[]}; the patterns
-              now surface above via PatternsZone. The card's own JournalSection
-              sage chrome stays — F7's "open prose, no grid boxes" reframe
-              is a v1.1 polish item for this card. */}
-          {pageData && (
-            <InsightsReadCard
-              timeRange={timeRange}
-              pageData={pageData}
-              patterns={[]}
-            />
-          )}
-
-          <View style={{ height: SECTION_GAP }} />
-
-          {/* ═══ F7 THE DATA — collapsed at fold ═══
-              "The data — vitals · adherence grid ▾" — toggles open the
-              full InsightsDataCard surface (vitals tiles + adherence +
-              data-gaps line). Defaults to collapsed so the page's first
-              paint is THE READ + Patterns; the Data is one tap away. */}
-          <DataExpander>
-            <InsightsDataCard
-              timeRange={timeRange}
-              vitalTiles={vitalTiles}
-              adherence={adherence}
-              dataGaps={dataGaps}
-            />
-          </DataExpander>
-
-          {/* ═══ SECTION 3: UPCOMING VISIT (caregiver→clinician handoff lane) ═══
-              Phase 28 Batch B F5 (35c5441b) — moved to Section 3 position.
-              Renders outside the data-state gating so a 5-day-out
-              appointment surfaces even in empty/building states. */}
-          <UpcomingVisitInsightsCard />
-
-          {/* Phase 6.1 — gate the disclaimer to the populated state. On
-              empty/building (days < 14) there is nothing to disclaim;
-              the line just adds anxiety while implying analysis the user
-              can't see. */}
-          {pageData && (() => {
-            const days = pageData.daysOfData;
-            const events = days > 0 ? 1 : 0;
-            const state = classifyInsightsState(days, events);
-            if (state !== 'populated') return null;
-            return (
-              <Text style={styles.footerNote}>
-                Analysis based on {timeRange} days of data {'\u00B7'} Not a medical diagnosis
-              </Text>
-            );
-          })()}
-
-          <View style={{ height: 100 }} />
-        </ScrollView>
-      </SafeAreaView>
-    </View>
+      <View style={{ height: 40 }} />
+    </HeroSheet>
   );
 }
 

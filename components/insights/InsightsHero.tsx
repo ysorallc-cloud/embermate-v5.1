@@ -15,10 +15,8 @@ import { Colors, Fonts, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { AdherenceRing } from './AdherenceRing';
 import { InsightsReadLine } from './InsightsReadLine';
-import { PatternsComing } from './PatternsComing';
 import {
   buildAdherenceRead,
-  patternsComingCopy,
   ringWindowLabel,
   type RingReadiness,
 } from '../../utils/insightsHero';
@@ -45,24 +43,24 @@ export function InsightsHero({ title, subtitle, segment, readiness, adherence }:
       </View>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
 
-      <View style={styles.object}>
-        {readiness.ready && adherence ? (
-          <>
-            <AdherenceRing
-              pct={adherence.rate}
-              windowLabel={ringWindowLabel(adherence.windowDays)}
-              testID="insights-adherence-ring"
-            />
-            <View style={{ height: 14 }} />
-            <InsightsReadLine
-              segments={buildAdherenceRead(adherence)}
-              testID="insights-read-line"
-            />
-          </>
-        ) : (
-          <PatternsComing copy={patternsComingCopy(readiness)} testID="insights-patterns-coming" />
-        )}
-      </View>
+      {/* The signature ring appears ONLY when there's enough logged history.
+          Below threshold the hero stays calm (title + subtitle); the honest
+          pre-data "PATTERNS COMING" state lives in the sheet
+          (InsightsEmptyStatePreview) — never a 0%/grey ring here. */}
+      {readiness.ready && adherence ? (
+        <View style={styles.object}>
+          <AdherenceRing
+            pct={adherence.rate}
+            windowLabel={ringWindowLabel(adherence.windowDays)}
+            testID="insights-adherence-ring"
+          />
+          <View style={{ height: 14 }} />
+          <InsightsReadLine
+            segments={buildAdherenceRead(adherence)}
+            testID="insights-read-line"
+          />
+        </View>
+      ) : null}
     </View>
   );
 }

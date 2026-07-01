@@ -19,6 +19,7 @@ import {
   StyleSheet,
   ViewStyle,
   StyleProp,
+  RefreshControlProps,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing } from '../../theme/theme-tokens';
@@ -46,6 +47,9 @@ export interface HeroSheetProps {
   /** Extra styles for the scroll content container. */
   contentContainerStyle?: StyleProp<ViewStyle>;
 
+  /** Passed to the internal ScrollView (pull-to-refresh). Ignored when scroll={false}. */
+  refreshControl?: React.ReactElement<RefreshControlProps>;
+
   testID?: string;
 }
 
@@ -57,6 +61,7 @@ export const HeroSheet: React.FC<HeroSheetProps> = ({
   sheetOverlap = 20,
   sheetStyle,
   contentContainerStyle,
+  refreshControl,
   testID,
 }) => {
   const { colors } = useTheme();
@@ -96,6 +101,7 @@ export const HeroSheet: React.FC<HeroSheetProps> = ({
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={contentContainerStyle}
+          refreshControl={refreshControl}
         >
           {heroPlane}
           {sheet}
