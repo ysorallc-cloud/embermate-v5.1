@@ -102,13 +102,16 @@ describe('Harmonized caps eyebrows across Now zones', () => {
     });
   });
 
-  describe('C. ReflectionZoneNow — caps eyebrow with coral accent', () => {
+  describe('C. ReflectionZoneNow — caps eyebrow with SAGE accent (self-care)', () => {
     const stripped = stripComments(REFLECTION_ZONE_SRC);
 
-    it('eyebrowLabel style references c.coral (coral accent)', () => {
-      // Pre-fix: eyebrowLabel: { color: c.textPrimary } — neutral cream.
-      // Post-fix: eyebrowLabel: { color: c.coral } — the coral accent.
-      expect(stripped).toMatch(/eyebrowLabel:\s*\{[^}]*color:\s*c\.coral\b/);
+    it('eyebrowLabel style references c.accent (sage — §5 self-care)', () => {
+      // Now rebuild step 3 — Reflection is self-care, so its eyebrow is SAGE
+      // (§5), not coral. The now-full-approved mockup drew it coral; that
+      // overloaded coral (respond-to-this) onto a non-urgent zone and was
+      // ruled a mockup error (same class as you-calm's blue border).
+      expect(stripped).toMatch(/eyebrowLabel:\s*\{[^}]*color:\s*c\.accent\b/);
+      expect(stripped).not.toMatch(/eyebrowLabel:\s*\{[^}]*color:\s*c\.coral\b/);
     });
   });
 

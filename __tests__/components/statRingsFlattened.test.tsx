@@ -27,6 +27,7 @@ jest.mock('../../contexts/ThemeContext', () => ({
       textSecondary: '#c4c1b3',
       textTertiary: '#8a8a82',
       textMuted: '#9aa0a6',
+      border: '#2f3a32',
     },
   }),
 }));
@@ -127,9 +128,10 @@ describe('StatRings — neutral ring (May 1 sizing pass — Phase 3a)', () => {
     return merged;
   };
 
-  // Phase 3.6.1 — replaced the 18% rgba alpha with a solid #3a3b35 so
-  // the rings register as deliberate UI on the lifted warm-charcoal page.
-  const NEUTRAL = '#3a3b35';
+  // Now rebuild step 4 — the ring track migrated from the #3a3b35 literal to
+  // the neutral c.border token (crisp solid edge preserved). NEUTRAL here is
+  // the mock theme's border value.
+  const NEUTRAL = '#2f3a32';
 
   it('meds tile uses the neutral warm-cream ring', () => {
     expect(colorProbe('stat-tile-meds').borderColor).toBe(NEUTRAL);

@@ -12,10 +12,9 @@ import { OnboardingPrompt } from '../prompts';
 import type { TodayStats } from '../../utils/nowHelpers';
 import { getCaregiverProfile } from '../../storage/caregiverProfileRepo';
 
-// F7 fix (2026-06-13) — caregiver-identity chip color. Dusty blue
-// matches the You-tab nav avatar (C6c-A Option D) so the same lane
-// reads consistently across surfaces.
-const DUSTY = '#6b8cae';
+// (The former DUSTY caregiver-chip literal #6b8cae was dead code — no
+// consumer — removed in the Now rebuild. Caregiver-lane surfaces read the
+// c.caregiverAccent token.)
 
 // ============================================================================
 // TYPES

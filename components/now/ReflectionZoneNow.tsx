@@ -180,10 +180,13 @@ const createStyles = (c: typeof Colors) =>
       marginBottom: 14, // allow: zone-eyebrow rhythm matches Zone primitive
     },
     eyebrowLabel: {
-      // Phase C (2026-06-13) — Reflection takes the coral accent on its
-      // caps eyebrow. Matches Schedule's gold (c.amber) and Health's
-      // green (c.accent) per-zone signal.
-      color: c.coral,
+      // Now rebuild — Reflection is SELF-CARE, so its eyebrow takes SAGE
+      // (§5 semantic: sage = self-care/wellbeing), NOT coral. The
+      // now-full-approved mockup drew it coral, but that overloaded coral
+      // (which must stay "respond to this") onto a non-urgent zone — same
+      // class as the you-calm blue-border mockup error, ruled sage.
+      // Schedule stays gold (scheduled/due), Health stays sage (wellbeing).
+      color: c.accent,
     },
     eyebrowVerb: {
       color: c.textTertiary,
@@ -205,7 +208,11 @@ const createStyles = (c: typeof Colors) =>
     },
     emberCopy: {
       ...TypeScale.body,
-      fontFamily: Fonts.serif,
+      // Warm reflective VOICE — italic light (Fonts.serifItalic resolves to
+      // Poppins_300Light_Italic post-F2), matching the mockup's italic
+      // reflection line.
+      fontFamily: Fonts.serifItalic,
+      fontStyle: 'italic' as const,
       color: c.textPrimary,
       lineHeight: 20,
       marginBottom: 14, // allow: copy-to-actions rhythm
@@ -216,11 +223,13 @@ const createStyles = (c: typeof Colors) =>
       justifyContent: 'space-between',
     },
     cta: {
-      // Ember-colored text-link, not a filled pill.
+      // Sage text-link (self-care action), not a filled pill.
     },
     ctaText: {
       ...TypeScale.body,
-      color: '#c98a4a',
+      // Sage per §5 (self-care) — the whole Reflection zone is sage, so the
+      // CTA moves off the mockup's gold to the self-care register.
+      color: c.accent,
       fontWeight: '600',
     },
     dismiss: {

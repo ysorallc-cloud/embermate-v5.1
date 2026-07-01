@@ -26,6 +26,7 @@ const themeColors = {
   textTertiary: '#8a8a82',
   textHalf: 'rgba(255, 255, 255, 0.42)',
   textMuted: '#9aa0a6',
+  border: '#2f3a32',
 };
 
 jest.mock('react', () => {
@@ -129,13 +130,13 @@ describe('StatRings — neutral rings (no per-category accent)', () => {
     }
   });
 
-  it('the neutral ring is the solid #3a3b35 (Phase 3.6.1 — was warm-cream rgba)', () => {
-    // Phase 3.6.1 replaced the 18% rgba alpha with a solid color so
-    // the rings read as deliberate UI on the lifted page bg.
+  it('the neutral ring is the solid c.border token (Now rebuild — migrated off the #3a3b35 literal)', () => {
+    // The ring track migrated from a solid literal to the neutral c.border
+    // token (crisp solid edge preserved; still deliberate UI on the page bg).
     const tree = (StatRings as any)({ stats });
     const tile = findAll(tree, (n) => n.props?.testID === 'stat-tile-meds')[0];
     const bg = styleOf(tile).borderColor;
-    expect(bg).toBe('#3a3b35');
+    expect(bg).toBe('#2f3a32'); // themeColors.border
     expect(bg).not.toMatch(/rgba/i);
   });
 });

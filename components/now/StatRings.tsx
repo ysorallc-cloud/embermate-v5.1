@@ -2,7 +2,7 @@
 // STAT RINGS — flat 4-up grid for the active care buckets.
 //
 // Visual contract (preserved from earlier phases):
-//   • Each tile is a 36pt circle with a 1px solid #3a3b35 ring against
+//   • Each tile is a 36pt circle with a 1px solid neutral (c.border) ring against
 //     a recessed glassDim well. Phase 3.6.1 + 3.7.2 spell this out.
 //   • Hairline grouping (top + bottom 0.5px on the row container) per
 //     Phase 3.8.1.
@@ -95,23 +95,10 @@ const PRIORITY_ORDER: CategoryKey[] = [
 // set so those tests keep passing.
 const LEGACY_FALLBACK: CategoryKey[] = ['meds', 'vitals', 'wellness', 'meals'];
 
-// Phase 3.6.1 — solid ring at #3a3b35 (~L* 3 above page bg). The prior
-// rgba(255,240,215,0.18) read too faint on the lifted warm-charcoal
-// page; an alpha overlay at 18% lacked enough contrast to register as
-// a deliberate UI element. Solid color + crisp 1px edge fixes that
-// without making the rings shout. Same neutral across all categories
-// so the row stays unified (the emoji inside carries the per-category
-// meaning).
-const NEUTRAL_RING = '#3a3b35';
-const RING_COLOR: Record<CategoryKey, string> = {
-  meds: NEUTRAL_RING,
-  vitals: NEUTRAL_RING,
-  wellness: NEUTRAL_RING,
-  meals: NEUTRAL_RING,
-  water: NEUTRAL_RING,
-  sleep: NEUTRAL_RING,
-  activity: NEUTRAL_RING,
-};
+// Ring track — the neutral `border` token (crisp 1px edge, same neutral
+// across all categories so the row stays unified; the emoji inside carries
+// the per-category meaning). Migrated from a solid neutral literal + its dead
+// per-category color map to the c.border token at the tile.
 
 export interface StatRingsProps {
   stats: TodayStats;
@@ -188,7 +175,7 @@ export function StatRings({ stats, enabledBuckets }: StatRingsProps) {
           <>
             <View
               testID={`stat-tile-${cat.key}`}
-              style={[s.tile, { borderColor: RING_COLOR[cat.key] }]}
+              style={[s.tile, { borderColor: colors.border }]}
             >
               <Text style={s.emoji}>{cat.emoji}</Text>
             </View>

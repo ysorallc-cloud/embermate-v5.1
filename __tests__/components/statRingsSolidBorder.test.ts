@@ -18,24 +18,18 @@ const ROOT = join(__dirname, '../..');
 const src = readFileSync(join(ROOT, 'components/now/StatRings.tsx'), 'utf8');
 
 describe('Phase 3.6.1 — StatRings solid ring borders', () => {
-  it('NEUTRAL_RING is the solid #3a3b35, not an rgba alpha', () => {
-    const m = src.match(/const NEUTRAL_RING\s*=\s*['"]([^'"]+)['"]/);
-    expect(m).not.toBeNull();
-    expect(m![1]).toBe('#3a3b35');
-    expect(m![1]).not.toMatch(/rgba/i);
+  it('the ring border uses the neutral border TOKEN, not a hardcoded literal', () => {
+    // Now rebuild step 4 — the #3a3b35 ring literal + its per-category
+    // RING_COLOR map migrated to the c.border token at the tile. Solid, crisp
+    // (no rgba alpha), now theme-driven.
+    expect(src).toMatch(/borderColor:\s*colors\.border\b/);
+    expect(src).not.toMatch(/#3a3b35/);
+    expect(src).not.toMatch(/NEUTRAL_RING/);
   });
 
-  it('all four category rings use the NEUTRAL_RING constant (no alpha)', () => {
-    // RING_COLOR maps the four categories to NEUTRAL_RING. The block must
-    // contain meds/vitals/wellness/meals each pointing at NEUTRAL_RING,
-    // and must NOT contain any rgba reference.
-    const blockMatch = src.match(/RING_COLOR[^=]*=\s*\{([^}]+)\}/s);
-    expect(blockMatch).not.toBeNull();
-    const block = blockMatch![1];
-    for (const key of ['meds', 'vitals', 'wellness', 'meals']) {
-      expect(block).toMatch(new RegExp(`${key}:\\s*NEUTRAL_RING`));
-    }
-    expect(block).not.toMatch(/rgba/i);
+  it('all category tiles share the ONE neutral token (unified row, no per-category map)', () => {
+    expect(src).not.toMatch(/RING_COLOR/);
+    expect((src.match(/borderColor:\s*colors\.border\b/g) || []).length).toBeGreaterThanOrEqual(1);
   });
 
   it('tile borderWidth is 1 (was 0.5 — crisper definition)', () => {

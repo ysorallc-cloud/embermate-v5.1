@@ -47,8 +47,9 @@ describe('Phase 3.7.2 — stat ring visibility', () => {
     expect(tileBlock![0]).toMatch(/borderWidth:\s*1\b/);
   });
 
-  it('borderColor stays at the solid #3a3b35 (Phase 3.6.1 contract preserved)', () => {
-    expect(src).toMatch(/const\s+NEUTRAL_RING\s*=\s*['"]#3a3b35['"]/);
+  it('ring border is the solid neutral token c.border (crisp edge preserved, migrated off #3a3b35)', () => {
+    expect(src).toMatch(/borderColor:\s*colors\.border\b/);
+    expect(src).not.toMatch(/#3a3b35/);
   });
 
   it('four tiles fit at 375pt screen width without flexBasis overflow', () => {

@@ -273,8 +273,9 @@ const createStyles = (c: typeof Colors) =>
       color: c.textSecondary,
     },
     rowValueFlagged: {
-      // F7 spec: flagged reading uses ember (review, not alert).
-      color: '#c98a4a',
+      // Flagged reading uses gold (review tone, not coral alert) — the sage
+      // palette's gold register. Migrated from the #c98a4a ember literal.
+      color: c.amber,
     },
     rowEmpty: {
       ...TypeScale.body,
