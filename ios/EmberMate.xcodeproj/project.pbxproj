@@ -9,9 +9,9 @@
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		907191DAE0ACEA5EAFC74F21 /* libPods-EmberMate.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C700BA16F2A78302584AA116 /* libPods-EmberMate.a */; };
 		AD5CE8C8EFC480B3F8E84BFE /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67ADB8A5A88173C85919FA3F /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
+		C454FF0039D27E00BBC92C6F /* libPods-EmberMate.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 362D366559C17FAD115D621B /* libPods-EmberMate.a */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 		F2B5DD2C89B414BF01CA3E52 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = C3A391B876AB91463D6A534B /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
@@ -20,13 +20,13 @@
 		13B07F961A680F5B00A75B9A /* EmberMate.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EmberMate.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = EmberMate/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = EmberMate/Info.plist; sourceTree = "<group>"; };
-		2A60FD8B3FDBC172AB2B6877 /* Pods-EmberMate.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-EmberMate.debug.xcconfig"; path = "Target Support Files/Pods-EmberMate/Pods-EmberMate.debug.xcconfig"; sourceTree = "<group>"; };
+		362D366559C17FAD115D621B /* libPods-EmberMate.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-EmberMate.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		3882EA36C37B1CF2E10F2DCF /* Pods-EmberMate.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-EmberMate.debug.xcconfig"; path = "Target Support Files/Pods-EmberMate/Pods-EmberMate.debug.xcconfig"; sourceTree = "<group>"; };
 		67ADB8A5A88173C85919FA3F /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-EmberMate/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = EmberMate/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		BB719B3C87300932DEE88A06 /* Pods-EmberMate.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-EmberMate.release.xcconfig"; path = "Target Support Files/Pods-EmberMate/Pods-EmberMate.release.xcconfig"; sourceTree = "<group>"; };
 		C3A391B876AB91463D6A534B /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = EmberMate/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		C700BA16F2A78302584AA116 /* libPods-EmberMate.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-EmberMate.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C4D1590157C36F503DFAF8FC /* Pods-EmberMate.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-EmberMate.release.xcconfig"; path = "Target Support Files/Pods-EmberMate/Pods-EmberMate.release.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = EmberMate/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* EmberMate-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "EmberMate-Bridging-Header.h"; path = "EmberMate/EmberMate-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -37,13 +37,23 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				907191DAE0ACEA5EAFC74F21 /* libPods-EmberMate.a in Frameworks */,
+				C454FF0039D27E00BBC92C6F /* libPods-EmberMate.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0C21E9D0AE13F0C91DDF04BF /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				3882EA36C37B1CF2E10F2DCF /* Pods-EmberMate.debug.xcconfig */,
+				C4D1590157C36F503DFAF8FC /* Pods-EmberMate.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
+			sourceTree = "<group>";
+		};
 		13B07FAE1A68108700A75B9A /* EmberMate */ = {
 			isa = PBXGroup;
 			children = (
@@ -62,19 +72,9 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				C700BA16F2A78302584AA116 /* libPods-EmberMate.a */,
+				362D366559C17FAD115D621B /* libPods-EmberMate.a */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		64AE67F08856E4A5025E69A9 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				2A60FD8B3FDBC172AB2B6877 /* Pods-EmberMate.debug.xcconfig */,
-				BB719B3C87300932DEE88A06 /* Pods-EmberMate.release.xcconfig */,
-			);
-			name = Pods;
-			path = Pods;
 			sourceTree = "<group>";
 		};
 		700AF31FA6948306B65EA676 /* EmberMate */ = {
@@ -107,8 +107,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				64AE67F08856E4A5025E69A9 /* Pods */,
 				71DF19D6AC4370C611E2A0DE /* ExpoModulesProviders */,
+				0C21E9D0AE13F0C91DDF04BF /* Pods */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -139,14 +139,14 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "EmberMate" */;
 			buildPhases = (
-				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
+				6AB1DA0C87E2C9EBCE84968B /* [CP] Check Pods Manifest.lock */,
 				037BF65464E521EC200C5025 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
-				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				F31EF76D2E1D8C2BE50FB5AA /* [CP] Embed Pods Frameworks */,
+				ED24C23CB126F338658DA234 /* [CP] Embed Pods Frameworks */,
+				11C1B690E00943D28CDDFDAE /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -244,29 +244,7 @@
 			shellPath = /bin/sh;
 			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-EmberMate/expo-configure-project.sh\"\n";
 		};
-		08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
-			);
-			name = "[CP] Check Pods Manifest.lock";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-EmberMate-checkManifestLockResult.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
+		11C1B690E00943D28CDDFDAE /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -312,7 +290,29 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-EmberMate/Pods-EmberMate-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		F31EF76D2E1D8C2BE50FB5AA /* [CP] Embed Pods Frameworks */ = {
+		6AB1DA0C87E2C9EBCE84968B /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-EmberMate-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		ED24C23CB126F338658DA234 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -351,7 +351,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 2A60FD8B3FDBC172AB2B6877 /* Pods-EmberMate.debug.xcconfig */;
+			baseConfigurationReference = 3882EA36C37B1CF2E10F2DCF /* Pods-EmberMate.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -387,7 +387,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = BB719B3C87300932DEE88A06 /* Pods-EmberMate.release.xcconfig */;
+			baseConfigurationReference = C4D1590157C36F503DFAF8FC /* Pods-EmberMate.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;

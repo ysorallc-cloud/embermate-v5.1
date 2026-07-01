@@ -1318,18 +1318,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // F7 — Section 4 dusty-bordered input card. Replaces the prior
   // SoapSectionFrame caregiverAccent left-rule chrome with a fully
   // bordered card carrying a micro eyebrow.
-  section4DustyCard: {
-    borderWidth: 1,
-    borderColor: CardBorder.dusty,
-    borderRadius: 12,
-    paddingVertical: CARD_PADDING_V,
-    paddingHorizontal: CARD_PADDING_H,
-  },
-  section4DustyEyebrow: {
-    ...TypeScale.micro,
-    color: '#6b8cae', // dusty
-    marginBottom: 14, // allow: eyebrow rhythm to body
-  },
+  // (section4DustyCard + section4DustyEyebrow retired in the Journal rebuild —
+  //  §4 handoff now uses the blue SoapSectionFrame, not a dusty card.)
   // Phase 27 F3 — Section 1 (Subjective) empty-state prompt. Retired
   // alongside the F7 narrative reshuffle; the F7 journalNarrativePrompt
   // style above replaces it. Pinned here as a transitional alias so any
@@ -1394,7 +1384,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 8,
     fontWeight: '500' as const,
     letterSpacing: 0.5,
-    color: 'rgba(229, 176, 74, 0.7)',
+    color: c.amber,
     marginBottom: 4,
   },
   // Phase 27.5b F5 — section4SubEyebrowNotes style retired with the

@@ -22,6 +22,10 @@ const themeColors = {
   textPrimary: '#fff',
   textSecondary: '#949e94',
   textTertiary: '#5e685f',
+  accentMuted: 'rgba(156, 207, 166, 0.50)',
+  surfaceAlt: 'rgba(255, 255, 255, 0.03)',
+  glassDim: '#19211b',
+  caregiverAccentBorder: 'rgba(143, 168, 200, 0.20)',
 };
 
 jest.mock('react', () => {
@@ -184,9 +188,9 @@ describe('JournalNotesCard — compact', () => {
     )[0];
     expect(save).toBeDefined();
     const merged = styleOf(save);
-    // Hardcoded sage LITERAL in JournalNotesCard's saveButton (766-family, not
-    // a token) — stays pre-sage until the literal migrates in Phase 1.
-    expect(merged.borderColor).toBe('rgba(95, 184, 138, 0.5)');
+    // Journal rebuild step 5 — the saveButton sage border migrated from the
+    // rgba(95,184,138,0.5) literal to the c.accentMuted token.
+    expect(merged.borderColor).toBe('rgba(156, 207, 166, 0.50)');
   });
 });
 

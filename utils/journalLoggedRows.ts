@@ -47,6 +47,21 @@ function typeLabel(itemType: string): string {
   return TYPE_LABEL[itemType] ?? String(itemType || '').toUpperCase();
 }
 
+// Wellness instances carry the generic name "Wellness check" — distinguish the
+// window so the caregiver doesn't have to disambiguate a missed-morning row
+// from a pending-evening one (device-check refinement, matches FlatTimelineFeed
+// displayNameFor). Other types keep their itemName.
+function displayName(inst: DailyCareInstance): string {
+  if (inst.itemType === 'wellness') {
+    const w = String(inst.windowLabel ?? '').toLowerCase();
+    if (w === 'morning') return 'Morning Wellness Check-in';
+    if (w === 'evening') return 'Evening Wellness Check-in';
+    if (w === 'afternoon') return 'Afternoon Wellness Check-in';
+    if (w === 'night') return 'Night Wellness Check-in';
+  }
+  return inst.itemName;
+}
+
 function parseDate(scheduledTime: string): Date | null {
   if (!scheduledTime) return null;
   let d = new Date(scheduledTime);
@@ -103,7 +118,7 @@ export function buildJournalLoggedRows(
       return {
         id: inst.id,
         type: typeLabel(inst.itemType),
-        name: inst.itemName,
+        name: displayName(inst),
         detail,
         time,
         status,

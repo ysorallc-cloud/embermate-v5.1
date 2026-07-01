@@ -217,7 +217,7 @@ export function JournalNotesCard({
             value={text}
             onChangeText={setText}
             placeholder={barePlaceholder}
-            placeholderTextColor={'rgba(255,255,255,0.35)'}
+            placeholderTextColor={colors.textTertiary}
             multiline
             textAlignVertical="top"
             editable
@@ -385,7 +385,7 @@ const createStyles = (c: any) =>
       paddingTop: 11,
       paddingBottom: 8,
       paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-      backgroundColor: 'rgba(255,255,255,0.025)',
+      backgroundColor: c.surfaceAlt,
       borderBottomWidth: 0.5,
       borderBottomColor: c.glassBorder,
     },
@@ -394,7 +394,7 @@ const createStyles = (c: any) =>
     // pattern.
     sectionDivider: {
       height: 1,
-      backgroundColor: 'rgba(255,255,255,0.04)',
+      backgroundColor: c.hairlineInset,
       marginVertical: 16, // allow: section-divider rhythm (15.12 parity)
       marginHorizontal: -16, // allow: section-divider rhythm (15.12 parity)
     },
@@ -422,9 +422,13 @@ const createStyles = (c: any) =>
       paddingBottom: 6, // allow: tap-target padding (Apple HIG ≥44pt)
     },
     bareInput: {
-      backgroundColor: 'rgba(0,0,0,0.18)',
+      // Inset field surface (glassDim: dark #19211b / light #e7eee7) with a
+      // BLUE border — §5: blue = handoff, so the handoff note's input carries
+      // the handoff-lane signal (journal-aligned). Migrated from the
+      // rgba(0,0,0,.18) / rgba(255,255,255,.10) F5 literals.
+      backgroundColor: c.glassDim,
       borderWidth: 0.5,
-      borderColor: 'rgba(255,255,255,0.10)',
+      borderColor: c.caregiverAccentBorder,
       borderRadius: 8,
       paddingVertical: 10,
       paddingHorizontal: 11, // allow: tap-target padding (Apple HIG ≥44pt)
@@ -528,7 +532,7 @@ const createStyles = (c: any) =>
     saveButton: {
       marginLeft: 'auto',
       borderWidth: 0.5,
-      borderColor: 'rgba(95, 184, 138, 0.5)',
+      borderColor: c.accentMuted,
       borderRadius: 999,
       paddingHorizontal: 12,
       paddingVertical: 4,
@@ -536,11 +540,11 @@ const createStyles = (c: any) =>
     saveButtonFilled: {
       // Stays outlined; bumps border weight to read as "act on it now".
       borderWidth: 1,
-      borderColor: 'rgba(95, 184, 138, 0.7)',
+      borderColor: c.accent,
     },
     saveButtonSaved: {
       // Settled state — same outlined sage as fresh.
-      borderColor: 'rgba(95, 184, 138, 0.5)',
+      borderColor: c.accentMuted,
       backgroundColor: 'transparent',
     },
     saveText: {

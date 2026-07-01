@@ -78,9 +78,15 @@ const themeColors = {
   textSecondary: '#949e94',
   textTertiary: '#9aa0a6',
   caregiverAccent: '#aa8adc',
+  caregiverAccentBorder: 'rgba(143, 168, 200, 0.20)',
   amber: '#d6ab5e',
   green: '#9ccfa6',
   greenTint: 'rgba(156, 207, 166, 0.10)',
+  glassDim: '#19211b',
+  accentMuted: 'rgba(156, 207, 166, 0.50)',
+  accent: '#9ccfa6',
+  surfaceAlt: 'rgba(255, 255, 255, 0.03)',
+  hairlineInset: 'rgba(255, 255, 255, 0.06)',
 };
 
 jest.mock('../../contexts/ThemeContext', () => ({
@@ -214,9 +220,11 @@ describe('Phase 27.5b F5 — JournalNotesCard notes cleanup', () => {
     const tree = render({ ...baseProps, bare: true });
     const ti = tree.root.findByType('TextInput' as any);
     const s = flatStyle(ti);
-    expect(s.backgroundColor).toBe('rgba(0,0,0,0.18)');
+    // Journal rebuild step 5 — input chrome migrated to tokens: inset field
+    // surface (glassDim) + BLUE handoff border (caregiverAccentBorder).
+    expect(s.backgroundColor).toBe(themeColors.glassDim);
     expect(s.borderWidth).toBe(0.5);
-    expect(s.borderColor).toBe('rgba(255,255,255,0.10)');
+    expect(s.borderColor).toBe(themeColors.caregiverAccentBorder);
     expect(s.borderRadius).toBe(8);
   });
 
@@ -230,9 +238,9 @@ describe('Phase 27.5b F5 — JournalNotesCard notes cleanup', () => {
   it('contract 6: placeholderTextColor is the dim sans-serif token', () => {
     const tree = render({ ...baseProps, bare: true });
     const ti = tree.root.findByType('TextInput' as any);
-    // Accept the spec rgba or a project-theme equivalent at similar
-    // dim alpha (rgba(255,255,255,0.35) per spec).
-    expect(ti.props.placeholderTextColor).toBe('rgba(255,255,255,0.35)');
+    // Journal rebuild step 5 — placeholder migrated from the rgba(255,255,255,
+    // 0.35) literal to the textTertiary token.
+    expect(ti.props.placeholderTextColor).toBe(themeColors.textTertiary);
   });
 
   it('contract 7: TextInput fontStyle for typed content is italic Source Serif 4 (Phase 33 F7)', () => {
