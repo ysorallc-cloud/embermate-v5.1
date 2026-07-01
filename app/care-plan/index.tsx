@@ -41,7 +41,6 @@ import {
   CardBorder,
   ROW_V,
   TypeScale,
-  ZoneTint,
 } from '../../theme/spacing';
 import { usePatient } from '../../contexts/PatientContext';
 // Phase 32A F5 — Quick Start TemplateCard surface retired from home
@@ -564,7 +563,7 @@ export default function CarePlanHomeScreen() {
               suppressed under 4 to keep the surface quiet for
               caregivers managing a small regimen. */}
           <View style={styles.alwaysOnHeaderRow}>
-            <SectionEyebrow text="Medications" />
+            <SectionEyebrow text="Medications" tint="gold" />
             {(() => {
               const medsCount = config?.meds?.medications?.length ?? 0;
               if (medsCount < 4) return null;
@@ -580,7 +579,7 @@ export default function CarePlanHomeScreen() {
               );
             })()}
           </View>
-          <View testID="section-zone-always-on" style={[styles.sectionZone, styles.sectionZoneAlwaysOn]}>
+          <View testID="section-zone-always-on" style={styles.sectionZone}>
           {/* Phase 32A.1 F1 \u2014 Medications row converts from chevron-
               navigate-to-list (which routed to the now-retired
               retired /care-plan/meds subscreen) into expand/caret behavior. Tap
@@ -673,7 +672,7 @@ export default function CarePlanHomeScreen() {
           )}
           </View>
 
-          <SectionEyebrow text="Daily tracking" />
+          <SectionEyebrow text="Daily tracking" tint="accent" />
           <View testID="section-zone-daily-tracking" style={styles.sectionZone}>
           {DAILY_TRACKING_ROWS.map(row => {
             // Wellness merge (F2) — every DAILY TRACKING row is now a
@@ -932,13 +931,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     padding: 14,
     marginBottom: 16,
   },
-  // F7 C6 — Always On / Medications zone overrides Phase 33 F1's
-  // neutral grounded ground with the z1 tint (#1f1b15). Daily Tracking
-  // + Add When Ready stay on the neutral c.bgRaised — only the meds
-  // zone is z1 per the Option C lock.
-  sectionZoneAlwaysOn: {
-    backgroundColor: ZoneTint.z1,
-  },
+  // Care Plan restyle (S5) — sectionZoneAlwaysOn (the meds z1-tint override)
+  // retired. All three panels are the uniform sectionZone; the gold Medications
+  // eyebrow carries the register instead of a background tint.
   // F7 C6 — header row that brackets the section eyebrow with the
   // count badge on the right. Eyebrow rows below stay on the
   // SectionEyebrow primitive directly (no badge on those).
@@ -965,15 +960,15 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.accent,
     letterSpacing: 0.3,
   },
+  // Care Plan restyle (S5) — FLATTENED. The meds row was the lone rounded
+  // card-in-panel (glass bg + border + radius); its DAILY TRACKING / ADD WHEN
+  // READY siblings are flat rows. Now uniform: a flat row inside the panel
+  // (panel padding carries the horizontal inset), resolving the card-on-card
+  // seam. Chrome only — the expand/Edit/toggle wiring is untouched.
   coreCard: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    backgroundColor: c.glass,
-    borderWidth: 1,
-    borderColor: c.glassBorder,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 6,
+    paddingVertical: 14,
     gap: 12,
   },
   // Phase 32A.1 F8 - sub-zones for the meds header row. Splitting the
