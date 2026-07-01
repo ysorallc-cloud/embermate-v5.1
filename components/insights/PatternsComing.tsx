@@ -12,7 +12,7 @@
 
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, Fonts } from '../../theme/theme-tokens';
+import { Colors, Fonts, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 
 export interface PatternsComingCopy {
@@ -43,15 +43,15 @@ const createStyles = (c: typeof Colors) =>
   StyleSheet.create({
     wrap: {
       alignItems: 'center',
-      paddingHorizontal: 24,
-      paddingVertical: 20,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.md,
     },
     eyebrow: {
       fontFamily: Fonts.eyebrow,
       fontSize: 10,
       letterSpacing: 2,
       color: c.textSecondary,
-      marginBottom: 14,
+      marginBottom: Spacing.sm,
     },
     barTrack: {
       width: 148,

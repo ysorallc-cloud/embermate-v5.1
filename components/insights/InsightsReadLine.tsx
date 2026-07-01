@@ -8,7 +8,7 @@
 
 import React, { useMemo } from 'react';
 import { Text, StyleSheet } from 'react-native';
-import { Colors, Fonts } from '../../theme/theme-tokens';
+import { Colors, Fonts, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { ReadSegment } from '../../utils/insightsHero';
 
@@ -36,7 +36,7 @@ const createStyles = (c: typeof Colors) =>
       lineHeight: 19,
       textAlign: 'center',
       color: c.textSecondary,
-      paddingHorizontal: 24,
+      paddingHorizontal: Spacing.md,
     },
     neutral: { color: c.textSecondary },
     coral: { color: c.coral },

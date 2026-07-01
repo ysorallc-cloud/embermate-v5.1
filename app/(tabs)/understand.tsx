@@ -70,6 +70,7 @@ import { classifyInsightsState, gatingForState, EMPTY_STATE_DAYS_THRESHOLD } fro
 import { getVitalsInRange, VitalReading } from '../../utils/vitalsStorage';
 import { listDailyInstancesRange, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
 import { getTodayDateString, toLocalDateString } from '../../services/carePlanGenerator';
+import { computeCanonicalAdherence } from '../../utils/adherenceCanonical';
 // Phase 15.8 — Insights subtitle anchors to the upcoming appointment
 // when one exists in the canonical 14-day window. Shared with
 // UpcomingAppointmentCard on Now via utils/appointmentLookahead.
@@ -322,13 +323,19 @@ async function computeAdherence(timeRange: number): Promise<AdherenceData> {
       return { rate: 0, taken: 0, total: 0, missedDates: [], doseStatuses: [] };
     }
 
-    const taken = medInstances.filter(i => i.status === 'completed').length;
-    const skipped = medInstances.filter(i => i.status === 'skipped').length;
-    const total = medInstances.length;
-    const handled = taken + skipped;
-    const rate = total > 0 ? Math.round((handled / total) * 100) : 0;
+    // CANONICAL adherence — the ring, this card, and the clinician PDFs
+    // (care-report, visitPrepPdf) all read ONE source: computeCanonicalAdherence,
+    // where rate = taken/total and skipped counts AGAINST. Previously this
+    // computed (taken+skipped)/total, which credited skipped doses — it inflated
+    // the rate (the dangerous direction for a health app) and disagreed with the
+    // very PDF a caregiver hands their clinician. rate/taken/total now flow from
+    // the canonical function so Insights can never drift from the artifacts again.
+    const canonical = await computeCanonicalAdherence(timeRange);
+    const { rate, taken, total } = canonical;
 
-    // Build dose statuses and missed dates
+    // Dose grid + missed dates are presentation extras built from the same
+    // instances. The grid still distinguishes 'skipped' visually — only the
+    // headline RATE is the reconciled number.
     const doseStatuses: ('taken' | 'missed' | 'skipped')[] = medInstances.map(i => {
       if (i.status === 'completed') return 'taken';
       if (i.status === 'skipped') return 'skipped';

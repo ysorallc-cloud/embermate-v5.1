@@ -11,7 +11,7 @@
 
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, Fonts } from '../../theme/theme-tokens';
+import { Colors, Fonts, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { AdherenceRing } from './AdherenceRing';
 import { InsightsReadLine } from './InsightsReadLine';
@@ -96,7 +96,7 @@ const createStyles = (c: typeof Colors) =>
     },
     object: {
       alignItems: 'center',
-      marginTop: 22,
+      marginTop: Spacing.md,
     },
   });
 
