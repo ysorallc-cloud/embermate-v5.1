@@ -101,7 +101,7 @@ describe('Phase 29 Batch A — F3 BreathingOrbCard', () => {
     caregiverAccentStrong: 'rgba(170, 138, 220, 0.25)',
     sageFaint: 'rgba(196, 181, 253, 0.06)',
     textPrimary: '#fff',
-    textSecondary: '#8b958c',
+    textSecondary: '#949e94',
     textTertiary: '#9aa0a6',
     accent: '#9ccfa6',
   };

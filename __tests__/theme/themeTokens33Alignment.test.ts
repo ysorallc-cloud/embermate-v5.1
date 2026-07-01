@@ -57,8 +57,8 @@ describe('themeTokens33 — F1a color value flips', () => {
     expect(dark.textMuted).toBe('#5e685f');
   });
 
-  it('textSecondary = #8b958c (website --text-secondary, unchanged pre-Phase-33)', () => {
-    expect(dark.textSecondary).toBe('#8b958c');
+  it('textSecondary = #949e94 (website --text-secondary, unchanged pre-Phase-33)', () => {
+    expect(dark.textSecondary).toBe('#949e94');
   });
 
   it('textTertiary = #5e685f (website --text-tertiary, unchanged pre-Phase-33)', () => {

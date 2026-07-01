@@ -20,7 +20,7 @@ const themeColors = {
   coral: '#e89a7a',
   error: '#e3a684',
   textPrimary: '#fff',
-  textSecondary: '#8b958c',
+  textSecondary: '#949e94',
   textTertiary: '#5e685f',
 };
 

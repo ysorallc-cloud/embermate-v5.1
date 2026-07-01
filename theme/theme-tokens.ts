@@ -272,8 +272,12 @@ const DarkColors = {
   // v6.7 visual-consistency lock: text colors moved from rgba-on-white to
   // solid hex so the apparent color stays constant across page-bg / glass
   // / youCardSurface and contrast is deterministic. textSecondary doubles
-  // as the eyebrow color (>= 4.5:1 on both #141a16 and #19211b).
-  textSecondary: '#8b958c',
+  // as the eyebrow color and must clear 4.5:1 AA on the LIGHTEST card
+  // surface (glass #26302a — the worst case). The sage #8b958c landed at
+  // 4.40 there (under AA); nudged lighter to #949e94 → 4.92:1 on glass
+  // (also 6.37 on bg #141a16, 5.94 on sheet #19211b), still well below
+  // textPrimary so the secondary hierarchy holds.
+  textSecondary: '#949e94',
   textTertiary: '#5e685f',
   textSoft: 'rgba(255, 255, 255, 0.42)',
   // Phase 33 F1a — flipped from rgba(255,255,255,0.48) to website's solid

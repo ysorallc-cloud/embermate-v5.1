@@ -75,7 +75,7 @@ const themeColors = {
   glassBorder: 'rgba(255, 255, 255, 0.10)',
   glassFaint: 'rgba(255, 255, 255, 0.03)',
   textPrimary: '#fff',
-  textSecondary: '#8b958c',
+  textSecondary: '#949e94',
   textTertiary: '#9aa0a6',
   caregiverAccent: '#aa8adc',
   amber: '#d6ab5e',

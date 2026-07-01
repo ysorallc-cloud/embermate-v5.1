@@ -51,8 +51,8 @@ describe('Theme tokens — locked dark surfaces', () => {
 });
 
 describe('Theme tokens — locked text colors (solid hex for deterministic contrast)', () => {
-  it('textSecondary is the bright warm muted #8b958c (eyebrow + secondary copy)', () => {
-    expect(dark.textSecondary).toBe('#8b958c');
+  it('textSecondary is the bright warm muted #949e94 (eyebrow + secondary copy)', () => {
+    expect(dark.textSecondary).toBe('#949e94');
   });
 
   it('textTertiary is the lower-priority hint #5e685f', () => {
