@@ -485,7 +485,10 @@ export default function VisitPrepPreviewScreen() {
               {/* Questions for this visit — Phase 5.10.d toggle linkage. */}
               {data.includes.questions && (
                 <>
-                  <Text style={styles.sectionHeader}>Questions for this visit</Text>
+                  {/* Visit Prep restyle (S6) — the questions header reads BLUE:
+                      this is the caregiver→clinician handoff lane (§5 blue =
+                      handoff — correct here, Visit Prep IS the handoff). */}
+                  <Text style={[styles.sectionHeader, { color: colors.blue }]}>Questions for this visit</Text>
                   <View style={styles.sectionBody}>
                     {data.patientQuestions.length > 0 ? (
                       data.patientQuestions.map((q, i) => (
@@ -615,12 +618,13 @@ const createStyles = (c: any) => StyleSheet.create({
     color: c.textSecondary,
     fontStyle: 'italic',
   },
-  // Phase 5.10.a — callout blocks. Light tinted bg + left border by family
-  // (red for flags, sage for hydration/wellness). Header in muted-uppercase.
+  // Visit Prep restyle (S6) — callout left-accents move to the sage-system
+  // register tokens: CORAL for flags, SAGE for hydration/wellness (§5). The
+  // card left-accent IS the register signal, per the mockup's coral rule.
   redFlagCallout: {
-    backgroundColor: 'rgba(193, 72, 72, 0.08)',
+    backgroundColor: c.coralLight,
     borderLeftWidth: 3,
-    borderLeftColor: '#c14848',
+    borderLeftColor: c.coral,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginVertical: Spacing.sm,
@@ -630,7 +634,7 @@ const createStyles = (c: any) => StyleSheet.create({
     fontSize: 11,
     fontWeight: '600' as const,
     letterSpacing: 0.5,
-    color: '#8b3030',
+    color: c.coral,
     marginBottom: 6,
   },
   redFlagLine: {
@@ -641,21 +645,21 @@ const createStyles = (c: any) => StyleSheet.create({
   },
   redFlagTag: {
     fontWeight: '700' as const,
-    color: '#c14848',
+    color: c.coral,
   },
   hydrationCallout: {
-    backgroundColor: 'rgba(74, 107, 93, 0.06)',
+    backgroundColor: c.accentLight,
     borderLeftWidth: 3,
-    borderLeftColor: '#4a6b5d',
+    borderLeftColor: c.accent,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginVertical: Spacing.sm,
     borderRadius: 6,
   },
   wellnessCallout: {
-    backgroundColor: 'rgba(74, 107, 93, 0.06)',
+    backgroundColor: c.accentLight,
     borderLeftWidth: 3,
-    borderLeftColor: '#4a6b5d',
+    borderLeftColor: c.accent,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginVertical: Spacing.sm,

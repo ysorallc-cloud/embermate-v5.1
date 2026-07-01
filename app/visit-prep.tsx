@@ -248,17 +248,17 @@ export default function VisitPrepScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={90}>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-          {/* Phase 33b Scope 2 — Surface 4 lavender scale reduction.
-              Pre-33b rendered as a full-chrome highlight (lavender border
-              + bg + body text). Now decomposes into a small lavender
-              eyebrow + cream body — canon eyebrow-as-garnish pattern. */}
+          {/* Visit Prep restyle (S6) — the "Preparing" eyebrow de-purples to
+              neutral (the lavender was the pre-redesign You-lane tint; Visit
+              Prep's register is neutral context + blue handoff on questions).
+              Small eyebrow + cream body — canon eyebrow-as-garnish. */}
           {contextLine && (
             <View
               style={styles.contextBlock}
               accessible
               accessibilityLabel={`Preparing for ${contextLine}`}
             >
-              <SectionEyebrow text="Preparing" tint="caregiverAccent" />
+              <SectionEyebrow text="Preparing" />
               <Text style={styles.contextBody}>{contextLine}</Text>
             </View>
           )}
@@ -293,7 +293,9 @@ export default function VisitPrepScreen() {
               this visit. New: Red Flags & Alerts and Hydration & Nutrition
               (both default ON). Section is rendered in BOTH preview and
               PDF; toggling off removes the section from both surfaces. */}
-          <Text style={styles.sectionLabel}>Include in report</Text>
+          <View style={styles.sectionEyebrowWrap}>
+            <SectionEyebrow text="Include in report" />
+          </View>
           <View style={styles.toggleCard}>
             {[
               { label: 'Red Flags & Alerts', value: includeRedFlags, setter: setIncludeRedFlags },
@@ -333,7 +335,9 @@ export default function VisitPrepScreen() {
               below is kept for last-minute additions specific to this visit. */}
           {includeQuestions && (
             <>
-              <Text style={styles.sectionLabel}>Questions for the doctor</Text>
+              <View style={styles.sectionEyebrowWrap}>
+                <SectionEyebrow text="Questions for the doctor" tint="blue" />
+              </View>
               <TouchableOpacity
                 style={styles.questionsLink}
                 onPress={() => navigate('/patient-questions')}
@@ -428,6 +432,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     letterSpacing: 0.3,
     marginBottom: 8,
     marginTop: 16,
+  },
+  // Visit Prep restyle (S6) — spacing wrapper so the register SectionEyebrows
+  // (Include = neutral, Questions = blue handoff) keep the section rhythm the
+  // plain sectionLabel carried.
+  sectionEyebrowWrap: {
+    marginTop: 16,
+    marginBottom: 8,
   },
   rangeRow: {
     flexDirection: 'row',
