@@ -101,9 +101,9 @@ describe('Phase 29 Batch A — F3 BreathingOrbCard', () => {
     caregiverAccentStrong: 'rgba(170, 138, 220, 0.25)',
     sageFaint: 'rgba(196, 181, 253, 0.06)',
     textPrimary: '#fff',
-    textSecondary: '#c4c1b3',
+    textSecondary: '#8b958c',
     textTertiary: '#9aa0a6',
-    accent: '#5fb88a',
+    accent: '#9ccfa6',
   };
 
   jest.doMock('../../contexts/ThemeContext', () => ({
@@ -193,7 +193,7 @@ describe('Phase 29 Batch A — F3 BreathingOrbCard', () => {
 
   it('contract F3.2: prompt text uses Source Serif 4 italic via Fonts.serifItalic (Phase 33 F7)', () => {
     // Phase 33 F7 — Georgia literal swept to Fonts.serifItalic token,
-    // which resolves at runtime to 'SourceSerif4_400Regular_Italic'.
+    // which resolves at runtime to 'Poppins_300Light_Italic'.
     const tree = render();
     const promptNode = findAll(tree.root, (n: any) =>
       n.type === 'Text' && flatText(n).includes('Tap to take a breath'),
@@ -201,7 +201,7 @@ describe('Phase 29 Batch A — F3 BreathingOrbCard', () => {
     expect(promptNode).toBeDefined();
     const style = promptNode.props.style;
     const flat = Array.isArray(style) ? Object.assign({}, ...style) : style;
-    expect(flat.fontFamily).toBe('SourceSerif4_400Regular_Italic');
+    expect(flat.fontFamily).toBe('Poppins_300Light_Italic');
     expect(flat.fontStyle).toBe('italic');
   });
 

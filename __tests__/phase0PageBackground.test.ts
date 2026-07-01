@@ -6,15 +6,15 @@
 // reading washed-out on device.
 //
 // Phase 33 F1a (2026-05-17) realigned to the website source-of-truth
-// `--bg: #1a1612` — deeper warm-brown than the Phase-0 sage-charcoal.
+// `--bg: #141a16` — deeper warm-brown than the Phase-0 sage-charcoal.
 //
 // Slice-1 (commit 07843628, 2026-06-13) briefly dropped to #0d0b08 to
 // pair with a schedule-floats-on-page-bg restructure. SUPERSEDED the
 // same day by the embermate-now-full-approved visual target: warm
-// v6.7 #1a1612 stays the page bg ("rest" surface / warm gutter), and
-// a new `zonePanel` token (#221d15) handles the quiet panel surface
+// v6.7 #141a16 stays the page bg ("rest" surface / warm gutter), and
+// a new `zonePanel` token (#19211b) handles the quiet panel surface
 // for the Now zone wrappers. Migration chain settles at
-// #141612 → #1f201c → #1a1612 → [#0d0b08 superseded] → #1a1612.
+// #141612 → #1f201c → #141a16 → [#0d0b08 superseded] → #141a16.
 //
 // This is a TOKEN-LEVEL contract: the dark theme's `background` value
 // is the canonical page-bg, and `tabBarBackground` mirrors it. Both
@@ -22,8 +22,8 @@
 // seamless.
 //
 // Pins:
-//   • DarkColors.background       === '#1a1612'   (warm restore)
-//   • DarkColors.tabBarBackground === '#1a1612'   (lockstep)
+//   • DarkColors.background       === '#141a16'   (warm restore)
+//   • DarkColors.tabBarBackground === '#141a16'   (lockstep)
 //   • The old #141612 literal does NOT appear as an active value in
 //     theme-tokens (comments are allowed for migration narrative).
 // ============================================================================
@@ -37,13 +37,13 @@ const DarkColors = getDarkColors();
 const ROOT = join(__dirname, '..');
 const tokensSrc = readFileSync(join(ROOT, 'theme/theme-tokens.ts'), 'utf8');
 
-describe('Page background lockstep — warm-restore target #1a1612', () => {
-  it('DarkColors.background is #1a1612 (warm v6.7 restored)', () => {
-    expect(DarkColors.background).toBe('#1a1612');
+describe('Page background lockstep — warm-restore target #141a16', () => {
+  it('DarkColors.background is #141a16 (warm v6.7 restored)', () => {
+    expect(DarkColors.background).toBe('#141a16');
   });
 
-  it('DarkColors.tabBarBackground mirrors the page bg (#1a1612)', () => {
-    expect(DarkColors.tabBarBackground).toBe('#1a1612');
+  it('DarkColors.tabBarBackground mirrors the page bg (#141a16)', () => {
+    expect(DarkColors.tabBarBackground).toBe('#141a16');
   });
 
   it('the old #141612 hex does NOT appear as an active token value', () => {

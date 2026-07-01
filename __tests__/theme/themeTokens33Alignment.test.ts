@@ -13,7 +13,7 @@
 //      `Solid` / `Text` (forced by collision with existing
 //      `caregiverAccentText: '#5a7a9a'` token; F1b fallback)
 //   3. `Fonts.serif` carries a single RN-compatible font name
-//      ('SourceSerif4_400Regular'), not the spec's CSS font stack;
+//      ('Poppins_400Regular'), not the spec's CSS font stack;
 //      `sans` token dropped entirely (Q-33.6 skipped Inter loading)
 //
 // SectionEyebrow letterSpacing NOT pinned here — Phase 33b Lock 4
@@ -27,13 +27,13 @@ const dark = getDarkColors() as unknown as Record<string, string>;
 // ── Colors — Phase 33 F1a (value flips) ──────────────────────────────────
 
 describe('themeTokens33 — F1a color value flips', () => {
-  it('background = #1a1612 (warm-restore; website --bg)', () => {
-    // Migration chain: #141612 → #1f201c → #1a1612 (Phase 33 F1a) →
-    // [#0d0b08 slice-1 superseded] → #1a1612 (warm restore). The warm
-    // page bg pairs with the new `zonePanel` token (#221d15) so the
+  it('background = #141a16 (warm-restore; website --bg)', () => {
+    // Migration chain: #141612 → #1f201c → #141a16 (Phase 33 F1a) →
+    // [#0d0b08 slice-1 superseded] → #141a16 (warm restore). The warm
+    // page bg pairs with the new `zonePanel` token (#19211b) so the
     // Now zone wrappers sit on quiet warm panels and the page bg
     // reads as a gutter between them.
-    expect(dark.background).toBe('#1a1612');
+    expect(dark.background).toBe('#141a16');
   });
 
   it('backgroundGradientStart/End mirror background (Phase 2.6.1 lockstep)', () => {
@@ -45,54 +45,54 @@ describe('themeTokens33 — F1a color value flips', () => {
     expect(dark.tabBarBackground).toBe(dark.background);
   });
 
-  it('textPrimary = #f4ddb8 (website --text, warm cream)', () => {
-    expect(dark.textPrimary).toBe('#f4ddb8');
+  it('textPrimary = #edf0ea (website --text, warm cream)', () => {
+    expect(dark.textPrimary).toBe('#edf0ea');
   });
 
   it('textBright = #fff4d6 (website --text-bright, emphasis cream)', () => {
     expect(dark.textBright).toBe('#fff4d6');
   });
 
-  it('textMuted = #6a6a64 (website --text-muted, solid hex)', () => {
-    expect(dark.textMuted).toBe('#6a6a64');
+  it('textMuted = #5e685f (website --text-muted, solid hex)', () => {
+    expect(dark.textMuted).toBe('#5e685f');
   });
 
-  it('textSecondary = #c4c1b3 (website --text-secondary, unchanged pre-Phase-33)', () => {
-    expect(dark.textSecondary).toBe('#c4c1b3');
+  it('textSecondary = #8b958c (website --text-secondary, unchanged pre-Phase-33)', () => {
+    expect(dark.textSecondary).toBe('#8b958c');
   });
 
-  it('textTertiary = #8a8a82 (website --text-tertiary, unchanged pre-Phase-33)', () => {
-    expect(dark.textTertiary).toBe('#8a8a82');
+  it('textTertiary = #5e685f (website --text-tertiary, unchanged pre-Phase-33)', () => {
+    expect(dark.textTertiary).toBe('#5e685f');
   });
 
-  it('glassStrong = rgba(255, 240, 215, 0.18) (website --border-strong RGB-aligned)', () => {
-    expect(dark.glassStrong.replace(/\s+/g, '')).toBe('rgba(255,240,215,0.18)');
+  it('glassStrong = rgba(255, 255, 255, 0.18) (website --border-strong RGB-aligned)', () => {
+    expect(dark.glassStrong.replace(/\s+/g, '')).toBe('rgba(255,255,255,0.18)');
   });
 });
 
 // ── Colors — Phase 33 F1b (renames + adds) ───────────────────────────────
 
 describe('themeTokens33 — F1b token renames + ladder extensions', () => {
-  it('coral = #e6776e (renamed from `red`; website --coral hex)', () => {
-    expect(dark.coral).toBe('#e6776e');
+  it('coral = #e3a684 (renamed from `red`; website --coral hex)', () => {
+    expect(dark.coral).toBe('#e3a684');
   });
 
   it('coral* alpha ladder present (renamed from red* family)', () => {
-    expect(dark.coralFaint.replace(/\s+/g, '')).toBe('rgba(230,119,110,0.06)');
-    expect(dark.coralLight.replace(/\s+/g, '')).toBe('rgba(230,119,110,0.10)');
-    expect(dark.coralHint.replace(/\s+/g, '')).toBe('rgba(230,119,110,0.12)');
-    expect(dark.coralMuted.replace(/\s+/g, '')).toBe('rgba(230,119,110,0.15)');
-    expect(dark.coralBorder.replace(/\s+/g, '')).toBe('rgba(230,119,110,0.20)');
-    expect(dark.coralStrong.replace(/\s+/g, '')).toBe('rgba(230,119,110,0.25)');
-    expect(dark.coralBright).toBe('#e6776e');
+    expect(dark.coralFaint.replace(/\s+/g, '')).toBe('rgba(227,166,132,0.06)');
+    expect(dark.coralLight.replace(/\s+/g, '')).toBe('rgba(227,166,132,0.10)');
+    expect(dark.coralHint.replace(/\s+/g, '')).toBe('rgba(227,166,132,0.12)');
+    expect(dark.coralMuted.replace(/\s+/g, '')).toBe('rgba(227,166,132,0.15)');
+    expect(dark.coralBorder.replace(/\s+/g, '')).toBe('rgba(227,166,132,0.20)');
+    expect(dark.coralStrong.replace(/\s+/g, '')).toBe('rgba(227,166,132,0.25)');
+    expect(dark.coralBright).toBe('#e3a684');
   });
 
-  it('caregiverAccentMid = rgba(107, 140, 174, 0.35) (NEW, F1b Option C, sageMuted alias target)', () => {
-    expect(dark.caregiverAccentMid.replace(/\s+/g, '')).toBe('rgba(107,140,174,0.35)');
+  it('caregiverAccentMid = rgba(143, 168, 200, 0.35) (NEW, F1b Option C, sageMuted alias target)', () => {
+    expect(dark.caregiverAccentMid.replace(/\s+/g, '')).toBe('rgba(143,168,200,0.35)');
   });
 
-  it('caregiverAccentBold = rgba(107, 140, 174, 0.70) (NEW, F1b Option C, sageStrong alias target)', () => {
-    expect(dark.caregiverAccentBold.replace(/\s+/g, '')).toBe('rgba(107,140,174,0.70)');
+  it('caregiverAccentBold = rgba(143, 168, 200, 0.70) (NEW, F1b Option C, sageStrong alias target)', () => {
+    expect(dark.caregiverAccentBold.replace(/\s+/g, '')).toBe('rgba(143,168,200,0.70)');
   });
 
   it('ember = #ff8c42 (NEW, website --ember warm-glow accent)', () => {
@@ -103,12 +103,12 @@ describe('themeTokens33 — F1b token renames + ladder extensions', () => {
     expect(dark.emberDeep).toBe('#e8642a');
   });
 
-  it('bgRaised = #221d18 (NEW, website --bg-elevated semantic; preserves app `backgroundElevated: #363830` per F1-1 split)', () => {
-    expect(dark.bgRaised).toBe('#221d18');
+  it('bgRaised = #19211b (NEW, website --bg-elevated semantic; preserves app `backgroundElevated: #26302a` per F1-1 split)', () => {
+    expect(dark.bgRaised).toBe('#19211b');
   });
 
-  it('backgroundElevated preserved at #363830 (Phase 2.6.2 lift; 7 care-plan consumers depend on it)', () => {
-    expect(dark.backgroundElevated).toBe('#363830');
+  it('backgroundElevated preserved at #26302a (Phase 2.6.2 lift; 7 care-plan consumers depend on it)', () => {
+    expect(dark.backgroundElevated).toBe('#26302a');
   });
 
   it('v7-reserved coral hex (#e89a7a) is GONE from tokens (F1b deletion)', () => {
@@ -149,20 +149,20 @@ describe('themeTokens33 — F1b sage* @deprecated lavender-alias ladder', () => 
 // ── Fonts — Phase 33 F2 (corrected in F4) ────────────────────────────────
 
 describe('themeTokens33 — F2 font tokens (RN-compatible single names)', () => {
-  it('Fonts.serif = SourceSerif4_400Regular (RN font name, not CSS stack)', () => {
-    expect(Fonts.serif).toBe('SourceSerif4_400Regular');
+  it('Fonts.serif = Poppins_400Regular (RN font name, not CSS stack)', () => {
+    expect(Fonts.serif).toBe('Poppins_400Regular');
   });
 
-  it('Fonts.serifItalic = SourceSerif4_400Regular_Italic', () => {
-    expect(Fonts.serifItalic).toBe('SourceSerif4_400Regular_Italic');
+  it('Fonts.serifItalic = Poppins_300Light_Italic', () => {
+    expect(Fonts.serifItalic).toBe('Poppins_300Light_Italic');
   });
 
-  it('Fonts.serifMedium = SourceSerif4_500Medium', () => {
-    expect(Fonts.serifMedium).toBe('SourceSerif4_500Medium');
+  it('Fonts.serifMedium = Poppins_500Medium', () => {
+    expect(Fonts.serifMedium).toBe('Poppins_500Medium');
   });
 
-  it('Fonts.serifSemiBold = SourceSerif4_600SemiBold', () => {
-    expect(Fonts.serifSemiBold).toBe('SourceSerif4_600SemiBold');
+  it('Fonts.serifSemiBold = Poppins_600SemiBold', () => {
+    expect(Fonts.serifSemiBold).toBe('Poppins_600SemiBold');
   });
 
   it('Fonts.sans token NOT present (Q-33.6 skip; consumers omit fontFamily for system sans)', () => {

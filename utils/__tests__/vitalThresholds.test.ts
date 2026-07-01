@@ -61,35 +61,35 @@ describe('vitalThresholds — unit tests', () => {
       const result = getVitalStatus('heartRate', 75);
       expect(result.status).toBe('normal');
       expect(result.label).toBe('✓ Normal');
-      expect(result.color).toBe('#5fb88a');
+      expect(result.color).toBe('#9ccfa6');
     });
 
     it('should return low for values below low threshold', () => {
       const result = getVitalStatus('heartRate', 55);
       expect(result.status).toBe('low');
       expect(result.label).toBe('↓ Low');
-      expect(result.color).toBe('#e5b04a');
+      expect(result.color).toBe('#d6ab5e');
     });
 
     it('should return high for values above high threshold', () => {
       const result = getVitalStatus('heartRate', 110);
       expect(result.status).toBe('high');
       expect(result.label).toBe('↑ High');
-      expect(result.color).toBe('#e5b04a');
+      expect(result.color).toBe('#d6ab5e');
     });
 
     it('should return critical for values at or below criticalLow', () => {
       const result = getVitalStatus('heartRate', 40);
       expect(result.status).toBe('critical');
       expect(result.label).toContain('Critical');
-      expect(result.color).toBe('#e6776e');
+      expect(result.color).toBe('#e3a684');
     });
 
     it('should return critical for values at or above criticalHigh', () => {
       const result = getVitalStatus('heartRate', 150);
       expect(result.status).toBe('critical');
       expect(result.label).toContain('Critical');
-      expect(result.color).toBe('#e6776e');
+      expect(result.color).toBe('#e3a684');
     });
 
     it('should handle glucose normal range', () => {

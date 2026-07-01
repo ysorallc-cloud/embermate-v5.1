@@ -13,24 +13,24 @@
 // CONTRACT BUNDLE
 //
 //   A. WARM SURFACE RESTORE
-//      1. DarkColors.background === '#1a1612' (Phase 33 F1a warm value
+//      1. DarkColors.background === '#141a16' (Phase 33 F1a warm value
 //         restored from slice-1's #0d0b08).
-//      2. DarkColors.glass === '#363830' (Phase 0 lockstep lift value
+//      2. DarkColors.glass === '#26302a' (Phase 0 lockstep lift value
 //         restored from slice-1's #211e18). The slice-1 narrative that
 //         dropped glass to one-step-from-bg is superseded.
 //      3. Lockstep siblings track `background`:
-//           - DarkColors.tabBarBackground === '#1a1612'
-//           - DarkColors.backgroundGradientStart === '#1a1612'
-//           - DarkColors.backgroundGradientEnd === '#1a1612'
+//           - DarkColors.tabBarBackground === '#141a16'
+//           - DarkColors.backgroundGradientStart === '#141a16'
+//           - DarkColors.backgroundGradientEnd === '#141a16'
 //
 //   B. NEW ZONE-PANEL SURFACE TOKEN
-//      4. DarkColors.zonePanel exists and equals '#221d15'. This is the
+//      4. DarkColors.zonePanel exists and equals '#19211b'. This is the
 //         quiet-warm panel surface the Now zones (Schedule / Health /
 //         Reflection) will sit on. Distinct from `glass` (cool, +15 L*
 //         lift — "card on surface") in both hue and lift; zonePanel is
 //         a low-lift warm panel that lets the warm bg read as a gutter
 //         between zones.
-//      5. The zonePanel value is NOT '#363830' — explicit guard against
+//      5. The zonePanel value is NOT '#26302a' — explicit guard against
 //         accidental aliasing back to glass.
 //
 //   C. PERCEPTUAL CONTRACTS
@@ -66,33 +66,33 @@ function lstar(hex: string): number {
 
 describe('Zone-panel surface token + warm-background restore', () => {
   describe('A. Warm surface restore (supersedes slice-1 07843628)', () => {
-    it('background is the warm v6.7 #1a1612 (slice-1 #0d0b08 superseded)', () => {
-      expect(dark.background).toBe('#1a1612');
+    it('background is the warm v6.7 #141a16 (slice-1 #0d0b08 superseded)', () => {
+      expect(dark.background).toBe('#141a16');
     });
 
-    it('glass is the cool warm-charcoal #363830 (slice-1 #211e18 superseded)', () => {
-      expect(dark.glass).toBe('#363830');
+    it('glass is the cool warm-charcoal #26302a (slice-1 #211e18 superseded)', () => {
+      expect(dark.glass).toBe('#26302a');
     });
 
-    it('tabBarBackground mirrors background (#1a1612)', () => {
-      expect(dark.tabBarBackground).toBe('#1a1612');
+    it('tabBarBackground mirrors background (#141a16)', () => {
+      expect(dark.tabBarBackground).toBe('#141a16');
     });
 
-    it('backgroundGradientStart equals #1a1612 (lockstep with background)', () => {
-      expect(dark.backgroundGradientStart).toBe('#1a1612');
+    it('backgroundGradientStart equals #141a16 (lockstep with background)', () => {
+      expect(dark.backgroundGradientStart).toBe('#141a16');
     });
 
-    it('backgroundGradientEnd equals #1a1612 (lockstep with background)', () => {
-      expect(dark.backgroundGradientEnd).toBe('#1a1612');
+    it('backgroundGradientEnd equals #141a16 (lockstep with background)', () => {
+      expect(dark.backgroundGradientEnd).toBe('#141a16');
     });
   });
 
   describe('B. New zonePanel surface token', () => {
-    it('zonePanel token exists and equals #221d15 (quiet-warm panel)', () => {
-      expect(dark.zonePanel).toBe('#221d15');
+    it('zonePanel token exists and equals #19211b (quiet-warm panel)', () => {
+      expect(dark.zonePanel).toBe('#19211b');
     });
 
-    it('zonePanel is NOT aliased to glass (#363830) — distinct semantic', () => {
+    it('zonePanel is NOT aliased to glass (#26302a) — distinct semantic', () => {
       expect(dark.zonePanel).not.toBe(dark.glass);
     });
   });

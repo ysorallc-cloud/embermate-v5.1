@@ -19,8 +19,8 @@
 // Slice-1 (07843628) also paired this restructure with a page/card token
 // flip (background → #0d0b08, glass → #211e18). That pairing was
 // SUPERSEDED the same day by the embermate-now-full-approved visual
-// target: warm v6.7 #1a1612 stays the page bg and a new `zonePanel`
-// token (#221d15) handles the quiet panel surface. The de-card
+// target: warm v6.7 #141a16 stays the page bg and a new `zonePanel`
+// token (#19211b) handles the quiet panel surface. The de-card
 // structural contract for NowTimeline still holds — only the token
 // pairing was reverted. See __tests__/theme/zonePanelToken.test.ts
 // for the token contracts; this file's token assertions are kept as
@@ -46,8 +46,8 @@
 //         de-card — Standing Rule [[feedback_input_validity_end_to_end]]).
 //
 //   C. TOKENS (warm-restored after slice-1's brief #0d0b08/#211e18 flip)
-//      5. DarkColors.background === '#1a1612'.
-//      6. DarkColors.glass === '#363830'.
+//      5. DarkColors.background === '#141a16'.
+//      6. DarkColors.glass === '#26302a'.
 // ============================================================================
 
 import { readFileSync } from 'fs';
@@ -195,12 +195,12 @@ describe('NowTimeline — schedule de-cards, floats on page bg', () => {
   describe('C. Page/card tokens', () => {
     const dark = getDarkColors();
 
-    it('background (page bg) is the warm v6.7 #1a1612 (slice-1 superseded)', () => {
-      expect(dark.background).toBe('#1a1612');
+    it('background (page bg) is the warm v6.7 #141a16 (slice-1 superseded)', () => {
+      expect(dark.background).toBe('#141a16');
     });
 
-    it('glass (card surface) is the warm-charcoal #363830 (slice-1 superseded)', () => {
-      expect(dark.glass).toBe('#363830');
+    it('glass (card surface) is the warm-charcoal #26302a (slice-1 superseded)', () => {
+      expect(dark.glass).toBe('#26302a');
     });
   });
 });

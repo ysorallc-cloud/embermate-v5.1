@@ -71,16 +71,16 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 const themeColors = {
-  glass: 'rgba(255, 245, 220, 0.04)',
-  glassBorder: 'rgba(255, 240, 215, 0.10)',
-  glassFaint: 'rgba(255, 245, 220, 0.03)',
+  glass: 'rgba(255, 255, 255, 0.04)',
+  glassBorder: 'rgba(255, 255, 255, 0.10)',
+  glassFaint: 'rgba(255, 255, 255, 0.03)',
   textPrimary: '#fff',
-  textSecondary: '#c4c1b3',
+  textSecondary: '#8b958c',
   textTertiary: '#9aa0a6',
   caregiverAccent: '#aa8adc',
-  amber: '#e5b04a',
-  green: '#5fb88a',
-  greenTint: 'rgba(95, 184, 138, 0.10)',
+  amber: '#d6ab5e',
+  green: '#9ccfa6',
+  greenTint: 'rgba(156, 207, 166, 0.10)',
 };
 
 jest.mock('../../contexts/ThemeContext', () => ({
@@ -237,12 +237,12 @@ describe('Phase 27.5b F5 — JournalNotesCard notes cleanup', () => {
 
   it('contract 7: TextInput fontStyle for typed content is italic Source Serif 4 (Phase 33 F7)', () => {
     // Phase 33 F7 — Georgia literal swept to Fonts.serifItalic token,
-    // which resolves at runtime to 'SourceSerif4_400Regular_Italic'.
+    // which resolves at runtime to 'Poppins_300Light_Italic'.
     const tree = render({ ...baseProps, bare: true });
     const ti = tree.root.findByType('TextInput' as any);
     const s = flatStyle(ti);
     expect(s.fontStyle).toBe('italic');
-    expect(s.fontFamily).toBe('SourceSerif4_400Regular_Italic');
+    expect(s.fontFamily).toBe('Poppins_300Light_Italic');
   });
 });
 

@@ -2,13 +2,13 @@
 // Phase 33 F3 — Care Plan toggle Switch goes muted (calmer ON state).
 //
 // User-locked (2026-05-26):
-//   • ON track   → c.accentMuted (rgba(95,184,138,0.50)) — same sage as
-//                  c.accent (#5fb88a) at 50% alpha. Half intensity:
+//   • ON track   → c.accentMuted (rgba(156,207,166,0.50)) — same sage as
+//                  c.accent (#9ccfa6) at 50% alpha. Half intensity:
 //                  clearly ON, clearly sage, no longer shouting.
-//   • ON thumb   → unchanged: c.textPrimary (#f4ddb8 cream). Cream-on-
+//   • ON thumb   → unchanged: c.textPrimary (#edf0ea cream). Cream-on-
 //                  muted-sage holds the on-state signal; muting the
 //                  thumb too would erode the ON/OFF distinction.
-//   • OFF track  → unchanged: c.glassStrong (rgba(255,240,215,0.18)).
+//   • OFF track  → unchanged: c.glassStrong (rgba(255,255,255,0.18)).
 //                  Already the receded cream-muted treatment ("recede
 //                  like current Vitals/Appointments").
 //   • OFF thumb  → unchanged: c.switchThumbOff (#F4F3F4 system off-white).
@@ -81,7 +81,7 @@ describe('Phase 33 F3 — Care Plan toggle Switch goes muted (calmer ON state)',
     expect(TS_STRIPPED).not.toMatch(/trackColor=\{\s*\{\s*[^}]*true\s*:\s*colors\.accent\s*[,}]/);
   });
 
-  it('contract 2: c.accentMuted resolves to the canon 50%-alpha sage rgba(95,184,138,0.50)', () => {
+  it('contract 2: c.accentMuted resolves to the canon 50%-alpha sage rgba(156,207,166,0.50)', () => {
     // Value-level proof — accentMuted is the SAME sage as accent
     // (RGB 95/184/138) at 0.5 alpha. Catches a future palette move
     // that aliases accentMuted to something other than half-strength
@@ -90,7 +90,7 @@ describe('Phase 33 F3 — Care Plan toggle Switch goes muted (calmer ON state)',
     expect(v).not.toBeNull();
     // Normalize whitespace for the comparison.
     const normalized = v!.replace(/\s+/g, '');
-    expect(normalized).toBe('rgba(95,184,138,0.50)');
+    expect(normalized).toBe('rgba(156,207,166,0.50)');
   });
 
   // --------------------------------------------------------------------------

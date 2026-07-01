@@ -16,14 +16,14 @@
 // is a larger structural change. Flat-lifting the tokens preserves that
 // JSX surface for a future deliberate design call.
 //
-// Phase 33 F1a (2026-05-17) moved `background` to '#1a1612' (website
+// Phase 33 F1a (2026-05-17) moved `background` to '#141a16' (website
 // source-of-truth). Slice-1 briefly dropped to '#0d0b08'; SUPERSEDED
 // by the warm-restore visual target. Both gradient tokens flip in
 // lockstep so the gradient-equals-bg contract holds across the
 // migration chain.
 //
 // Pins:
-//   1. Both gradient tokens equal #1a1612 (warm-restore target).
+//   1. Both gradient tokens equal #141a16 (warm-restore target).
 //   2. Both gradient tokens equal `colors.background` so the overlay
 //      produces no visible color delta vs the SafeAreaView underneath
 //      (lockstep contract — survives future bg value changes).
@@ -38,12 +38,12 @@ import { getDarkColors } from '../theme/theme-tokens';
 const dark = getDarkColors() as unknown as Record<string, string>;
 
 describe('Gradient tokens flat-lifted (Phase 2.6.1 lockstep → warm-restore value)', () => {
-  it('backgroundGradientStart equals #1a1612 (warm-restore page-bg lockstep)', () => {
-    expect(dark.backgroundGradientStart).toBe('#1a1612');
+  it('backgroundGradientStart equals #141a16 (warm-restore page-bg lockstep)', () => {
+    expect(dark.backgroundGradientStart).toBe('#141a16');
   });
 
-  it('backgroundGradientEnd equals #1a1612 (warm-restore page-bg lockstep)', () => {
-    expect(dark.backgroundGradientEnd).toBe('#1a1612');
+  it('backgroundGradientEnd equals #141a16 (warm-restore page-bg lockstep)', () => {
+    expect(dark.backgroundGradientEnd).toBe('#141a16');
   });
 
   it('both gradient stops equal colors.background — gradient renders flat', () => {

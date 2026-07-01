@@ -5,7 +5,8 @@
 // source (app/ + components/). Q-F9.3 Option B whitelist preserved for
 // 4 lines where pure white is intentional perceptual work:
 //
-//   • app/_layout.tsx:401 lockButtonText (Q-33.9 — lockscreen)
+//   • app/_layout.tsx:427 lockButtonText (Q-33.9 — lockscreen; shifted
+//     401→427 by the F2 Poppins imports + Text.defaultProps block)
 //   • components/support/BreathingExercise.tsx:374 countdown (BE modal,
 //     dim-lit breathing scene)
 //   • components/support/BreathingExercise.tsx:380 phaseLabel (BE modal)
@@ -64,7 +65,7 @@ const SOURCE_FILES = [...APP_FILES, ...COMP_FILES];
 const WHITELIST: Array<{ path: string; line: number; rationale: string }> = [
   {
     path: 'app/_layout.tsx',
-    line: 401,
+    line: 427,
     rationale: 'lockscreen — Q-33.9 (pure white on lockscreen UI is intentional)',
   },
   {

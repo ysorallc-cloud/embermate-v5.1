@@ -9,7 +9,7 @@
 // backgroundElevated buttons (back button, action chips) read flat
 // against the new warm-charcoal page — they didn't lift.
 //
-// Fix: lift backgroundElevated #1A1A1A → #363830, matching the Phase 0
+// Fix: lift backgroundElevated #1A1A1A → #26302a, matching the Phase 0
 // glass / surfaceElevated lockstep value. The same L* 11+ delta against
 // the page bg that Phase 0 established for cards. If on device this
 // reads too prominent for back-button purposes, drop one step to
@@ -24,8 +24,8 @@ import { getDarkColors } from '../theme/theme-tokens';
 const dark = getDarkColors() as unknown as Record<string, string>;
 
 describe('Phase 2.6.2 — card-surface tokens lockstep with Phase 0', () => {
-  it('backgroundElevated equals #363830 (glass-tier lockstep)', () => {
-    expect(dark.backgroundElevated).toBe('#363830');
+  it('backgroundElevated equals #26302a (glass-tier lockstep)', () => {
+    expect(dark.backgroundElevated).toBe('#26302a');
   });
 
   it('backgroundElevated lifts ≥ L* 8 above the bg (perceptual card delta)', () => {

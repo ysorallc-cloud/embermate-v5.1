@@ -21,14 +21,14 @@ function assertToken(key: string, value: string) {
 
 describe('Light-mode token palette', () => {
   describe('Surfaces', () => {
-    it('background.app = #e8dcbe (deep parchment cream)', () => {
-      assertToken('background', '#e8dcbe');
+    it('background.app = #dbe5dc (deep parchment cream)', () => {
+      assertToken('background', '#dbe5dc');
     });
-    it('background.card = #fdfaf0 (warm-tinted white)', () => {
-      assertToken('glass', '#fdfaf0');
+    it('background.card = #ffffff (warm-tinted white)', () => {
+      assertToken('glass', '#ffffff');
     });
-    it('background.cardWarm = #fdf8ec', () => {
-      assertToken('warmSurface', '#fdf8ec');
+    it('background.cardWarm = #ffffff', () => {
+      assertToken('warmSurface', '#ffffff');
     });
     it('background.elevated = #ffffff', () => {
       assertToken('surfaceElevated', '#ffffff');
@@ -36,14 +36,14 @@ describe('Light-mode token palette', () => {
   });
 
   describe('Text', () => {
-    it('text.primary = #0f172a', () => {
-      assertToken('textPrimary', '#0f172a');
+    it('text.primary = #26302a', () => {
+      assertToken('textPrimary', '#26302a');
     });
-    it('text.secondary = #374151', () => {
-      assertToken('textSecondary', '#374151');
+    it('text.secondary = #7f8c82', () => {
+      assertToken('textSecondary', '#7f8c82');
     });
-    it('text.muted = #6b7280', () => {
-      assertToken('textMuted', '#6b7280');
+    it('text.muted = #a8b3aa', () => {
+      assertToken('textMuted', '#a8b3aa');
     });
     it('text.inverse = #ffffff', () => {
       assertToken('textInverse', '#ffffff');
@@ -51,14 +51,14 @@ describe('Light-mode token palette', () => {
   });
 
   describe('Accent (mint)', () => {
-    it('accent.default = #047857', () => {
-      assertToken('accent', '#047857');
+    it('accent.default = #3f7d57', () => {
+      assertToken('accent', '#3f7d57');
     });
-    it('accent.button = #059669', () => {
-      assertToken('accentButton', '#059669');
+    it('accent.button = #3f7d57', () => {
+      assertToken('accentButton', '#3f7d57');
     });
-    it('accent.softBg = #ecfdf5', () => {
-      assertToken('accentSoftBg', '#ecfdf5');
+    it('accent.softBg = #e3ede4', () => {
+      assertToken('accentSoftBg', '#e3ede4');
     });
     it('accent.softBorder = rgba(5, 150, 105, 0.4)', () => {
       assertToken('accentSoftBorder', 'rgba(5, 150, 105, 0.4)');
@@ -66,11 +66,11 @@ describe('Light-mode token palette', () => {
   });
 
   describe('Status', () => {
-    it('status.warning = #b45309', () => { assertToken('statusWarning', '#b45309'); });
+    it('status.warning = #b8852f', () => { assertToken('statusWarning', '#b8852f'); });
     it('status.warningSoft = #fef3c7', () => { assertToken('statusWarningSoft', '#fef3c7'); });
-    it('status.danger = #b91c1c', () => { assertToken('statusDanger', '#b91c1c'); });
+    it('status.danger = #c0673f', () => { assertToken('statusDanger', '#c0673f'); });
     it('status.dangerSoft = #fee2e2', () => { assertToken('statusDangerSoft', '#fee2e2'); });
-    it('status.success = #047857', () => { assertToken('statusSuccess', '#047857'); });
+    it('status.success = #3f7d57', () => { assertToken('statusSuccess', '#3f7d57'); });
     it('status.successSoft = #d1fae5', () => { assertToken('statusSuccessSoft', '#d1fae5'); });
   });
 

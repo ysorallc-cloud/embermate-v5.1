@@ -1,8 +1,11 @@
 // ============================================================================
-// Dark-only contract — light mode is disabled in v6.7.
-// Asserts the ThemeContext no longer subscribes to OS appearance, never
-// imports the light token set, and always resolves to dark tokens —
-// while the mode/setMode API stays intact for forward compatibility.
+// Theme-wiring contract (light re-enabled, Lock §2).
+// Post light-parity reconcile: ThemeContext wires getLightColors and derives
+// resolvedTheme from themeMode (light-default; only explicit 'dark' is dark),
+// light-tokens is imported ONLY via the sanctioned theme-tokens getter, and
+// the mode/setMode API + ThemeMode union stay intact. (Was the v6.7 dark-only
+// contract; inverted in F7 to the committed light-enabled reality.)
+// NOTE: filename `darkOnlyContract` is now a misnomer — rename is a follow-up.
 // ============================================================================
 
 import { readFileSync, existsSync } from 'fs';
@@ -20,9 +23,11 @@ describe('ThemeContext — dark-only contract', () => {
     expect(themeContextSrc).not.toMatch(/Appearance\.getColorScheme/);
   });
 
-  it('does not import the light token set', () => {
-    expect(themeContextSrc).not.toMatch(/from\s+['"][\.\/]*theme\/light-tokens['"]/);
-    expect(themeContextSrc).not.toMatch(/import\s*\{[^}]*LightColors[^}]*\}/);
+  it('imports the light color map (getLightColors) — light re-enabled per Lock §2', () => {
+    // Light-parity reconcile: ThemeContext now pulls getLightColors so the
+    // resolved map can be light. (The raw LightColors import lives in
+    // theme-tokens; ThemeContext consumes the getter.)
+    expect(themeContextSrc).toMatch(/getLightColors/);
   });
 
   it('marks light mode as deferred with a TODO comment', () => {
@@ -60,10 +65,11 @@ describe('ThemeContext — dark-only contract', () => {
     expect(themeContextSrc).toContain("'embermate.appearance.mode'");
   });
 
-  it('hard-codes resolvedTheme to "dark"', () => {
-    // No conditional branching on `themeMode === 'light'` for the
-    // resolvedTheme value. Either a literal 'dark' or always-dark assignment.
-    expect(themeContextSrc).toMatch(/resolvedTheme[^=]*=\s*['"]dark['"]/);
+  it('derives resolvedTheme from themeMode (light-default, not hardcoded dark)', () => {
+    // Light-parity reconcile: resolvedTheme now branches on themeMode
+    // (only explicit 'dark' is dark; light is the default), replacing the
+    // v6.7 hardcoded `= 'dark'`.
+    expect(themeContextSrc).toMatch(/resolvedTheme[^=]*=\s*themeMode\s*===\s*['"]dark['"]/);
   });
 
   it('exported Colors object equals the dark token set', () => {
@@ -78,10 +84,12 @@ describe('ThemeContext — dark-only contract', () => {
   });
 });
 
-describe('Codebase — no remaining light-tokens imports', () => {
-  // Walk the source tree and find any TS/TSX file (outside node_modules and
-  // tests) that still imports from '/theme/light-tokens'. The file itself
-  // stays on disk for future re-enablement, but no consumer should pull it.
+describe('Codebase — light-tokens imported ONLY via the sanctioned getter', () => {
+  // Walk the source tree for any TS/TSX file (outside node_modules and tests)
+  // that imports from '/theme/light-tokens'. Post-reconcile the ONLY sanctioned
+  // importer is theme-tokens.ts (which wires getLightColors) — it's skipped in
+  // the walk. Any OTHER consumer must go through getLightColors, never raw
+  // LightColors, so light stays wired through one door.
   function listSourceFiles(dir: string): string[] {
     const out: string[] = [];
     const { readdirSync, statSync } = require('fs');
@@ -93,7 +101,11 @@ describe('Codebase — no remaining light-tokens imports', () => {
           if (entry === 'node_modules' || entry === '.git' || entry.startsWith('.')) continue;
           if (entry === 'light-tokens.ts') continue; // skip the file itself
           walk(full);
-        } else if (/\.(tsx|ts)$/.test(entry) && entry !== 'light-tokens.ts') {
+        } else if (
+          /\.(tsx|ts)$/.test(entry) &&
+          entry !== 'light-tokens.ts' &&
+          entry !== 'theme-tokens.ts' // sanctioned importer — wires getLightColors
+        ) {
           out.push(full);
         }
       }

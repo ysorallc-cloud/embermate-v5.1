@@ -10,18 +10,18 @@ import React from 'react';
 
 const themeColors = {
   background: '#1f201c',
-  glass: '#363830',
-  glassBorder: 'rgba(255, 240, 215, 0.08)',
-  hairlineInset: 'rgba(255, 240, 215, 0.06)',
-  accent: '#5fb88a',
+  glass: '#26302a',
+  glassBorder: 'rgba(255, 255, 255, 0.08)',
+  hairlineInset: 'rgba(255, 255, 255, 0.06)',
+  accent: '#9ccfa6',
   caregiverAccent: '#aa8adc',
-  warning: '#e5b04a',
-  criticalAlert: '#e6776e',
+  warning: '#d6ab5e',
+  criticalAlert: '#e3a684',
   coral: '#e89a7a',
-  error: '#e6776e',
+  error: '#e3a684',
   textPrimary: '#fff',
-  textSecondary: '#c4c1b3',
-  textTertiary: '#8a8a82',
+  textSecondary: '#8b958c',
+  textTertiary: '#5e685f',
 };
 
 jest.mock('react', () => {
@@ -127,7 +127,9 @@ describe('TodayOutcomes — promoted hierarchy', () => {
     const merged = styleOf(circle);
     expect(merged.width).toBe(34);
     expect(merged.height).toBe(34);
-    // Background ~rgba(230,119,110,0.14), border ~rgba(230,119,110,0.4)
+    // Pins hardcoded coral LITERALS in the component (766-family, not tokens)
+    // — stay at the pre-sage value until the literals migrate in Phase 1.
+    // F7 leaves these old (they are not token pins).
     expect(merged.backgroundColor).toBe('rgba(230, 119, 110, 0.14)');
     expect(merged.borderColor).toBe('rgba(230, 119, 110, 0.4)');
   });
@@ -162,13 +164,13 @@ describe('JournalNotesCard — compact', () => {
 
   it('renders a visible serif italic prompt above the input', () => {
     // Phase 33 F7 — Georgia literal swept to Fonts.serifItalic token,
-    // which resolves at runtime to 'SourceSerif4_400Regular_Italic'.
+    // which resolves at runtime to 'Poppins_300Light_Italic'.
     const tree = (JournalNotesCard as any)(notesProps);
     const prompt = findAll(tree, (n) => n.props?.testID === 'notes-prompt')[0];
     expect(prompt).toBeDefined();
     const merged = styleOf(prompt);
     expect(merged.fontStyle).toBe('italic');
-    expect(merged.fontFamily).toBe('SourceSerif4_400Regular_Italic');
+    expect(merged.fontFamily).toBe('Poppins_300Light_Italic');
   });
 
   it('Save button (saved/idle) uses outlined sage border at 0.5 opacity, sage text', () => {
@@ -182,6 +184,8 @@ describe('JournalNotesCard — compact', () => {
     )[0];
     expect(save).toBeDefined();
     const merged = styleOf(save);
+    // Hardcoded sage LITERAL in JournalNotesCard's saveButton (766-family, not
+    // a token) — stays pre-sage until the literal migrates in Phase 1.
     expect(merged.borderColor).toBe('rgba(95, 184, 138, 0.5)');
   });
 });
