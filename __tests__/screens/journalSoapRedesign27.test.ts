@@ -198,10 +198,12 @@ describe('F7 reshape — Journal structural contract (was Phase 27 F8 SOAP redes
   // INVARIANT 4 — Pending dedup
   // --------------------------------------------------------------------------
 
-  it('invariant 4: Section 2 passes `loggedOnly` to all 3 pending-surfacing narratives', () => {
-    expect(journalStripped).toMatch(/<MedicationsNarrative[\s\S]{0,200}loggedOnly/);
-    expect(journalStripped).toMatch(/<VitalsNarrative[\s\S]{0,200}loggedOnly/);
-    expect(journalStripped).toMatch(/<MealsNarrative[\s\S]{0,200}loggedOnly/);
+  it('invariant 4: Section 2 renders the JournalLoggedRows log list (S2 rebuild; narratives retired)', () => {
+    // Journal rebuild S2 — the per-bucket loggedOnly narratives are replaced by
+    // explicit chronological log rows (JournalLoggedRows), status stamped once
+    // via getCareItemStatus. Missed/pending items surface as coral/gold rows.
+    expect(journalStripped).toMatch(/<JournalLoggedRows/);
+    expect(journalStripped).not.toMatch(/<MedicationsNarrative[\s\S]{0,200}loggedOnly/);
   });
 
   it('invariant 4 [device-walk fix 2026-06-13]: Section 4 dusty card retires STILL PENDING + TodayStillPending', () => {

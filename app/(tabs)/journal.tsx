@@ -99,10 +99,12 @@ import { GestaltSummary } from '../../components/journal/GestaltSummary';
 // rules.
 import { JournalSection } from '../../components/journal/JournalSection';
 import { SoapSectionFrame } from '../../components/journal/SoapSectionFrame';
-import { MedicationsNarrative } from '../../components/journal/MedicationsNarrative';
-import { VitalsNarrative } from '../../components/journal/VitalsNarrative';
-import { MoodWellnessNarrative } from '../../components/journal/MoodWellnessNarrative';
-import { MealsNarrative } from '../../components/journal/MealsNarrative';
+// (MedicationsNarrative / VitalsNarrative / MoodWellnessNarrative /
+//  MealsNarrative imports retired from Journal in the S2 rebuild — the middle
+//  section now renders explicit log rows via JournalLoggedRows. The bucket
+//  narrative components live on for other consumers/tests.)
+import { JournalLoggedRows } from '../../components/journal/JournalLoggedRows';
+import { buildJournalLoggedRows } from '../../utils/journalLoggedRows';
 // Phase 22.2 — uniform SectionEyebrow + section-color encoding.
 import { SectionEyebrow } from '../../components/SectionEyebrow';
 import { getCaregiverProfile } from '../../storage/caregiverProfileRepo';
@@ -388,6 +390,12 @@ export default function JournalTab() {
     () => getOutstandingItemNames(dayInstances),
     [dayInstances],
   );
+
+  // Journal rebuild S2 — the middle "WHAT WAS LOGGED" section renders explicit
+  // chronological log rows (journal-aligned), status stamped once via
+  // getCareItemStatus. Missed items surface here as coral 'missed' rows — the
+  // Option-A floor + meals-§2 missed-surfacing reconciled into the rebuild.
+  const loggedRows = useMemo(() => buildJournalLoggedRows(dayInstances), [dayInstances]);
 
   // Load outcomes + day-complete flag for the selected date.
   useEffect(() => {
@@ -1047,42 +1055,16 @@ export default function JournalTab() {
                   <>
                   <View style={{ height: SECTION_GAP }} />
                   <SoapSectionFrame eyebrow="What was logged" tint="neutral">
-                    {!hasAnyLogged && (
+                    {loggedRows.length === 0 && !hasHydrationLogged && !hasSleepLogged && (
                       <Text style={s.section2Empty}>Nothing logged yet today.</Text>
                     )}
-                    {/* Option A floor — name what's outstanding (overdue via
-                        getCareItemStatus) so Journal never reads as an empty
-                        day when care is missed. Neutral "still to do" framing;
-                        per-type "missed" naming is PART B. */}
-                    {outstandingNames.length > 0 && (
-                      <Text style={s.section2Outstanding}>
-                        Still to do: {outstandingNames.join(', ')}.
-                      </Text>
-                    )}
-                    {hasMedsLogged && (
-                      <View style={s.bucketGroup}>
-                        <Text style={s.bucketHeader}>Medications</Text>
-                        <MedicationsNarrative medications={brief.medications} bare loggedOnly />
-                      </View>
-                    )}
-                    {hasVitalsLogged && (
-                      <View style={s.bucketGroup}>
-                        <Text style={s.bucketHeader}>Vitals</Text>
-                        <VitalsNarrative vitals={brief.vitals} bare loggedOnly />
-                      </View>
-                    )}
-                    {hasWellnessLogged && (
-                      <View style={s.bucketGroup}>
-                        <Text style={s.bucketHeader}>Wellness</Text>
-                        <MoodWellnessNarrative mood={brief.mood} bare />
-                      </View>
-                    )}
-                    {hasMealsLogged && (
-                      <View style={s.bucketGroup}>
-                        <Text style={s.bucketHeader}>Meals</Text>
-                        <MealsNarrative meals={brief.meals} bare loggedOnly />
-                      </View>
-                    )}
+                    {/* Journal rebuild S2 (journal-aligned) — explicit
+                        chronological log rows replace the per-bucket
+                        narratives. Missed items surface here as coral 'missed'
+                        rows (the Option-A floor + meals-§2 missed-surfacing
+                        reconciled into the middle); pending → gold "Due". Status
+                        stamped once via getCareItemStatus (PART-B). */}
+                    <JournalLoggedRows rows={loggedRows} />
                     {hasHydrationLogged && (
                       <View style={s.bucketGroup}>
                         <Text style={s.bucketHeader}>Hydration</Text>

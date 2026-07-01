@@ -66,52 +66,33 @@ describe('Phase 27 F4 — Section 2 (Objective) wired into journal.tsx', () => {
     expect(tag).toMatch(/tint=["']neutral["']/);
   });
 
-  it('contract 2: Section 2 body references all four narrative components', () => {
-    // Locate Section 2 (the second <SoapSectionFrame block) by scanning
-    // from the second opener to its matching close tag.
+  // Journal rebuild S2 (journal-aligned) — the middle "What was logged"
+  // section renders explicit chronological log rows via JournalLoggedRows,
+  // replacing the four per-bucket narrative components.
+  it('contract 2: Section 2 body renders the JournalLoggedRows log list', () => {
     const secondOpen = nthIndexOf(STRIPPED, '<SoapSectionFrame', 1);
     expect(secondOpen).toBeGreaterThan(-1);
     const secondClose = STRIPPED.indexOf('</SoapSectionFrame>', secondOpen);
     expect(secondClose).toBeGreaterThan(secondOpen);
     const body = STRIPPED.slice(secondOpen, secondClose);
-    expect(body).toMatch(/<MedicationsNarrative/);
-    expect(body).toMatch(/<VitalsNarrative/);
-    expect(body).toMatch(/<MoodWellnessNarrative/);
-    expect(body).toMatch(/<MealsNarrative/);
+    expect(body).toMatch(/<JournalLoggedRows/);
+    // per-bucket narratives retired from the section
+    expect(body).not.toMatch(/<MedicationsNarrative/);
+    expect(body).not.toMatch(/<MealsNarrative/);
   });
 
-  it('contract 3: the four narrative components are imported', () => {
-    for (const name of [
-      'MedicationsNarrative',
-      'VitalsNarrative',
-      'MoodWellnessNarrative',
-      'MealsNarrative',
-    ]) {
-      const re = new RegExp(
-        `import\\s*\\{[^}]*\\b${name}\\b[^}]*\\}\\s*from\\s*['"][^'"]*\\/journal\\/${name}['"]`,
-      );
-      expect(STRIPPED).toMatch(re);
-    }
+  it('contract 3: JournalLoggedRows + its builder are imported', () => {
+    expect(STRIPPED).toMatch(/import\s*\{[^}]*\bJournalLoggedRows\b[^}]*\}\s*from\s*['"][^'"]*\/journal\/JournalLoggedRows['"]/);
+    expect(STRIPPED).toMatch(/import\s*\{[^}]*\bbuildJournalLoggedRows\b[^}]*\}\s*from\s*['"][^'"]*journalLoggedRows['"]/);
   });
 
-  it('contract 4: each narrative is mounted with bare prop (no card-in-card)', () => {
+  it('contract 4: the log list receives its stamped rows via the rows prop', () => {
     const secondOpen = nthIndexOf(STRIPPED, '<SoapSectionFrame', 1);
     const secondClose = STRIPPED.indexOf('</SoapSectionFrame>', secondOpen);
     const body = STRIPPED.slice(secondOpen, secondClose);
-    for (const name of [
-      'MedicationsNarrative',
-      'VitalsNarrative',
-      'MoodWellnessNarrative',
-      'MealsNarrative',
-    ]) {
-      // Match `<NameNarrative ... bare ... />` — accept `bare`, `bare={true}`,
-      // or `bare = true`. The narrative must be followed by `bare` within
-      // its props span (up to the next `/>` or `>`).
-      const tagRe = new RegExp(`<${name}[\\s\\S]*?\\/?>`);
-      const tagMatch = body.match(tagRe);
-      expect(tagMatch).toBeTruthy();
-      expect(tagMatch![0]).toMatch(/\bbare\b/);
-    }
+    const tag = body.match(/<JournalLoggedRows[\s\S]*?\/?>/);
+    expect(tag).toBeTruthy();
+    expect(tag![0]).toMatch(/rows=\{loggedRows\}/);
   });
 
   it('contract 5: Section 2 body references brief.hydration and brief.sleep for the inline rows', () => {
