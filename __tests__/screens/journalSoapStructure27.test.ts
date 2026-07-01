@@ -80,45 +80,46 @@ describe('Phase 27 F8 / F7 reshape — Journal four-section structure', () => {
     );
   });
 
-  it('contract 2 [F7 reshape]: Section 1 renders narrative prose; no SoapSectionFrame, no eyebrow', () => {
+  it('contract 2 [S2 rebuild]: the gestalt folds into the middle as a framing line — no standalone narrative block', () => {
     expect(STRIPPED).not.toMatch(/eyebrow=["']How today went["']/);
-    // Anchor the new narrative block style refs (set on a flat View
-    // wrapping GestaltSummary + the empty-state prompt).
-    expect(STRIPPED).toMatch(/s\.journalNarrativeBlock\b/);
+    // The former standalone journalNarrativeBlock is retired; GestaltSummary +
+    // the empty-state prompt now render INSIDE the "What was logged" frame as
+    // the one framing line (journal-aligned 4→3 fold).
+    expect(STRIPPED).not.toMatch(/s\.journalNarrativeBlock\b/);
+    expect(STRIPPED).toMatch(/<GestaltSummary\b/);
     expect(STRIPPED).toMatch(/s\.journalNarrativePrompt\b/);
   });
 
-  it('contract 3: Section 2 (Objective) — eyebrow "What was logged", tint neutral, AFTER the narrative block', () => {
+  it('contract 3 [S2 rebuild]: middle "What was logged" — neutral tint + record icon, renders the log rows', () => {
     const s2 = findSoapSectionFrameByEyebrow('What was logged');
     expect(s2).toBeTruthy();
     expect(s2!.tag).toMatch(/tint=["']neutral["']/);
-    const narrativeIdx = STRIPPED.indexOf('s.journalNarrativeBlock');
-    expect(narrativeIdx).toBeGreaterThan(-1);
-    expect(s2!.start).toBeGreaterThan(narrativeIdx);
+    expect(s2!.tag).toMatch(/icon=["']record["']/);
+    expect(STRIPPED).toMatch(/<JournalLoggedRows\b/);
   });
 
-  it('contract 4 [UX-3 reshuffle]: Section 3 (Assessment) — <TodayNotableMoments wrapInSection />, BEFORE narrative block', () => {
-    const narrativeIdx = STRIPPED.indexOf('s.journalNarrativeBlock');
+  it('contract 4: Section 1 (Worth flagging) — <TodayNotableMoments wrapInSection />, BEFORE the middle frame', () => {
+    const s2 = findSoapSectionFrameByEyebrow('What was logged');
     const notableMount = STRIPPED.match(/<TodayNotableMoments[\s\S]*?\/>/);
     expect(notableMount).toBeTruthy();
     expect(notableMount![0]).toMatch(/\bwrapInSection\b/);
     const notableIdx = STRIPPED.indexOf(notableMount![0]);
-    expect(notableIdx).toBeLessThan(narrativeIdx);
+    expect(notableIdx).toBeLessThan(s2!.start);
   });
 
-  it('contract 5 [F7 reshape]: Section 4 renders a dusty-bordered card with the conditional eyebrow', () => {
-    // Section 4 no longer uses SoapSectionFrame. F7 anchors on
-    // section4DustyCard + section4DustyEyebrow style refs and on the
-    // conditional eyebrow literal which still appears verbatim in JSX.
-    expect(STRIPPED).toMatch(/s\.section4DustyCard\b/);
-    expect(STRIPPED).toMatch(/s\.section4DustyEyebrow\b/);
+  it('contract 5 [S2 rebuild]: §4 handoff is a BLUE SoapSectionFrame (handoff icon), not a dusty card', () => {
+    // Journal rebuild — §4 moved from the dusty caregiverAccent card to the
+    // blue handoff section (§5: blue = handoff/share-out). No dusty card.
+    expect(STRIPPED).not.toMatch(/s\.section4DustyCard\b/);
     expect(STRIPPED).toContain('For the next caregiver');
     expect(STRIPPED).toContain('Notes from that day');
-    // Ordering: dusty card comes AFTER TodayNotableMoments.
-    const notableMount = STRIPPED.match(/<TodayNotableMoments[\s\S]*?\/>/);
-    const dustyIdx = STRIPPED.indexOf('s.section4DustyCard');
-    const notableIdx = STRIPPED.indexOf(notableMount![0]);
-    expect(dustyIdx).toBeGreaterThan(notableIdx);
+    const s4 = findSoapSectionFrameByEyebrow('For the next caregiver');
+    expect(s4).toBeTruthy();
+    expect(s4!.tag).toMatch(/tint=["']blue["']/);
+    expect(s4!.tag).toMatch(/icon=["']handoff["']/);
+    // Ordering: handoff frame comes AFTER the middle "What was logged" frame.
+    const s2 = findSoapSectionFrameByEyebrow('What was logged');
+    expect(s4!.start).toBeGreaterThan(s2!.start);
   });
 
   it('contract 6 [F7 reshape]: lavender bookend rhythm RETIRED — no caregiverAccent tint on Sections 1 or 4', () => {

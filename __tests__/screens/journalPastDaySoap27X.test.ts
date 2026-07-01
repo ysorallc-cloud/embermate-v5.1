@@ -63,10 +63,10 @@ const STRIPPED = SRC
   .replace(/(^|[^:])\/\/.*$/gm, '$1');
 
 function findSection4Body(): { start: number; body: string } | null {
-  // F7: Section 4 lives inside a section4DustyCard <View>. The body
-  // is a generous slice forward from the style anchor; Section 4 is
-  // the last block in the SOAP IIFE so over-slicing is safe.
-  const start = STRIPPED.indexOf('s.section4DustyCard');
+  // Journal rebuild S2 — §4 is the blue handoff SoapSectionFrame, anchored on
+  // its eyebrow string (the retired dusty card is gone). §4 is the last block
+  // in the SOAP IIFE so over-slicing forward is safe.
+  const start = STRIPPED.indexOf('For the next caregiver');
   if (start === -1) return null;
   return { start, body: STRIPPED.slice(start, start + 4000) };
 }

@@ -994,30 +994,11 @@ export default function JournalTab() {
                   empty assessment chrome appears. */}
               <TodayNotableMoments dateKey={selectedDate} wrapInSection />
 
-              {/* F7 Position 2 — narrative prose. The "How today went"
-                  eyebrow + lavender chrome are RETIRED per F7 spec. The
-                  gestalt now renders as italic serif 14px directly,
-                  flat against the page — the prose IS the section, no
-                  surrounding card or label. Empty-state today-only
-                  prompt is preserved (tap-to-focus into the Section 4
-                  notes input). */}
-              <View style={{ height: SECTION_GAP }} />
-              <View style={s.journalNarrativeBlock}>
-                {!isViewingPast && subjectiveEmpty ? (
-                  <TouchableOpacity
-                    onPress={() => notesInputRef.current?.focus()}
-                    activeOpacity={0.7}
-                    accessibilityRole="button"
-                    accessibilityLabel="Add a note to describe today"
-                  >
-                    <Text style={s.journalNarrativePrompt}>
-                      How would you describe today?
-                    </Text>
-                  </TouchableOpacity>
-                ) : (
-                  <GestaltSummary summary={moodLine} bare />
-                )}
-              </View>
+              {/* Journal rebuild S2 (journal-aligned) — the standalone
+                  "How today went" narrative section (former Position 2) is
+                  RETIRED. Its gestalt line folds into the middle "What was
+                  logged" section as the one framing line above the log rows
+                  (4→3 fold). See the SoapSectionFrame below. */}
 
               {/* Section 2 → Position 3 — "What was logged" (neutral).
                   Hybrid gutter layout per Q-27.2c: bucket header above,
@@ -1054,7 +1035,24 @@ export default function JournalTab() {
                 return (
                   <>
                   <View style={{ height: SECTION_GAP }} />
-                  <SoapSectionFrame eyebrow="What was logged" tint="neutral">
+                  <SoapSectionFrame eyebrow="What was logged" tint="neutral" icon="record">
+                    {/* Framing line — the §2 gestalt folded into the middle
+                        section (journal-aligned 4→3): one warm line above the
+                        record, not a separate section. */}
+                    {!isViewingPast && subjectiveEmpty ? (
+                      <TouchableOpacity
+                        onPress={() => notesInputRef.current?.focus()}
+                        activeOpacity={0.7}
+                        accessibilityRole="button"
+                        accessibilityLabel="Add a note to describe today"
+                      >
+                        <Text style={s.journalNarrativePrompt}>
+                          How would you describe today?
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <GestaltSummary summary={moodLine} bare />
+                    )}
                     {loggedRows.length === 0 && !hasHydrationLogged && !hasSleepLogged && (
                       <Text style={s.section2Empty}>Nothing logged yet today.</Text>
                     )}
@@ -1128,10 +1126,16 @@ export default function JournalTab() {
                   tracker; scheduled-item state belongs in the timeline
                   + Care Plan, not duplicated here. */}
               <View style={{ height: SECTION_GAP }} />
-              <View style={s.section4DustyCard}>
-                <Text style={s.section4DustyEyebrow}>
-                  {(isViewingPast ? 'Notes from that day' : 'For the next caregiver').toUpperCase()}
-                </Text>
+              {/* Journal rebuild S2 (journal-aligned) — §4 handoff moves from
+                  the dusty (caregiverAccent) card to the BLUE handoff section
+                  (§5: blue = handoff/share-out ONLY). Blue caps header + pencil
+                  icon + double-line, flat against the page; the JournalNotesCard
+                  input carries its own chrome + the F6 save confirmation. */}
+              <SoapSectionFrame
+                eyebrow={isViewingPast ? 'Notes from that day' : 'For the next caregiver'}
+                tint="blue"
+                icon="handoff"
+              >
                 {/* Phase 35 Slice 3-A — OBSERVATIONS FROM LOGGING sub-section.
                     Reads LogEntry rows for the selected date, filters to those
                     with non-empty notes, renders chronologically. Hidden when
@@ -1160,7 +1164,7 @@ export default function JournalTab() {
                   caregiverName={caregiverName}
                   providerName={upcomingProviderName}
                 />
-              </View>
+              </SoapSectionFrame>
               </>
             );
           })()}

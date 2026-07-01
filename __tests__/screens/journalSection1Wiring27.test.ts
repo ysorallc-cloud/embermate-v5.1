@@ -45,9 +45,13 @@ describe('Section 1 (Subjective) wired into journal.tsx — F7 reshape', () => {
   // italic-serif narrative prose. Contracts 1+2 below pin the new
   // narrative-block shape; contract 3 still requires the
   // GestaltSummary mount to live inside the new wrapper.
-  it('contract 1 [F7]: Section 1 renders as a flat journalNarrativeBlock (no SoapSectionFrame)', () => {
-    expect(STRIPPED).toMatch(/s\.journalNarrativeBlock\b/);
+  it('contract 1 [S2 rebuild]: the gestalt framing line folds into the middle frame — no standalone narrative block', () => {
+    // Journal rebuild 4→3 fold — the standalone journalNarrativeBlock is
+    // retired; the gestalt + empty-state prompt render inside the "What was
+    // logged" frame as the one framing line.
+    expect(STRIPPED).not.toMatch(/s\.journalNarrativeBlock\b/);
     expect(STRIPPED).toMatch(/s\.journalNarrativePrompt\b/);
+    expect(STRIPPED).toMatch(/<GestaltSummary\b/);
   });
 
   it('contract 2 [F7]: "How today went" eyebrow + caregiverAccent tint are RETIRED on Section 1', () => {
@@ -55,13 +59,14 @@ describe('Section 1 (Subjective) wired into journal.tsx — F7 reshape', () => {
     expect(STRIPPED).not.toMatch(/<SoapSectionFrame\b[\s\S]{0,200}?tint=["']caregiverAccent["'][\s\S]{0,200}?eyebrow=["']How today went["']/);
   });
 
-  it('contract 3 [F7]: GestaltSummary mounts inside the narrative block with bare prop', () => {
-    const start = STRIPPED.indexOf('s.journalNarrativeBlock');
+  it('contract 3 [S2 rebuild]: GestaltSummary mounts inside the "What was logged" frame as the framing line (bare)', () => {
+    const start = STRIPPED.indexOf('eyebrow="What was logged"');
     expect(start).toBeGreaterThan(-1);
-    // Scan the next ~600 chars after the block style ref — the
-    // GestaltSummary mount lives directly inside this <View>.
-    const block = STRIPPED.slice(start, start + 800);
+    // The gestalt framing line lives just inside the middle frame, above the
+    // JournalLoggedRows log list.
+    const block = STRIPPED.slice(start, start + 1600);
     expect(block).toMatch(/<GestaltSummary[\s\S]*?bare/);
+    expect(block).toMatch(/<JournalLoggedRows/);
   });
 
   it('contract 4 (retired Phase 27.X): standalone past-only <GestaltSummary mount above DateTabStrip is gone', () => {

@@ -54,11 +54,11 @@ function nthIndexOf(haystack: string, needle: string, n: number): number {
 }
 
 function findSection4Body(): { start: number; body: string } | null {
-  // F7: Section 4 lives inside a section4DustyCard <View>, not a
-  // SoapSectionFrame. Scan from the style ref forward ~4000 chars to
-  // capture the full body — Section 4 is the last block in the SOAP
-  // IIFE so a generous window is safe.
-  const start = STRIPPED.indexOf('s.section4DustyCard');
+  // Journal rebuild S2 — §4 is the BLUE handoff SoapSectionFrame (eyebrow
+  // "For the next caregiver" / past "Notes from that day"), not the retired
+  // dusty card. Anchor on the eyebrow string; the body (ObservationsFromLogging
+  // + JournalNotesCard) follows. §4 is the last block so a generous window is safe.
+  const start = STRIPPED.indexOf('For the next caregiver');
   if (start === -1) return null;
   return { start, body: STRIPPED.slice(start, start + 4000) };
 }
@@ -69,14 +69,13 @@ describe('Section 4 (Plan) wired into journal.tsx — F7 reshape', () => {
     expect(STRIPPED).toMatch(/useRef[^(]*\(/);
   });
 
-  it('contract 2 [F7]: Section 4 renders as a dusty-bordered card with the conditional eyebrow', () => {
-    // F7: SoapSectionFrame + caregiverAccent retired. The dusty card
-    // owns the chrome; the conditional eyebrow literals live in JSX
-    // directly via section4DustyEyebrow.
-    expect(STRIPPED).toMatch(/s\.section4DustyCard\b/);
-    expect(STRIPPED).toMatch(/s\.section4DustyEyebrow\b/);
+  it('contract 2 [S2 rebuild]: §4 is the BLUE handoff SoapSectionFrame (handoff icon), not a dusty card', () => {
+    // Journal rebuild — §4 handoff moved to the blue section (§5: blue =
+    // handoff). No dusty card; the conditional eyebrow lives in the frame.
+    expect(STRIPPED).not.toMatch(/s\.section4DustyCard\b/);
     expect(STRIPPED).toContain('For the next caregiver');
     expect(STRIPPED).toContain('Notes from that day');
+    expect(STRIPPED).toMatch(/<SoapSectionFrame[\s\S]{0,220}For the next caregiver[\s\S]{0,140}tint=["']blue["'][\s\S]{0,80}icon=["']handoff["']/);
   });
 
   it('contract 3 [device-walk fix 2026-06-13]: Section 4 body contains <JournalNotesCard bare ... and NOT <TodayStillPending', () => {

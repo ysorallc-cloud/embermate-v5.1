@@ -123,7 +123,7 @@ export function TodayNotableMoments({ dateKey, wrapInSection = false }: TodayNot
   // legacy chrome for that standalone surface.
   if (wrapInSection) {
     return (
-      <SoapSectionFrame eyebrow="Worth flagging" tint="amber">
+      <SoapSectionFrame eyebrow="Worth flagging" tint="coral" icon="flag">
         <View testID="today-notable-moments">{rows}</View>
       </SoapSectionFrame>
     );

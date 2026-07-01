@@ -103,19 +103,20 @@ describe('Phase 27 F4 — Section 2 (Objective) wired into journal.tsx', () => {
     expect(body).toMatch(/brief[?.]+sleep/);
   });
 
-  it('contract 6 [UX-3 + F7]: source order is TodayNotableMoments → narrative block → Section 2 (single SoapSectionFrame)', () => {
-    // F7 retired Sections 1 + 4's SoapSectionFrame wrappers, so Section
-    // 2 is now the SOLE SoapSectionFrame in journal.tsx. Source order:
-    //   TodayNotableMoments (S3) → journalNarrativeBlock (S1 prose) →
-    //   Section 2 SoapSectionFrame → section4DustyCard (S4 dusty card).
-    const section2 = nthIndexOf(STRIPPED, '<SoapSectionFrame', 1);
+  it('contract 6 [S2 rebuild]: source order is TodayNotableMoments (flags) → "What was logged" frame → "For the next caregiver" frame', () => {
+    // Journal rebuild (journal-aligned, 4→3): journal.tsx now has TWO
+    // SoapSectionFrames — the middle "What was logged" (first) and the blue
+    // handoff "For the next caregiver" (second). §1 flags render via
+    // TodayNotableMoments (its own frame, internal). No narrative block, no
+    // dusty card.
+    const middleFrame = STRIPPED.indexOf('eyebrow="What was logged"');
+    const handoffFrame = STRIPPED.indexOf('For the next caregiver');
     const todayNotableMount = STRIPPED.indexOf('<TodayNotableMoments');
-    const narrativeBlock = STRIPPED.indexOf('s.journalNarrativeBlock');
-    const dustyCard = STRIPPED.indexOf('s.section4DustyCard');
-    expect(section2).toBeGreaterThan(-1);
-    expect(todayNotableMount).toBeLessThan(narrativeBlock);
-    expect(narrativeBlock).toBeLessThan(section2);
-    expect(section2).toBeLessThan(dustyCard);
+    expect(STRIPPED).not.toMatch(/s\.journalNarrativeBlock\b/);
+    expect(STRIPPED).not.toMatch(/s\.section4DustyCard\b/);
+    expect(middleFrame).toBeGreaterThan(-1);
+    expect(todayNotableMount).toBeLessThan(middleFrame);
+    expect(middleFrame).toBeLessThan(handoffFrame);
   });
 
   it('contract 7: Section 2 is gated on brief being non-null', () => {

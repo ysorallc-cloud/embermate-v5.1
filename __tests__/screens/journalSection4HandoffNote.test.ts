@@ -41,12 +41,12 @@ function stripComments(src: string): string {
     .replace(/(^|[^:])\/\/.*$/gm, '$1');
 }
 
-// Locate the Section 4 dusty-card body — from the section4DustyCard
-// style anchor forward 4000 chars (the dusty card is the last block in
-// the SOAP IIFE).
+// Locate the §4 handoff body — the blue handoff SoapSectionFrame (journal
+// rebuild S2), anchored on its eyebrow string; forward 4000 chars (§4 is the
+// last block in the SOAP IIFE). The retired dusty card anchor is gone.
 function section4Body(): string {
   const stripped = stripComments(JOURNAL_SRC);
-  const start = stripped.indexOf('s.section4DustyCard');
+  const start = stripped.indexOf('For the next caregiver');
   if (start === -1) return '';
   return stripped.slice(start, start + 4000);
 }

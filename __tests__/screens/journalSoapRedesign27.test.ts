@@ -104,33 +104,33 @@ describe('F7 reshape — Journal structural contract (was Phase 27 F8 SOAP redes
   // INVARIANT 1 — Surviving SOAP frame + section order
   // --------------------------------------------------------------------------
 
-  it('invariant 1 [F7]: journal.tsx renders exactly 1 SoapSectionFrame open directly (S2); S3 mounts via TodayNotableMoments', () => {
-    // Pre-F7: 3 direct frames (S1, S2, S4) + 1 inside TodayNotableMoments.
-    // F7:   only S2 stays in journal.tsx. S3 still via TodayNotableMoments.
+  it('invariant 1 [S2 rebuild]: journal.tsx renders 2 SoapSectionFrames (neutral middle + blue handoff); §1 via TodayNotableMoments (coral)', () => {
+    // Journal rebuild (journal-aligned, 4→3): the middle "What was logged"
+    // (neutral) + the "For the next caregiver" handoff (blue) render directly;
+    // §1 flags render via TodayNotableMoments (its own coral frame).
     const frames = findAllSoapFrames(journalStripped);
-    expect(frames.length).toBe(1);
+    expect(frames.length).toBe(2);
     expect(frames[0].tag).toMatch(/eyebrow=["']What was logged["']/);
-    expect(todayNotableStripped).toMatch(/<SoapSectionFrame\b[\s\S]{0,200}?tint=["']amber["']/);
+    expect(frames[1].tag).toContain('For the next caregiver');
+    expect(frames[1].tag).toMatch(/tint=["']blue["']/);
+    expect(todayNotableStripped).toMatch(/<SoapSectionFrame\b[\s\S]{0,200}?tint=["']coral["']/);
   });
 
-  it('invariant 1 [F7]: Section 1 narrative block + Section 4 dusty card surfaces are anchored on dedicated style refs', () => {
-    expect(journalStripped).toMatch(/s\.journalNarrativeBlock\b/);
+  it('invariant 1 [S2 rebuild]: the narrative block + dusty card surfaces are RETIRED', () => {
+    expect(journalStripped).not.toMatch(/s\.journalNarrativeBlock\b/);
+    expect(journalStripped).not.toMatch(/s\.section4DustyCard\b/);
+    // the framing-line prompt lives on inside the middle frame
     expect(journalStripped).toMatch(/s\.journalNarrativePrompt\b/);
-    expect(journalStripped).toMatch(/s\.section4DustyCard\b/);
-    expect(journalStripped).toMatch(/s\.section4DustyEyebrow\b/);
   });
 
-  it('invariant 1 [UX-3 + F7]: source order is S3 (TodayNotableMoments) → S1 (narrative block) → S2 (What was logged) → S4 (dusty card)', () => {
+  it('invariant 1 [S2 rebuild]: source order is TodayNotableMoments (flags) → "What was logged" → "For the next caregiver"', () => {
     const notableMount = journalStripped.match(/<TodayNotableMoments[\s\S]*?\/>/);
     expect(notableMount).toBeTruthy();
     expect(notableMount![0]).toMatch(/\bwrapInSection\b/);
     const notableIdx = journalStripped.indexOf(notableMount![0]);
-    const narrativeIdx = journalStripped.indexOf('s.journalNarrativeBlock');
-    const s2 = findAllSoapFrames(journalStripped)[0].start;
-    const s4Idx = journalStripped.indexOf('s.section4DustyCard');
-    expect(notableIdx).toBeLessThan(narrativeIdx);
-    expect(narrativeIdx).toBeLessThan(s2);
-    expect(s2).toBeLessThan(s4Idx);
+    const frames = findAllSoapFrames(journalStripped);
+    expect(notableIdx).toBeLessThan(frames[0].start);
+    expect(frames[0].start).toBeLessThan(frames[1].start);
   });
 
   // --------------------------------------------------------------------------
@@ -146,9 +146,9 @@ describe('F7 reshape — Journal structural contract (was Phase 27 F8 SOAP redes
     expect(frames[0].tag).toMatch(/tint=["']neutral["']/);
   });
 
-  it('invariant 2: S3 uses the amber tint (rendered inside TodayNotableMoments)', () => {
+  it('invariant 2 [S2 rebuild]: §1 Worth Flagging uses the CORAL tint (rendered inside TodayNotableMoments)', () => {
     expect(todayNotableStripped).toMatch(
-      /<SoapSectionFrame\b[\s\S]{0,200}?tint=["']amber["'][\s\S]{0,200}?eyebrow=["']Worth flagging["']|<SoapSectionFrame\b[\s\S]{0,200}?eyebrow=["']Worth flagging["'][\s\S]{0,200}?tint=["']amber["']/,
+      /<SoapSectionFrame\b[\s\S]{0,200}?tint=["']coral["'][\s\S]{0,200}?eyebrow=["']Worth flagging["']|<SoapSectionFrame\b[\s\S]{0,200}?eyebrow=["']Worth flagging["'][\s\S]{0,200}?tint=["']coral["']/,
     );
   });
 
@@ -211,7 +211,7 @@ describe('F7 reshape — Journal structural contract (was Phase 27 F8 SOAP redes
     // TodayStillPending list. The 2026-06-13 device walk retired
     // both — Section 4 is the caregiver's free-text handoff note
     // ("Anything to pass along?"), not a task tracker.
-    const s4Open = journalStripped.indexOf('s.section4DustyCard');
+    const s4Open = journalStripped.indexOf('For the next caregiver');
     expect(s4Open).toBeGreaterThan(-1);
     const s4Body = journalStripped.slice(s4Open, s4Open + 4000);
     expect(s4Body).not.toMatch(/<TodayStillPending\b/);
@@ -237,7 +237,7 @@ describe('F7 reshape — Journal structural contract (was Phase 27 F8 SOAP redes
   it('invariant 6 [F7]: Section 4 dusty card contains <JournalNotesCard ... bare ... /> with the focus-ref wired in', () => {
     // F7: SoapSectionFrame retired; dusty card now wraps the
     // JournalNotesCard mount. The bare + inputRef wiring stays.
-    const s4Open = journalStripped.indexOf('s.section4DustyCard');
+    const s4Open = journalStripped.indexOf('For the next caregiver');
     expect(s4Open).toBeGreaterThan(-1);
     const s4Body = journalStripped.slice(s4Open, s4Open + 4000);
     expect(s4Body).toMatch(/<JournalNotesCard\b[\s\S]{0,400}bare/);

@@ -126,16 +126,20 @@ describe('Phase 27 F3 — pending dedup (Section 2 logged-only)', () => {
   // journal.tsx Section 2 — must pass loggedOnly to every narrative
   // --------------------------------------------------------------------------
 
-  it('journal.tsx Section 2 passes `loggedOnly` to MedicationsNarrative', () => {
-    expect(journalStripped).toMatch(/<MedicationsNarrative[\s\S]{0,200}loggedOnly/);
-  });
-
-  it('journal.tsx Section 2 passes `loggedOnly` to VitalsNarrative', () => {
-    expect(journalStripped).toMatch(/<VitalsNarrative[\s\S]{0,200}loggedOnly/);
-  });
-
-  it('journal.tsx Section 2 passes `loggedOnly` to MealsNarrative', () => {
-    expect(journalStripped).toMatch(/<MealsNarrative[\s\S]{0,200}loggedOnly/);
+  // Journal rebuild S2 (journal-aligned) — the loggedOnly narratives are
+  // RETIRED from §2. The middle "What was logged" now renders explicit log
+  // rows (JournalLoggedRows) that surface pending items AS gold "Due" rows
+  // (and missed as coral rows) — pending is no longer suppressed/deduped, it's
+  // shown in the record, matching the mockup. So the per-narrative loggedOnly
+  // wiring in journal.tsx is gone. (The narrative components keep their
+  // loggedOnly prop for other consumers — the 6 component-level contracts
+  // above still pass.)
+  it('journal.tsx §2 no longer wires the loggedOnly narratives (log rows replace them)', () => {
+    expect(journalStripped).not.toMatch(/<MedicationsNarrative[\s\S]{0,200}loggedOnly/);
+    expect(journalStripped).not.toMatch(/<VitalsNarrative[\s\S]{0,200}loggedOnly/);
+    expect(journalStripped).not.toMatch(/<MealsNarrative[\s\S]{0,200}loggedOnly/);
+    // pending surfaces in the record now, via the stamped log rows
+    expect(journalStripped).toMatch(/<JournalLoggedRows/);
   });
 
   // --------------------------------------------------------------------------

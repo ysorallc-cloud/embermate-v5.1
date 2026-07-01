@@ -54,62 +54,95 @@ import { View, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { SectionEyebrow } from '../SectionEyebrow';
 import { Spacing } from '../../theme/theme-tokens';
+import { FlagIcon, RecordIcon, HandoffIcon } from './JournalSectionIcons';
 
-export type SoapSectionTint = 'caregiverAccent' | 'amber' | 'neutral' | 'sage';
+// Journal rebuild S2 (journal-aligned) — the SOAP frame's chrome changed from
+// a 2px LEFT RULE to the mockup's form: a double-line divider above a
+// color-coded caps header with an icon. Tint drives the header color + icon.
+export type SoapSectionTint = 'caregiverAccent' | 'amber' | 'neutral' | 'sage' | 'coral' | 'blue';
+export type SoapSectionIcon = 'flag' | 'record' | 'handoff';
 
 export interface SoapSectionFrameProps {
   eyebrow: string;
   tint: SoapSectionTint;
+  /** Optional caps-header glyph, colored to match the tint. */
+  icon?: SoapSectionIcon;
   children?: React.ReactNode;
 }
 
-export function SoapSectionFrame({ eyebrow, tint, children }: SoapSectionFrameProps) {
+export function SoapSectionFrame({ eyebrow, tint, icon, children }: SoapSectionFrameProps) {
   const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors, tint), [colors, tint]);
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const color = sectionColor(colors, tint);
   return (
     <View style={styles.frame}>
-      <SectionEyebrow text={eyebrow} tint={eyebrowTintKey(tint)} />
+      <View style={styles.dblWrap}>
+        <View style={styles.dbl1} />
+        <View style={styles.dbl2} />
+      </View>
+      <View style={styles.header}>
+        {icon ? renderIcon(icon, color) : null}
+        <SectionEyebrow text={eyebrow} tint={eyebrowTintKey(tint)} />
+      </View>
       {children}
     </View>
   );
 }
 
-// SectionEyebrow consumes a tint NAME that maps to a colors key. Maps the
-// SOAP-section tint enum to the corresponding eyebrow tint key. 'neutral'
-// returns undefined so SectionEyebrow falls back to its default
-// textTertiary — same logic as JournalSection's mapping.
+function renderIcon(icon: SoapSectionIcon, color: string): React.ReactNode {
+  if (icon === 'flag') return <FlagIcon color={color} />;
+  if (icon === 'record') return <RecordIcon color={color} />;
+  if (icon === 'handoff') return <HandoffIcon color={color} />;
+  return null;
+}
+
+// SectionEyebrow resolves a tint that is a colors KEY. 'neutral' returns
+// undefined so it falls back to textTertiary.
 function eyebrowTintKey(tint: SoapSectionTint): string | undefined {
   if (tint === 'caregiverAccent') return 'caregiverAccent';
   if (tint === 'amber') return 'amber';
   if (tint === 'sage') return 'accent';
-  return undefined;
+  if (tint === 'coral') return 'coral';
+  if (tint === 'blue') return 'blue';
+  return undefined; // neutral
 }
 
-function ruleColor(c: any, tint: SoapSectionTint): string {
+function sectionColor(c: any, tint: SoapSectionTint): string {
   switch (tint) {
-    case 'caregiverAccent':
-      return c.caregiverAccent;
-    case 'amber':
-      return c.amber;
-    case 'sage':
-      return c.accent;
+    case 'caregiverAccent': return c.caregiverAccent;
+    case 'amber': return c.amber;
+    case 'sage': return c.accent;
+    case 'coral': return c.coral;
+    case 'blue': return c.blue;
     case 'neutral':
-      // Matches JournalSection neutral border treatment (Phase 27.5a Bug
-      // 1 precedent) — opaque textTertiary so the 2px rule reads as the
-      // eyebrow's structural extension.
-      return c.textTertiary;
+    default: return c.textTertiary;
   }
 }
 
-function createStyles(c: any, tint: SoapSectionTint) {
+function createStyles(c: any) {
   return StyleSheet.create({
     frame: {
-      borderLeftWidth: 2,
-      borderLeftColor: ruleColor(c, tint),
-      paddingLeft: Spacing.s4, // 16pt — Q-27.1.b
-      paddingTop: Spacing.sm,
-      paddingBottom: Spacing.sm,
       marginBottom: Spacing.lg,
+    },
+    // Double-line divider (journal-aligned `.dbl-wrap`): a firmer line over a
+    // fainter one, marking the section boundary.
+    dblWrap: {
+      marginVertical: 8,
+    },
+    dbl1: {
+      height: 1,
+      backgroundColor: c.glassBorder,
+    },
+    dbl2: {
+      height: 1,
+      backgroundColor: c.hairlineInset,
+      marginTop: 2,
+    },
+    // Header row: icon + caps eyebrow.
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 9,
     },
   });
 }
