@@ -65,10 +65,11 @@ describe('ThemeContext — dark-only contract', () => {
     expect(themeContextSrc).toContain("'embermate.appearance.mode'");
   });
 
-  it('derives resolvedTheme from themeMode (light-default, not hardcoded dark)', () => {
-    // Light-parity reconcile: resolvedTheme now branches on themeMode
-    // (only explicit 'dark' is dark; light is the default), replacing the
-    // v6.7 hardcoded `= 'dark'`.
+  it('derives resolvedTheme from themeMode (not a hardcoded literal)', () => {
+    // Light-parity reconcile made resolvedTheme branch on themeMode (replacing
+    // the v6.7 hardcoded `= 'dark'`). v1 ships DARK-primary via the default
+    // themeMode 'dark'; light stays reachable (getLightColors wired) as a
+    // deferred post-launch fast-follow. The derivation itself is unchanged.
     expect(themeContextSrc).toMatch(/resolvedTheme[^=]*=\s*themeMode\s*===\s*['"]dark['"]/);
   });
 

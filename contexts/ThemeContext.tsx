@@ -45,10 +45,10 @@ const HC_STORAGE_KEY = StorageKeys.HIGH_CONTRAST;
 
 const ThemeContext = createContext<ThemeContextValue>({
   colors: Colors,
-  mode: 'light',
+  mode: 'dark',
   setMode: () => {},
-  themeMode: 'light',
-  resolvedTheme: 'light',
+  themeMode: 'dark',
+  resolvedTheme: 'dark',
   highContrast: false,
   setThemeMode: () => {},
   setHighContrast: () => {},
@@ -59,9 +59,12 @@ const ThemeContext = createContext<ThemeContextValue>({
 // ============================================================================
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Light is the default (Design-Lock §2: light primary, dark the option).
-  // A stored preference is honored; a fresh install with none resolves light.
-  const [themeMode, setThemeModeState] = useState<ThemeMode>('light');
+  // DARK is the v1 launch default. Design-Lock §2 makes light primary, but
+  // light-mode is DEFERRED to a post-launch fast-follow — all the light work
+  // (light tokens, parity reconcile, WCAG fix, getLightColors) stays wired and
+  // reachable via setMode('light'); only the DEFAULT ships dark, which is what
+  // we build + QA against pre-launch. A stored preference is still honored.
+  const [themeMode, setThemeModeState] = useState<ThemeMode>('dark');
   const [highContrast, setHighContrastState] = useState(false);
 
   // Load saved preferences (kept for forward compat — does not change render)
@@ -98,10 +101,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     safeSetItem(HC_STORAGE_KEY, enabled ? 'true' : 'false');
   }, []);
 
-  // Resolve the active theme from the mode. Light is primary (Lock §2), so
-  // both 'light' and 'auto' resolve light; only an explicit 'dark' is dark.
-  // ('auto' → follow-system is deferred — it needs useColorScheme, which the
-  // RN test mock doesn't provide; not required for the light-default floor.)
+  // Resolve the active theme from the mode. v1 ships DARK-primary (light
+  // deferred post-launch), so the default themeMode 'dark' resolves dark;
+  // light is reachable only when the user explicitly sets 'light'. ('auto' →
+  // follow-system is deferred — needs useColorScheme, absent from the RN test
+  // mock — so it currently resolves light; not on the pre-launch path.)
   const resolvedTheme: 'dark' | 'light' = themeMode === 'dark' ? 'dark' : 'light';
 
   // Build final colors from the resolved theme. High-contrast overrides are

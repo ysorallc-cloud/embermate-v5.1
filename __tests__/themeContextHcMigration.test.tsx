@@ -102,11 +102,10 @@ describe('Phase 2.5 — HC override migration', () => {
     });
     await flushHydrate();
 
-    // The HC override must NOT win. Light is the default theme now
-    // (Lock §2), so the resolved page bg is the sage-light --bg #dbe5dc;
-    // HC overrides are dark-only and do not apply here. The core guard —
-    // HC never forces the legacy #000 — still holds.
-    expect(resolved).toBe('#dbe5dc');
+    // The HC override must NOT win. v1 ships DARK-primary (light deferred
+    // post-launch), so the resolved page bg is the sage-DARK --bg #141a16;
+    // HC overrides no longer force the legacy #000. Core guard holds.
+    expect(resolved).toBe('#141a16');
     expect(resolved).not.toBe('#000000');
 
     (tree as any)?.unmount();
