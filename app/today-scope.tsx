@@ -420,9 +420,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   firstTimeBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: c.caregiverAccentMuted,
+    backgroundColor: c.accentTint,
     borderWidth: 1,
-    borderColor: c.caregiverAccentStrong,
+    borderColor: c.accentBorder,
     borderRadius: BorderRadius.md,
     padding: Spacing.sm,
     marginBottom: Spacing.sm,
@@ -439,7 +439,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   firstTimeBannerText: {
     flex: 1,
     fontSize: 13,
-    color: c.caregiverAccentText,
+    color: c.accent,
     lineHeight: 18,
   },
   firstTimeBannerDismiss: {

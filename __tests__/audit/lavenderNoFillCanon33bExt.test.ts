@@ -172,12 +172,14 @@ describe('Phase 33b extension — lavender no-fill canon', () => {
   // too loose to defend against the actual bug pattern.
   // --------------------------------------------------------------------------
 
-  it('#3 confirm.tsx primaryText is lavender (flipped from cream so the "Done — let\'s start" CTA label reads on the dark fill)', () => {
+  it('#3 confirm.tsx primaryText is SAGE (S7 de-purple — the "Done — let\'s start" CTA is action-affirmative, no-fill border+text on dark)', () => {
     const src = readFileSync(join(ROOT, 'app/care-plan/setup/confirm.tsx'), 'utf8');
     // Anchor on the primaryText style block and inspect its color value.
     const m = src.match(/primaryText:\s*\{[\s\S]{0,200}?color:\s*([^,\n]+?),/);
     expect(m).not.toBeNull();
-    expect(m![1]).toMatch(/c\.caregiverAccent\b/);
+    // De-purpled: the setup CTA label reads sage now, never lavender.
+    expect(m![1]).toMatch(/c\.accent\b/);
+    expect(m![1]).not.toMatch(/caregiverAccent/);
   });
 
   it('#9 visit-prep-preview primaryButtonText is lavender (flipped from #0a0c0a so the "Generate & share PDF" CTA label reads on the dark fill)', () => {

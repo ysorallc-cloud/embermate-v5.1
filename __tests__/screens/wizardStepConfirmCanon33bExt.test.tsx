@@ -78,19 +78,19 @@ describe('Phase 33b extension Lock 2 — confirm.tsx three-section split + Secti
     );
   });
 
-  it('all three section headers render via SectionEyebrow with tint="caregiverAccent"', () => {
-    // Core eyebrow
+  it('all three section headers render via SectionEyebrow, register-colored (S7 de-purple: Core=gold, sections=sage)', () => {
+    // S7 harmonization — the setup eyebrows de-purple to the Care Plan register:
+    // Core (meds/always-on) = gold; the tracking sections = sage. Never lavender.
     expect(SRC).toMatch(
-      /<SectionEyebrow\s+text="Core — always on"\s+tint="caregiverAccent"/,
+      /<SectionEyebrow\s+text="Core — always on"\s+tint="gold"/,
     );
-    // Now-tab eyebrow
     expect(SRC).toMatch(
-      /<SectionEyebrow\s+text="These show on your Now tab"\s+tint="caregiverAccent"/,
+      /<SectionEyebrow\s+text="These show on your Now tab"\s+tint="accent"/,
     );
-    // Care Plan eyebrow
     expect(SRC).toMatch(
-      /<SectionEyebrow\s+text="These show on your Care Plan"\s+tint="caregiverAccent"/,
+      /<SectionEyebrow\s+text="These show on your Care Plan"\s+tint="accent"/,
     );
+    expect(SRC).not.toMatch(/tint="caregiverAccent"/);
   });
 
   it('the legacy local `eyebrow:` style block is retired', () => {
@@ -105,30 +105,21 @@ describe('Phase 33b extension Lock 2 — confirm.tsx three-section split + Secti
   // 3. CTA lane assignment — "Done — let's start" handoff-lane chrome
   // --------------------------------------------------------------------------
 
-  it('primary "Done — let\'s start" CTA preserves the handoff lane via dark fill + lavender border + lavender text (Phase 33b extension lavender no-fill canon — reframed from Phase 26 F4 lavender fill)', () => {
-    // Lock 2's per-CTA assignment had given step 3 a saturated
-    // `c.caregiverAccent` fill so the wizard's lane progression read as
-    // sage → sage → lavender (action-affirmative → commit/handoff).
-    // Phase 33b extension lavender no-fill canon (site #3) restricts
-    // lavender to eyebrow-scale text + thin accents, never fills. The
-    // lane signal moves into the chrome: dark/glass fill + 1pt lavender
-    // border + lavender label text. The button stays visibly distinct
-    // from a sage action-affirmative CTA without violating the no-fill
-    // canon. Steps 1 (who) + 2 (template) stay sage per their separate
-    // contracts.
+  it('primary "Done — let\'s start" CTA is SAGE, no-fill (S7 de-purple: dark fill + sage border + sage text)', () => {
+    // S7 harmonization — the wizard de-purples fully: the commit CTA becomes a
+    // sage action-affirmative no-fill button (dark/glass fill + 1pt sage border
+    // + sage label). Steps 1 (who) + 2 (template) were already sage. No lavender.
     const primaryBlock = SRC.match(/primary:\s*\{[\s\S]{0,400}?\n\s{4}\},/);
     expect(primaryBlock).not.toBeNull();
     const block = primaryBlock![0];
-    // Dark / glass fill (the background canvas itself).
+    // Dark / glass fill (the background canvas itself) — no saturated fill.
     expect(block).toMatch(/backgroundColor:\s*c\.background\b/);
-    // 1pt lavender border carries the lane signal.
     expect(block).toMatch(/borderWidth:\s*1\b/);
-    expect(block).toMatch(/borderColor:\s*c\.caregiverAccent\b/);
-    // No saturated lavender fill (regression defense against the pre-cleanup
-    // chrome silently returning).
-    expect(block).not.toMatch(/backgroundColor:\s*c\.caregiverAccent\b/);
-    // Paired text color flips to lavender so the label reads on the dark fill.
-    expect(SRC).toMatch(/primaryText:\s*\{[\s\S]{0,200}?color:\s*c\.caregiverAccent\b/);
+    // Sage border carries the action-affirmative signal, never lavender.
+    expect(block).toMatch(/borderColor:\s*c\.accent\b/);
+    expect(block).not.toMatch(/caregiverAccent/);
+    // Paired text color is sage so the label reads on the dark fill.
+    expect(SRC).toMatch(/primaryText:\s*\{[\s\S]{0,200}?color:\s*c\.accent\b/);
   });
 
   it('"Done — let\'s start" CTA copy preserved', () => {

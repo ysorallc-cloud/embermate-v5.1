@@ -155,7 +155,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: 5,
   },
   tagPillStandard: {
-    backgroundColor: 'rgba(170, 138, 220, 0.10)',
+    backgroundColor: c.accentLight,
   },
   tagPillPremium: {
     backgroundColor: 'rgba(229, 176, 74, 0.10)',
@@ -166,7 +166,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     letterSpacing: 0.5,
   },
   tagTextStandard: {
-    color: (c as any).caregiverAccent || c.accent,
+    color: c.accent,
   },
   tagTextPremium: {
     color: (c as any).warning || c.accent,

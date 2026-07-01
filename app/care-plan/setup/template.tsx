@@ -231,7 +231,7 @@ const createStyles = (c: any) =>
       width: 6,
       height: 6,
       borderRadius: 3,
-      backgroundColor: c.caregiverAccentLight,
+      backgroundColor: c.accentLight,
     },
     // Phase 33b extension lavender no-fill canon — site #4. Wizard
     // pagination dot lands on sage (action-affirmative progress
@@ -244,7 +244,7 @@ const createStyles = (c: any) =>
       fontSize: 10,
       letterSpacing: 0.5,
       fontWeight: '600' as const,
-      color: c.caregiverAccent,
+      color: c.accent,
       textAlign: 'center' as const,
       marginBottom: Spacing.lg,
     },
@@ -272,8 +272,8 @@ const createStyles = (c: any) =>
       padding: Sizing.cardInternalPadding,
     },
     rowSelected: {
-      backgroundColor: c.caregiverAccentFaint,
-      borderColor: c.caregiverAccentStrong,
+      backgroundColor: c.accentFaint,
+      borderColor: c.accentBorder,
     },
     rowHeader: {
       flexDirection: 'row' as const,
@@ -291,11 +291,11 @@ const createStyles = (c: any) =>
       color: c.textPrimary,
     },
     rowNameSelected: {
-      color: c.caregiverAccentText,
+      color: c.accent,
     },
     rowDot: {
       fontSize: 10,
-      color: c.caregiverAccent,
+      color: c.accent,
     },
     rowDescription: {
       fontSize: 12,

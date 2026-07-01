@@ -228,7 +228,7 @@ const createStyles = (c: any) =>
       width: 6,
       height: 6,
       borderRadius: 3,
-      backgroundColor: c.caregiverAccentLight,
+      backgroundColor: c.accentLight,
     },
     // Phase 33b extension lavender no-fill canon — site #5. Wizard
     // pagination dot lands on sage (action-affirmative progress
@@ -241,7 +241,7 @@ const createStyles = (c: any) =>
       fontSize: 10,
       letterSpacing: 0.5,
       fontWeight: '600' as const,
-      color: c.caregiverAccent,
+      color: c.accent,
       textAlign: 'center' as const,
       marginBottom: Spacing.lg,
     },

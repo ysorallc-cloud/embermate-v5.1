@@ -279,7 +279,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   prepareLinkText: {
     fontSize: 12,
     fontWeight: '500',
-    color: c.caregiverAccent,
+    color: c.accent,
   },
   chevron: {
     fontSize: 18,

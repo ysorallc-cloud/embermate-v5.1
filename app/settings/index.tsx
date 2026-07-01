@@ -512,9 +512,9 @@ function createStyles(c: typeof Colors) {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       gap: 10,
-      backgroundColor: 'rgba(170, 138, 220, 0.06)',
+      backgroundColor: c.accentFaint,
       borderWidth: 0.5,
-      borderColor: 'rgba(170, 138, 220, 0.25)',
+      borderColor: c.accentBorder,
       borderRadius: 10,
       paddingVertical: 12,
       paddingHorizontal: 14,
@@ -522,7 +522,7 @@ function createStyles(c: typeof Colors) {
     },
     sampleEntryGlyph: {
       fontSize: 14,
-      color: (c as any).caregiverAccent || c.accent,
+      color: c.accent,
     },
     sampleEntryTitle: {
       fontSize: 13,
@@ -536,7 +536,7 @@ function createStyles(c: typeof Colors) {
     },
     sampleEntryChevron: {
       fontSize: 18,
-      color: (c as any).caregiverAccent || c.textTertiary,
+      color: c.textTertiary,
     },
     category: { marginBottom: 16 },
     categoryHeader: {

@@ -204,7 +204,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: Spacing.md,
   },
   carePlanBanner: {
-    backgroundColor: c.caregiverAccentFaint,
+    backgroundColor: c.accentFaint,
     borderRadius: 10,
     padding: 12, // allow: tap-target padding (Apple HIG ≥44pt)
     marginBottom: Spacing.md,
@@ -212,7 +212,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   carePlanBannerLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: c.caregiverAccent,
+    color: c.accent,
     letterSpacing: 1,
     marginBottom: 4,
   },

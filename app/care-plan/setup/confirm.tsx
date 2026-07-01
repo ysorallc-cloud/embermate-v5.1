@@ -206,13 +206,13 @@ export default function WizardStepConfirm() {
           </Text>
 
           {/* All three section eyebrows route through SectionEyebrow at
-              canon scale + letterSpacing 1.5 (Phase 33b Scope 3) +
-              tint="caregiverAccent" for lane-coherence across the
-              wizard's three steps. */}
+              canon scale + letterSpacing 1.5 (Phase 33b Scope 3). S7 de-purple:
+              register-colored — Core (meds/always-on) = gold, tracking sections
+              = sage. No lavender. */}
 
           {coreRows.some((r) => r.enabled) && (
             <View style={styles.section}>
-              <SectionEyebrow text="Core — always on" tint="caregiverAccent" />
+              <SectionEyebrow text="Core — always on" tint="gold" />
               {coreRows
                 .filter((r) => r.enabled)
                 .map((r) => (
@@ -230,7 +230,7 @@ export default function WizardStepConfirm() {
           )}
 
           <View style={styles.section}>
-            <SectionEyebrow text="These show on your Now tab" tint="caregiverAccent" />
+            <SectionEyebrow text="These show on your Now tab" tint="accent" />
             {/* Wellness pseudo-rows — Morning/Evening Check-in render
                 ahead of the remaining Now-tab toggles, matching the
                 management screen's five-row order (Meds / Vitals /
@@ -277,7 +277,7 @@ export default function WizardStepConfirm() {
           </View>
 
           <View style={styles.section}>
-            <SectionEyebrow text="These show on your Care Plan" tint="caregiverAccent" />
+            <SectionEyebrow text="These show on your Care Plan" tint="accent" />
             {carePlanRows.map((r) => (
               <View
                 key={r.type}
@@ -349,7 +349,7 @@ const createStyles = (c: any) =>
       width: 6,
       height: 6,
       borderRadius: 3,
-      backgroundColor: c.caregiverAccentLight,
+      backgroundColor: c.accentLight,
     },
     // Phase 33b extension lavender no-fill canon — site #2. Wizard
     // pagination dot is a progress indicator (action-affirmative lane,
@@ -363,7 +363,7 @@ const createStyles = (c: any) =>
       fontSize: 10,
       letterSpacing: 0.5,
       fontWeight: '600' as const,
-      color: c.caregiverAccent,
+      color: c.accent,
       textAlign: 'center' as const,
       marginBottom: Spacing.lg,
     },
@@ -431,7 +431,7 @@ const createStyles = (c: any) =>
     primary: {
       backgroundColor: c.background,
       borderWidth: 1,
-      borderColor: c.caregiverAccent,
+      borderColor: c.accent,
       borderRadius: 11,
       paddingVertical: 14, // allow: primary CTA tap-target (Apple HIG)
       alignItems: 'center' as const,
@@ -442,7 +442,7 @@ const createStyles = (c: any) =>
     primaryText: {
       fontSize: 15,
       fontWeight: '600' as const,
-      color: c.caregiverAccent,
+      color: c.accent,
     },
     back: {
       paddingVertical: 12,

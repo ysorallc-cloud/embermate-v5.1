@@ -637,7 +637,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '500',
   },
   carePlanContext: {
-    backgroundColor: c.caregiverAccentFaint,
+    backgroundColor: c.accentFaint,
     borderRadius: 10,
     padding: 12, // allow: tap-target padding (Apple HIG ≥44pt)
     marginTop: 16,
@@ -645,7 +645,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   carePlanContextLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: c.caregiverAccent,
+    color: c.accent,
     letterSpacing: 1,
     marginBottom: 4,
   },

@@ -277,9 +277,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Sample Banner
   sampleBanner: {
-    backgroundColor: c.caregiverAccentLight,
+    backgroundColor: c.accentLight,
     borderWidth: 1,
-    borderColor: c.caregiverAccentStrong,
+    borderColor: c.accentBorder,
     borderRadius: 14,
     padding: 14,
     marginBottom: Spacing.md,
@@ -299,7 +299,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   sampleBannerTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: c.caregiverAccentText,
+    color: c.accent,
     marginBottom: 4,
   },
   sampleBannerSubtitle: {

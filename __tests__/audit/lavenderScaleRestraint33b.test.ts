@@ -144,14 +144,9 @@ const WHITELIST: Array<{ path: string; rationale: string }> = [
   // surfaces. Each is allowed to continue consuming bare caregiverAccent
   // until a per-file audit decides migration vs preservation.
   { path: 'app/(onboarding)/screens/MeetSampleScreen.tsx', rationale: 'onboarding affordance — small lavender accent, low footprint' },
-  { path: 'app/appointments.tsx', rationale: 'appointment list chrome — pre-Phase-33 lane treatment, low cumulative footprint' },
-  { path: 'app/care-plan/setup/confirm.tsx', rationale: 'care-plan setup flow — small lavender accents' },
-  { path: 'app/care-plan/setup/template.tsx', rationale: 'care-plan setup flow' },
-  { path: 'app/care-plan/setup/who.tsx', rationale: 'care-plan setup flow' },
-  { path: 'app/hub/reports/index.tsx', rationale: 'reports hub — caregiver-to-clinician handoff Tier 3' },
-  { path: 'app/log-meal.tsx', rationale: 'log-form lane affordance' },
-  { path: 'app/log-mood.tsx', rationale: 'log-form lane affordance — mood is caregiver self-observation' },
-  { path: 'app/log-vitals.tsx', rationale: 'log-form lane affordance' },
+  // S7 sub-page harmonization (2026-07-01) — appointments, care-plan/setup/*
+  // (confirm/template/who), hub/reports/index, log-meal, log-mood, log-vitals
+  // left the whitelist: all de-purpled to sage (bare c.caregiverAccent removed).
   { path: 'app/visit-prep-preview.tsx', rationale: 'visit-prep preview — Tier 3 handoff-to-clinician surface' },
   { path: 'components/common/AIInsightCard.tsx', rationale: 'AI-derived insights — caregiver-lane content' },
   { path: 'components/journal/GestaltSummary.tsx', rationale: 'journal handoff narrative summary' },
