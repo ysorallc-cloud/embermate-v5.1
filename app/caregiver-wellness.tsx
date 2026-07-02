@@ -12,7 +12,6 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 import { useTheme } from '../contexts/ThemeContext';
@@ -259,12 +258,10 @@ export default function CaregiverWellnessScreen() {
             </TouchableOpacity>
           ) : null}
 
-          {/* Mood timeline card — Phase 29 Batch C F5. Primary lane card
-              chrome (Tier 3 rule): full-hex caregiverAccent left border +
-              caregiverAccentBg body + caregiverAccentWash hairline border.
-              Matches ReflectionCard + Phase 27/28 JournalSection — the
-              wellness subscreen's headline surface reads as a peer of the
-              other caregiver-lane primary cards across the app. */}
+          {/* Mood timeline card — S7 sage pivot. De-purpled: a neutral
+              surface + SAGE left-rule + hairline sage border (the lavender
+              lane chrome retired to match the You-tab de-purple this page
+              links from). */}
           {!loading && hasAnyCheckIn && (
             <View style={styles.cardWeekFelt}>
               <View style={styles.cardHeader}>
@@ -324,7 +321,7 @@ export default function CaregiverWellnessScreen() {
               <View style={styles.cardBody}>
                 <View style={styles.rhythmRow}>
                   <View style={styles.rhythmCell}>
-                    <Text style={[styles.rhythmValue, { color: colors.caregiverAccent }]}>
+                    <Text style={[styles.rhythmValue, { color: colors.accent }]}>
                       {lastCheckInLabel}
                     </Text>
                     <Text style={styles.rhythmLabel}>since last check-in</Text>
@@ -344,29 +341,19 @@ export default function CaregiverWellnessScreen() {
             </View>
           )}
 
-          {/* A gentle nudge — Phase 29 Batch C F5. Lavender gradient body
-              (caregiverAccentLight 0.10 → caregiverAccentBg 0.06 vertical)
-              with primary CTA recolored to solid caregiverAccent + dark
-              text per spec 2.7. Pre-C sage chrome retired (within-surface
-              Tier 1 lane orphan inside a now-lavender subscreen). */}
+          {/* A gentle nudge — S7 sage pivot. De-FILLED: the lavender gradient
+              body is gone; a faint neutral surface + sage left-rule + sage
+              eyebrow carry it, with the sage "Try 2 minutes" CTA. */}
           {!loading && nudge && !nudgeDismissed && (
-            <LinearGradient
-              colors={[colors.caregiverAccentLight, colors.caregiverAccentBg]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-              style={styles.nudgeCard}
-            >
+            <View style={styles.nudgeCard}>
               <Text style={styles.nudgeEyebrow}>{'A GENTLE NUDGE'}</Text>
               <Text style={styles.nudgeHeadline}>{nudge.headline}</Text>
               <Text style={styles.nudgeBody}>{nudge.body}</Text>
               <View style={styles.nudgeActions}>
-                {/* Phase 33b extension lavender no-fill canon — site #7.
-                    "Try 2 minutes of breathing" is an action-affirmative CTA
-                    (start a breathing exercise) — flipped from lavender fill
-                    to sage `colors.accent`. The nudgeCard around it still
-                    carries lavender lane identity via its gradient
-                    background; the inner CTA now reads as a clear sage
-                    "begin" beat per the no-fill canon. */}
+                {/* S7 sage pivot — the nudge is DE-FILLED (the lavender
+                    gradient body is gone). It still reads as a distinct nudge
+                    via a sage eyebrow + a sage left-rule + hairline border
+                    (no-fill canon). "Try 2 minutes" stays sage-affirmative. */}
                 <TouchableOpacity
                   style={[styles.nudgePrimary, { backgroundColor: colors.accent }]}
                   accessibilityRole="button"
@@ -383,7 +370,7 @@ export default function CaregiverWellnessScreen() {
                   <Text style={styles.nudgeSecondaryText}>{'Maybe later'}</Text>
                 </TouchableOpacity>
               </View>
-            </LinearGradient>
+            </View>
           )}
 
           {/* F7 C6b — Guidance tiles. Four accordion tiles below the
@@ -450,11 +437,11 @@ function createStyles(c: typeof Colors) {
     // JournalSection's caregiverAccent tint), cardRhythm carries
     // neutral auxiliary chrome per spec 2.6.
     cardWeekFelt: {
-      backgroundColor: c.caregiverAccentBg,
+      backgroundColor: c.surfaceAlt,
       borderWidth: 0.5,
-      borderColor: c.caregiverAccentWash,
+      borderColor: c.accentLight,
       borderLeftWidth: 3,
-      borderLeftColor: c.caregiverAccent,
+      borderLeftColor: c.accent,
       borderRadius: 11,
       padding: 16,
     },
@@ -628,8 +615,8 @@ function createStyles(c: typeof Colors) {
     // a stable dependency. Drop the fallback for clarity.
     noticedCallout: {
       borderLeftWidth: 2,
-      borderLeftColor: c.caregiverAccent,
-      backgroundColor: 'rgba(170, 138, 220, 0.06)',
+      borderLeftColor: c.accent,
+      backgroundColor: c.accentFaint,
       paddingVertical: 10,
       paddingHorizontal: 12,
       borderRadius: 4,
@@ -639,7 +626,7 @@ function createStyles(c: typeof Colors) {
       fontSize: 9,
       fontWeight: '500' as const,
       letterSpacing: 0.5,
-      color: c.caregiverAccent,
+      color: c.accent,
       marginBottom: 4,
     },
     noticedBody: {
@@ -647,16 +634,16 @@ function createStyles(c: typeof Colors) {
       color: c.textSecondary,
       lineHeight: 17,
     },
-    // Phase 29 Batch C F5 — nudge card chrome migrated from sage
-    // rgba(95,184,138,*) to lavender lane. Card body is now a
-    // LinearGradient (lavender 0.10 → 0.06) wrapped in this style for
-    // border/radius/padding; the bg color stops applied on the gradient
-    // override any backgroundColor here, but kept the property removed
-    // to avoid mixed sources of truth. Border + radius unchanged shape;
-    // border color is the caregiverAccentStrong (0.25) per spec 2.7.
+    // S7 sage pivot — DE-FILLED. The lavender LinearGradient body is gone;
+    // the nudge now reads via a faint neutral surface + a SAGE left-rule +
+    // hairline sage border + sage eyebrow (no-fill canon). Still distinct as
+    // "a gentle nudge" without a saturated fill.
     nudgeCard: {
+      backgroundColor: c.surfaceAlt,
       borderWidth: 0.5,
-      borderColor: c.caregiverAccentStrong,
+      borderColor: c.accentBorder,
+      borderLeftWidth: 3,
+      borderLeftColor: c.accent,
       borderRadius: 11,
       padding: 13,
       marginTop: 16,
@@ -665,7 +652,7 @@ function createStyles(c: typeof Colors) {
       fontSize: 9,
       fontWeight: '500' as const,
       letterSpacing: 0.5,
-      color: c.caregiverAccent,
+      color: c.accent,
     },
     nudgeHeadline: {
       fontSize: 14,
@@ -717,7 +704,7 @@ function createStyles(c: typeof Colors) {
     // subscreen; sage would be a within-surface lane orphan.
     emptyCtaText: {
       fontSize: 13,
-      color: c.caregiverAccent,
+      color: c.accent,
       fontWeight: '500' as const,
     },
   });

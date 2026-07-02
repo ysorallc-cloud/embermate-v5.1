@@ -59,15 +59,15 @@ function num(block: string, prop: string): number | null {
 }
 
 describe('Phase 29 Batch C F5 — caregiver-wellness card chrome migration', () => {
-  it('cardWeekFelt: Tier 3 primary lane chrome (matches ReflectionCard + JournalSection)', () => {
+  it('cardWeekFelt: DE-PURPLED (S7) — neutral surface + sage left-rule', () => {
     const block = styleBlock('cardWeekFelt');
     expect(block).not.toBe('');
-    expect(block).toMatch(/backgroundColor:\s*c\.caregiverAccentBg\b/);
-    expect(block).toMatch(/borderColor:\s*c\.caregiverAccentWash\b/);
+    expect(block).toMatch(/backgroundColor:\s*c\.surfaceAlt\b/);
+    expect(block).toMatch(/borderColor:\s*c\.accentLight\b/);
     expect(num(block, 'borderWidth')).toBe(0.5);
     expect(num(block, 'borderLeftWidth')).toBe(3);
-    // Full hex caregiverAccent — not an alpha variant (Q-C1 / Tier 3 rule).
-    expect(block).toMatch(/borderLeftColor:\s*c\.caregiverAccent\b(?!\w)/);
+    expect(block).toMatch(/borderLeftColor:\s*c\.accent\b(?!\w)/);
+    expect(block).not.toMatch(/caregiverAccent/);
     expect(num(block, 'borderRadius')).toBe(11);
     expect(num(block, 'padding')).toBe(16);
   });
@@ -117,20 +117,16 @@ describe('Phase 29 Batch C F5 — caregiver-wellness card chrome migration', () 
     expect(num(block, 'flex')).toBe(1);
   });
 
-  it('nudgeCard: LinearGradient wrapper + caregiverAccentStrong border + radius 11 (sage rgba retired)', () => {
+  it('nudgeCard: DE-FILLED (S7) — no gradient, neutral surface + sage border + sage left-rule', () => {
     const block = styleBlock('nudgeCard');
-    // backgroundColor moved to the LinearGradient stops; the style itself
-    // owns border + radius + padding only.
-    expect(block).not.toMatch(/backgroundColor:/);
-    expect(block).toMatch(/borderColor:\s*c\.caregiverAccentStrong\b/);
+    expect(block).toMatch(/backgroundColor:\s*c\.surfaceAlt\b/);
+    expect(block).toMatch(/borderColor:\s*c\.accentBorder\b/);
+    expect(num(block, 'borderLeftWidth')).toBe(3);
+    expect(block).toMatch(/borderLeftColor:\s*c\.accent\b(?!\w)/);
     expect(num(block, 'borderRadius')).toBe(11);
-    // JSX uses LinearGradient with caregiverAccentLight → caregiverAccentBg
-    // stops (spec 2.7 — lavender 0.10 → 0.06 vertical).
-    expect(STRIPPED).toMatch(
-      /<LinearGradient[\s\S]*?colors=\{\[colors\.caregiverAccentLight,\s*colors\.caregiverAccentBg\]\}/,
-    );
-    // Absence pin — sage rgba retired from the nudge card block.
-    expect(block).not.toMatch(/rgba\(95,\s*184,\s*138/);
+    expect(block).not.toMatch(/caregiverAccent/);
+    // The lavender LinearGradient body is gone — the nudge reads via chrome, no fill.
+    expect(STRIPPED).not.toMatch(/<LinearGradient/);
   });
 
   it('nudgePrimary CTA: sage `colors.accent` bg + near-black text (Phase 33b extension lavender no-fill canon — reframed from Phase 29 Batch C F5 lavender flip)', () => {
@@ -170,33 +166,30 @@ describe('Phase 29 Batch C F5 — Tier 1 sweep (lane-coherence absence pin)', ()
     expect(STRIPPED).toMatch(/\b(c|colors)\.accent\b/);
   });
 
-  it('Tier 1: noticedCallout + noticedEyebrow drop pre-C c.accent fallback', () => {
-    // Pre-C both used `(c as any).caregiverAccent || c.accent` defensive
-    // fallback. F5 dropped the fallback — caregiverAccent is a stable
-    // dependency post-Phase-26 lane work.
+  it('Tier 1: noticedCallout + noticedEyebrow are SAGE (S7 de-purple)', () => {
     const callout = styleBlock('noticedCallout');
     const eyebrow = styleBlock('noticedEyebrow');
-    expect(callout).toMatch(/borderLeftColor:\s*c\.caregiverAccent\b(?!\w)/);
-    expect(callout).not.toMatch(/\|\|\s*c\.accent/);
-    expect(eyebrow).toMatch(/color:\s*c\.caregiverAccent\b(?!\w)/);
-    expect(eyebrow).not.toMatch(/\|\|\s*c\.accent/);
+    expect(callout).toMatch(/borderLeftColor:\s*c\.accent\b(?!\w)/);
+    expect(callout).not.toMatch(/caregiverAccent/);
+    expect(eyebrow).toMatch(/color:\s*c\.accent\b(?!\w)/);
+    expect(eyebrow).not.toMatch(/caregiverAccent/);
   });
 
-  it('Tier 1: nudgeEyebrow color = caregiverAccent', () => {
+  it('Tier 1: nudgeEyebrow color = sage accent (S7)', () => {
     const block = styleBlock('nudgeEyebrow');
-    expect(block).toMatch(/color:\s*c\.caregiverAccent\b(?!\w)/);
+    expect(block).toMatch(/color:\s*c\.accent\b(?!\w)/);
+    expect(block).not.toMatch(/caregiverAccent/);
   });
 
-  it('Tier 1: emptyCtaText color = caregiverAccent', () => {
+  it('Tier 1: emptyCtaText color = sage accent (S7)', () => {
     const block = styleBlock('emptyCtaText');
-    expect(block).toMatch(/color:\s*c\.caregiverAccent\b(?!\w)/);
+    expect(block).toMatch(/color:\s*c\.accent\b(?!\w)/);
+    expect(block).not.toMatch(/caregiverAccent/);
   });
 
-  it('Tier 1: rhythmValue inline color (since-last-check-in line) = caregiverAccent', () => {
-    // The first rhythm cell inlines `{ color: colors.caregiverAccent }`
-    // on the rhythmValue Text. F5 changed this from colors.accent.
+  it('Tier 1: rhythmValue inline color (since-last-check-in line) = sage accent (S7)', () => {
     expect(STRIPPED).toMatch(
-      /\[styles\.rhythmValue,\s*\{\s*color:\s*colors\.caregiverAccent\s*\}\]/,
+      /\[styles\.rhythmValue,\s*\{\s*color:\s*colors\.accent\s*\}\]/,
     );
   });
 

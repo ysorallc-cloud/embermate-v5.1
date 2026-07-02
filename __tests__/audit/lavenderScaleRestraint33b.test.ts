@@ -115,11 +115,10 @@ const WHITELIST: Array<{ path: string; rationale: string }> = [
     path: 'app/(tabs)/journal.tsx',
     rationale: 'caregiver chip parity with Now/Journal identity strip + BUILDING TOWARD eyebrow (canon-compliant tint)',
   },
-  // (4) Lane-defining subscreen
-  {
-    path: 'app/caregiver-wellness.tsx',
-    rationale: 'You-lane subscreen — Tier 3 cross-surface primary by definition',
-  },
+  // (4) Lane-defining subscreen — S7 (2026-07-01): caregiver-wellness left the
+  // whitelist. It's the You-tab "Your wellness" destination; since You went full
+  // sage in S4, this page pivoted to sage too (nudge card de-filled). No bare
+  // c.caregiverAccent remains.
   // (5) Theme primitives
   {
     path: 'components/journal/JournalSection.tsx',
