@@ -279,13 +279,21 @@ export function FlatTimelineFeed({ allPending, completed, onItemPress }: FlatTim
         {rows.map((row, idx) => {
           if (row.kind === 'band') {
             const meta = PERIOD_META[row.period];
+            // Shelf treatment (2026-07-02) — the band label is isolated as a
+            // "shelf" header: dot stays on the spine, the label + first-time
+            // sit alone, and a 1px hairline rule runs from the end of the
+            // label to the right edge (or to the status text). idx > 0 adds
+            // the 32px between-band break; the first band (idx 0) hugs the
+            // whisper line above. Child item rows indent a full step under
+            // this shelf via itemBody (see marginLeft below). Typography on
+            // bandLabel is intentionally UNCHANGED (TypeScale.micro).
             return (
-              <View key={`band-${row.period}-${idx}`} style={styles.bandRow} testID={`band-${row.period}`}>
+              <View key={`band-${row.period}-${idx}`} style={[styles.bandRow, idx > 0 && styles.bandGap]} testID={`band-${row.period}`}>
                 <View style={styles.bandLeftRail} />
                 <View style={[styles.bandDot, { backgroundColor: bandDotColor(row.period, colors) }]} />
                 <Text style={styles.bandLabel}>{meta.label}</Text>
                 {row.firstTime ? <Text style={styles.bandMeta}>{` · ${row.firstTime}`}</Text> : null}
-                <View style={{ flex: 1 }} />
+                <View style={styles.bandRule} testID={`band-rule-${row.period}`} />
                 {row.allDone ? (
                   <Text style={styles.bandStatusDone}>Done ✓</Text>
                 ) : row.remaining > 0 ? (
@@ -399,11 +407,30 @@ const createStyles = (c: typeof Colors) =>
       backgroundColor: c.hairlineInset,
     },
 
-    // ── Band row ────────────────────────────────────────────────
+    // ── Band row (shelf) ────────────────────────────────────────
+    // The band label is a "shelf" header — isolated from its child rows
+    // by the trailing hairline rule (bandRule) and, between bands, the
+    // 32px break (bandGap, applied only when idx > 0 so the first band
+    // hugs the whisper line above). paddingVertical is the shelf's own
+    // height; the inter-band 32 and intra-band 8 are the §8 tokens.
     bandRow: {
       flexDirection: 'row' as const,
       alignItems: 'center',
       paddingVertical: 8,
+    },
+    bandGap: {
+      marginTop: 32, // §8 — between the last row of one band and the next shelf
+    },
+    // Hairline rule running from the end of the band label/time to the
+    // right edge of the shelf (or to the status text when present). This
+    // is the primary visual isolator that makes the label read as a
+    // header rather than sharing weight with the rows below it.
+    bandRule: {
+      flex: 1,
+      height: 1,
+      backgroundColor: c.hairlineInset,
+      marginLeft: 10,
+      marginRight: 10,
     },
     bandLeftRail: {
       width: 30,
@@ -437,10 +464,16 @@ const createStyles = (c: typeof Colors) =>
     },
 
     // ── Item row (common) ───────────────────────────────────────
+    // marginTop: 8 is the §8 intra-band gap between successive rows
+    // (shelf→first item and item→item). The between-band 32 lives on the
+    // band shelf (bandGap), so items never carry it. paddingVertical is
+    // unchanged — tap targets on the touchable pending/overdue rows are
+    // preserved exactly.
     itemRow: {
       flexDirection: 'row' as const,
       alignItems: 'center',
       paddingVertical: 8,
+      marginTop: 8,
     },
     leftRail: {
       width: 30,
@@ -452,9 +485,14 @@ const createStyles = (c: typeof Colors) =>
       color: c.textMuted,
       letterSpacing: 0.2,
     },
+    // Full-step indent under the shelf (2026-07-02). Item text starts at
+    // rail(30) + 60 = 90px; the band label sits at ~46px, so children are
+    // indented a full ~44px step (one icon-width + gap) beneath their
+    // shelf. The spine node stays absolute on the spine (left:26/center 32)
+    // and does NOT move — only this text column indents.
     itemBody: {
       flex: 1,
-      marginLeft: 14, // allow: rail (30) + spine offset (2) + breathing room — F7 C6c-A flat-feed spec
+      marginLeft: 60,
     },
 
     // ── Done row ─────────────────────────────────────────────────
@@ -492,7 +530,7 @@ const createStyles = (c: typeof Colors) =>
       borderRadius: 9,
       paddingVertical: 9,
       paddingHorizontal: 11, // allow: overdue card horizontal pad per F7 spec
-      marginVertical: 4,
+      marginTop: 8, // §8 intra-band gap (replaces the prior ad-hoc marginVertical: 4)
     },
     overdueEyebrow: {
       ...TypeScale.micro,
@@ -518,6 +556,7 @@ const createStyles = (c: typeof Colors) =>
       flexDirection: 'row' as const,
       alignItems: 'center',
       paddingVertical: 8,
+      marginTop: 8,
       opacity: 0.55,
     },
     itemTitlePending: {
