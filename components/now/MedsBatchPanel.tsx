@@ -10,6 +10,7 @@ import { Colors } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { parseTimeForDisplay } from '../../utils/nowHelpers';
 import { getCareItemStatus } from '../../utils/careItemStatus';
+import { dosageNotInName } from '../../utils/medDisplay';
 
 interface MedInstance {
   id: string;
@@ -119,7 +120,7 @@ export function MedsBatchPanel({
                 <View style={styles.medDetails}>
                   <Text style={styles.medName}>{med.itemName}</Text>
                   <Text style={[styles.medMeta, overdueItem && styles.medMetaOverdue]}>
-                    {med.itemDosage ? `${med.itemDosage} \u00B7 ` : ''}
+                    {dosageNotInName(med.itemName, med.itemDosage) ? `${med.itemDosage} \u00B7 ` : ''}
                     {timeStr || ''}
                     {overdueItem ? ' \u00B7 Overdue' : ''}
                   </Text>
@@ -184,8 +185,10 @@ export function MedsBatchPanel({
         const isMissed = med.status === 'missed';
         const statusText = isMissed ? 'Missed' : med.status === 'skipped' ? 'Skipped' : 'Done';
 
-        // Deduplicate dosage: skip if already in the item name
-        const showDosage = med.itemDosage && !med.itemName.includes(med.itemDosage);
+        // Deduplicate dosage: skip if already in the item name.
+        // Centralized in utils/medDisplay (shared with Journal + quick-log-more);
+        // now case-insensitive, matching the other surfaces.
+        const showDosage = dosageNotInName(med.itemName, med.itemDosage);
 
         if (isMissed) {
           return (

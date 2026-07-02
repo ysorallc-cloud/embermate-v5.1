@@ -17,6 +17,7 @@
 
 import type { DailyCareInstance } from '../types/carePlan';
 import { getCareItemStatus } from './careItemStatus';
+import { formatMedDisplay } from './medDisplay';
 
 export type LogRowStatus = 'done' | 'skipped' | 'due' | 'missed' | 'pending';
 
@@ -114,12 +115,17 @@ export function buildJournalLoggedRows(
         status === 'missed' ? 'Missed'
         : status === 'due' ? `Due ${d ? clockShort(d) : ''}`.trim()
         : d ? clockLong(d) : '';
-      const detail = inst.itemType === 'medication' ? inst.itemDosage : undefined;
+      // P1 dose de-dup — fold the med name + dose through formatMedDisplay so a
+      // stored name that already contains the dose ("Aspirin 81mg") is not
+      // doubled with the separate itemDosage ("Aspirin 81mg 81mg").
+      const name =
+        inst.itemType === 'medication'
+          ? formatMedDisplay(displayName(inst), inst.itemDosage)
+          : displayName(inst);
       return {
         id: inst.id,
         type: typeLabel(inst.itemType),
-        name: displayName(inst),
-        detail,
+        name,
         time,
         status,
         _sort: d ? d.getTime() : Number.MAX_SAFE_INTEGER,

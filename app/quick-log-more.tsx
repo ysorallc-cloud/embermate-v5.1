@@ -44,6 +44,7 @@ import { emitDataUpdate, useDataListener } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
 import { hapticSuccess } from '../utils/hapticFeedback';
 import { logError } from '../utils/devLog';
+import { formatMedDisplay } from '../utils/medDisplay';
 import { format } from 'date-fns';
 import { useDailyCareInstances } from '../hooks/useDailyCareInstances';
 import { DailyCareInstance } from '../types/carePlan';
@@ -503,7 +504,7 @@ export default function QuickLogMoreScreen() {
                   >
                     <View style={styles.medInfo}>
                       <Text style={[styles.medName, isDoneStatus && styles.medNameDone]}>
-                        {med.itemName}{med.itemDosage ? ` ${med.itemDosage}` : ''}
+                        {formatMedDisplay(med.itemName, med.itemDosage)}
                       </Text>
                       <Text style={styles.medTime}>{med.windowLabel}</Text>
                     </View>
