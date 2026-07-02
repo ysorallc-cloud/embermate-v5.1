@@ -158,6 +158,11 @@ const createStyles = (c: typeof Colors) =>
       height: 28,
       borderRadius: 14,
       backgroundColor: 'rgba(244, 221, 184, 0.06)',
+      // B2 — unchecked day = awaiting. Circle, so per the spike verdict this is
+      // the reduced-opacity SOLID fallback (dashed renders poorly on iOS rings),
+      // a NEUTRAL ring (not a register tint — You stays tint-free per B1).
+      borderWidth: 1,
+      borderColor: c.borderNeutral,
     },
     dotEmoji: {
       fontSize: 16,

@@ -366,6 +366,14 @@ const DarkColors = {
   borderLight: 'rgba(255, 255, 255, 0.05)',
   borderMedium: 'rgba(156, 207, 166, 0.22)',
   borderStrong: 'rgba(156, 207, 166, 0.35)',
+  // ── B1–B4 border system (2026-07-01) — flat tokens per convention. ────────
+  // Alphas are PLACEHOLDERS: single-point tunable here after device review.
+  // Surfaces read these tokens, never inline rgba.
+  borderNeutral: '#2f3a32',                    // Design-Lock neutral border (dark)
+  borderLift: 'rgba(255, 255, 255, 0.09)',     // lighter than card fill → raised
+  borderInset: 'rgba(0, 0, 0, 0.22)',          // darker than card fill → recessed
+  borderHandoff: 'rgba(143, 168, 200, 0.28)',  // blue @ 0.28 — handoff lane
+  borderReflect: 'rgba(227, 166, 132, 0.26)',  // coral @ 0.26 — reflection lane
   // Mirrors the page background (Phase 0 lifted both in lockstep so the
   // tab strip stays seamless with the surface above it). Slice-1's
   // brief flip to #0d0b08 was superseded; restored to #141a16 alongside

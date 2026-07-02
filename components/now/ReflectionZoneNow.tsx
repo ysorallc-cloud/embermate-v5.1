@@ -32,7 +32,6 @@ import { Fonts } from '../../theme/theme-tokens';
 import {
   CARD_PADDING_H,
   CARD_PADDING_V,
-  CardBorder,
   ROW_V,
   TypeScale,
   ZoneTint,
@@ -201,8 +200,9 @@ const createStyles = (c: typeof Colors) =>
       paddingVertical: ROW_V,
     },
     emberCard: {
+      // B1 — Now Reflection frame carries the reflection-lane border tint.
       borderWidth: 1,
-      borderColor: CardBorder.ember,
+      borderColor: c.borderReflect,
       borderRadius: 12,
       padding: CARD_PADDING_V,
     },

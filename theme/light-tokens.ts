@@ -237,6 +237,12 @@ export const LightColors = {
   borderSubtle: 'rgba(0, 0, 0, 0.10)',
   borderMedium: 'rgba(63, 125, 87, 0.18)',
   borderStrong: 'rgba(0, 0, 0, 0.18)',
+  // ── B1–B4 border system (2026-07-01) — light equivalents (placeholder alphas).
+  borderNeutral: '#cfdace',                    // Design-Lock neutral border (light)
+  borderLift: 'rgba(0, 0, 0, 0.05)',           // subtle raised edge on white fill
+  borderInset: 'rgba(0, 0, 0, 0.12)',          // darker recessed edge
+  borderHandoff: 'rgba(90, 120, 160, 0.28)',   // blue @ 0.28 (light blue #5a78a0)
+  borderReflect: 'rgba(192, 103, 63, 0.26)',   // coral @ 0.26 (light coral #c0673f)
 
   // Tab Bar
   tabBarBackground: '#FFFFFF',

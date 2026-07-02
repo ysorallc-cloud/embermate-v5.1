@@ -32,6 +32,7 @@ jest.mock('../../contexts/ThemeContext', () => ({
       caregiverAccentText: '#5a7a9a',
       caregiverAccentBg: 'rgba(107, 140, 174, 0.08)',
       caregiverAccentStrong: 'rgba(107, 140, 174, 0.30)',
+      borderHandoff: 'rgba(143, 168, 200, 0.28)',
       textPrimary: '#fff',
       textSecondary: '#c4c1b3',
       textTertiary: '#8a8a82',

@@ -120,8 +120,8 @@ describe('EndOfShiftCard caregiver-accent identity', () => {
     expect(src).toMatch(/caregiverAccentBg/);
   });
 
-  it('border uses caregiverAccentStrong token', () => {
-    expect(src).toMatch(/caregiverAccentStrong/);
+  it('border uses the B1 handoff register token (end-of-shift = handoff lane)', () => {
+    expect(src).toMatch(/borderColor:\s*c\.borderHandoff/);
   });
 
   it('text/title uses caregiverAccentText token', () => {

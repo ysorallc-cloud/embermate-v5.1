@@ -102,9 +102,11 @@ const createStyles = (c: any) => StyleSheet.create({
   // inter-card gap. borderWidth drops 1 → 0.5 to match the card-edge
   // contract elsewhere on the page; padding/radius migrate to tokens.
   card: {
+    // B1 — End-of-shift is the caregiver→next-caregiver handoff card → handoff
+    // border tint. (bg stays the faint handoff-blue caregiverAccentBg; coherent.)
     backgroundColor: c.caregiverAccentBg,
     borderWidth: 0.5,
-    borderColor: c.caregiverAccentStrong,
+    borderColor: c.borderHandoff,
     borderRadius: Sizing.cardRadius,
     padding: Sizing.cardInternalPadding,
     marginTop: 0,

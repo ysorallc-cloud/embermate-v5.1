@@ -169,9 +169,11 @@ function SourcePill({ label, active, c }: { label: string; active: boolean; c: a
           borderRadius: 10,
           borderWidth: 0.5,
         },
+        // B1 — Upcoming Visit is the caregiver→clinician handoff container →
+        // handoff border tint (it already had a border; not adding one).
         active
-          ? { backgroundColor: 'transparent', borderColor: c.glassStrong }
-          : { backgroundColor: 'transparent', borderColor: c.glassBorder },
+          ? { backgroundColor: 'transparent', borderColor: c.borderHandoff }
+          : { backgroundColor: 'transparent', borderColor: c.borderHandoff },
       ]}
     >
       <Text

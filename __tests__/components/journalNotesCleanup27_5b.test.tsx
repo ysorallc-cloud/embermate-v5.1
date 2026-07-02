@@ -79,6 +79,7 @@ const themeColors = {
   textTertiary: '#9aa0a6',
   caregiverAccent: '#aa8adc',
   caregiverAccentBorder: 'rgba(143, 168, 200, 0.20)',
+  borderHandoff: 'rgba(143, 168, 200, 0.28)',
   amber: '#d6ab5e',
   green: '#9ccfa6',
   greenTint: 'rgba(156, 207, 166, 0.10)',
@@ -220,11 +221,11 @@ describe('Phase 27.5b F5 — JournalNotesCard notes cleanup', () => {
     const tree = render({ ...baseProps, bare: true });
     const ti = tree.root.findByType('TextInput' as any);
     const s = flatStyle(ti);
-    // Journal rebuild step 5 — input chrome migrated to tokens: inset field
-    // surface (glassDim) + BLUE handoff border (caregiverAccentBorder).
+    // Journal rebuild step 5 + B1 — inset field surface (glassDim) + the
+    // handoff-lane border, now the dedicated borderHandoff register token.
     expect(s.backgroundColor).toBe(themeColors.glassDim);
     expect(s.borderWidth).toBe(0.5);
-    expect(s.borderColor).toBe(themeColors.caregiverAccentBorder);
+    expect(s.borderColor).toBe(themeColors.borderHandoff);
     expect(s.borderRadius).toBe(8);
   });
 

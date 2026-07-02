@@ -213,7 +213,9 @@ export function JournalNotesCard({
         <View testID="notes-body" style={styles.bareBody}>
           <TextInput
             ref={textInputRef}
-            style={styles.bareInput}
+            // B2 — empty handoff placeholder reads DASHED (awaiting); flips
+            // solid once a note exists. Rectangle, so dashed renders cleanly.
+            style={[styles.bareInput, text.trim().length === 0 && styles.bareInputEmpty]}
             value={text}
             onChangeText={setText}
             placeholder={barePlaceholder}
@@ -428,8 +430,10 @@ const createStyles = (c: any) =>
       // rgba(0,0,0,.18) / rgba(255,255,255,.10) F5 literals.
       backgroundColor: c.glassDim,
       borderWidth: 0.5,
-      borderColor: c.caregiverAccentBorder,
+      // B1 — handoff note field carries the handoff-lane border tint (§5 blue).
+      borderColor: c.borderHandoff,
       borderRadius: 8,
+      borderStyle: 'solid',
       paddingVertical: 10,
       paddingHorizontal: 11, // allow: tap-target padding (Apple HIG ≥44pt)
       minHeight: 44,
@@ -443,6 +447,11 @@ const createStyles = (c: any) =>
       fontSize: 11,
       lineHeight: 17,
       color: c.textPrimary,
+    },
+    // B2 — empty (awaiting) handoff placeholder: dashed edge. Flips back to the
+    // solid bareInput once a note exists. Rectangle → dashed renders cleanly.
+    bareInputEmpty: {
+      borderStyle: 'dashed',
     },
     // Phase 31 F2 fix — past-day read-only render. No input chrome
     // (no border, bg, or padding box) — the past day's saved notes
