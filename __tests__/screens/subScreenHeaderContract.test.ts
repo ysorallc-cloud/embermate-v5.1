@@ -1,6 +1,6 @@
 // ============================================================================
 // SubScreenHeader contract — every non-tab screen uses the shared header
-// component with 32pt title / 13pt subtitle / 56pt top padding.
+// component with 32pt title / 13pt subtitle / 32pt top padding.
 // Mirrors the four-tab structure asserted in headerStructureContract.test.ts.
 // ============================================================================
 
@@ -24,9 +24,17 @@ function num(block: string, prop: string): number | null {
 }
 
 describe('SubScreenHeader — shape and metrics', () => {
-  it('container paddingTop is 56 (matches main-tab contract)', () => {
+  it('container paddingTop is 32 — completes the Phase 5.13.4 tab migration', () => {
+    // Phase 5.13.4 dropped the FOUR TABS from paddingTop 56 → 32 because,
+    // combined with the safe-area inset, 56 pushed the header too far down
+    // (see headerStructureContract.test.ts). SubScreenHeader was left at the
+    // stale 56, so its back-button row (the first child, BELOW this paddingTop)
+    // sat ~24pt lower than it should on every sub-screen. This aligns it to the
+    // tabs' 32 — NOT an arbitrary value; it finishes the same migration.
+    // (Verified Jul 2 2026: no sub-screen call site overrides this padding, so
+    // this single change migrates all ~31 sub-screens uniformly.)
     const block = styleBlock(headerSrc, 'container');
-    expect(num(block, 'paddingTop')).toBe(56);
+    expect(num(block, 'paddingTop')).toBe(32);
   });
 
   it('container paddingBottom is 24', () => {

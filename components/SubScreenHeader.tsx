@@ -1,7 +1,7 @@
 // ============================================================================
 // SUB-SCREEN HEADER
 // Standardized header for all non-tab screens. Shape mirrors the four-tab
-// contract (32pt title / 13pt subtitle / 56pt top padding / 24pt bottom)
+// contract (32pt title / 13pt subtitle / 32pt top padding / 24pt bottom)
 // — see __tests__/screens/headerStructureContract.test.ts.
 //
 // Layout:
@@ -41,7 +41,12 @@ interface SubScreenHeaderProps {
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
-    paddingTop: 56,
+    // Jul 2 2026 — 56 → 32, completing the Phase 5.13.4 tab migration (the
+    // four tabs dropped 56 → 32 because 56 + the safe-area inset pushed the
+    // header too far down; SubScreenHeader was left stale at 56). This
+    // paddingTop sits ABOVE the back-button row (the first child), so it was
+    // the value pushing the back arrow ~24pt too low on every sub-screen.
+    paddingTop: 32,
     paddingBottom: 24, // allow: tap-target padding (Apple HIG ≥44pt)
     borderBottomWidth: 0.5,
     borderBottomColor: c.glassHover,
