@@ -331,26 +331,29 @@ export default function LogMedicationPlanItemScreen() {
 
           {/* Mode Toggle */}
           <View style={styles.modeToggle}>
+            {/* Top control is a SELECTOR (local setMode, no commit) — past-tense
+                STATE labels, no checkmark, no "Mark" language, so it can't be
+                mistaken for the bottom submit button (Jul 2 brief item 4). */}
             <TouchableOpacity
               style={[styles.modeButton, mode === 'confirm' && styles.modeButtonActive]}
               onPress={() => setMode('confirm')}
-              accessibilityLabel="Mark Taken"
+              accessibilityLabel="Taken"
               accessibilityRole="button"
               accessibilityState={{ selected: mode === 'confirm' }}
             >
               <Text style={[styles.modeButtonText, mode === 'confirm' && styles.modeButtonTextActive]}>
-                ✓ Mark Taken
+                Taken
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.modeButton, mode === 'skip' && styles.modeButtonSkip]}
               onPress={() => setMode('skip')}
-              accessibilityLabel="Skip"
+              accessibilityLabel="Skipped"
               accessibilityRole="button"
               accessibilityState={{ selected: mode === 'skip' }}
             >
               <Text style={[styles.modeButtonText, mode === 'skip' && styles.modeButtonTextSkip]}>
-                Skip
+                Skipped
               </Text>
             </TouchableOpacity>
           </View>
