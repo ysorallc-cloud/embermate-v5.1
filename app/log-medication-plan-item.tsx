@@ -38,6 +38,7 @@ import { logError } from '../utils/devLog';
 import { useDailyCareInstances } from '../hooks/useDailyCareInstances';
 import { emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
+import { dosageNotInName } from '../utils/medDisplay';
 
 // ============================================================================
 // CONSTANTS
@@ -304,7 +305,7 @@ export default function LogMedicationPlanItemScreen() {
               <Text style={styles.medicationEmoji}>💊</Text>
               <View style={styles.medicationInfo}>
                 <Text style={styles.medicationName}>{medicationData.name}</Text>
-                {medicationData.dosage && (
+                {dosageNotInName(medicationData.name, medicationData.dosage) && (
                   <Text style={styles.medicationDosage}>{medicationData.dosage}</Text>
                 )}
               </View>
