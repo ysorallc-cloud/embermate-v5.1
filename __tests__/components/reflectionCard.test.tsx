@@ -136,11 +136,12 @@ describe('ReflectionCard — Section 4: text input', () => {
     expect(src).toMatch(/A few words, or skip…/);
   });
 
-  it('input style: glassDim background, 0.5px glassBorder, radius 10, padding 12, fontSize 13', () => {
+  it('input style: B3 INSET — darkened (background) fill + borderInset, radius 10, padding 12, fontSize 13', () => {
     const block = styleBlock('input');
-    expect(block).toMatch(/backgroundColor:\s*c\.glassDim|backgroundColor:\s*colors\.glassDim/);
+    // B3 device-conditional inset: darkened fill + inset edge (was glassDim/glassBorder).
+    expect(block).toMatch(/backgroundColor:\s*c\.background|backgroundColor:\s*colors\.background/);
     expect(num(block, 'borderWidth')).toBe(0.5);
-    expect(block).toMatch(/borderColor:\s*c\.glassBorder|borderColor:\s*colors\.glassBorder/);
+    expect(block).toMatch(/borderColor:\s*c\.borderInset|borderColor:\s*colors\.borderInset/);
     expect(num(block, 'borderRadius')).toBe(10);
     expect(num(block, 'padding')).toBe(12);
     expect(num(block, 'fontSize')).toBe(13);

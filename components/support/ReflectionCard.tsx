@@ -254,9 +254,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: 10,
   },
   input: {
-    backgroundColor: c.glassDim,
+    // B3 — check-in field reads INSET/recessed: darkened fill + inset edge.
+    // Device-conditional; isolated commit, reverts cheaply.
+    backgroundColor: c.background,
     borderWidth: 0.5,
-    borderColor: c.glassBorder,
+    borderColor: c.borderInset,
     borderRadius: 10,
     padding: 12,
     // Phase 29 Batch B F3 — 3-line minHeight (fontSize 13 × lineHeight

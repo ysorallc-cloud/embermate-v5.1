@@ -428,10 +428,14 @@ const createStyles = (c: any) =>
       // BLUE border — §5: blue = handoff, so the handoff note's input carries
       // the handoff-lane signal (journal-aligned). Migrated from the
       // rgba(0,0,0,.18) / rgba(255,255,255,.10) F5 literals.
-      backgroundColor: c.glassDim,
+      // B3 (SUPERSEDES B1 on this field — FLAGGED): the handoff note field
+      // reads INSET/recessed (darkened fill + inset edge) instead of the B1
+      // handoff-blue border. Trade-off: this loses the §5 handoff signal on the
+      // field — device ruling pending; reverting this B3 commit restores B1's
+      // borderHandoff. Device-conditional, isolated commit.
+      backgroundColor: c.background,
       borderWidth: 0.5,
-      // B1 — handoff note field carries the handoff-lane border tint (§5 blue).
-      borderColor: c.borderHandoff,
+      borderColor: c.borderInset,
       borderRadius: 8,
       borderStyle: 'solid',
       paddingVertical: 10,

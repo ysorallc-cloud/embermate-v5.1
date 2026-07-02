@@ -84,6 +84,8 @@ const themeColors = {
   green: '#9ccfa6',
   greenTint: 'rgba(156, 207, 166, 0.10)',
   glassDim: '#19211b',
+  background: '#141a16',
+  borderInset: 'rgba(0, 0, 0, 0.22)',
   accentMuted: 'rgba(156, 207, 166, 0.50)',
   accent: '#9ccfa6',
   surfaceAlt: 'rgba(255, 255, 255, 0.03)',
@@ -221,11 +223,12 @@ describe('Phase 27.5b F5 — JournalNotesCard notes cleanup', () => {
     const tree = render({ ...baseProps, bare: true });
     const ti = tree.root.findByType('TextInput' as any);
     const s = flatStyle(ti);
-    // Journal rebuild step 5 + B1 — inset field surface (glassDim) + the
-    // handoff-lane border, now the dedicated borderHandoff register token.
-    expect(s.backgroundColor).toBe(themeColors.glassDim);
+    // B3 (device-conditional, supersedes B1 on this field) — the handoff note
+    // field reads INSET: darkened fill (background) + borderInset. Reverting
+    // the B3 commit restores B1's borderHandoff.
+    expect(s.backgroundColor).toBe(themeColors.background);
     expect(s.borderWidth).toBe(0.5);
-    expect(s.borderColor).toBe(themeColors.borderHandoff);
+    expect(s.borderColor).toBe(themeColors.borderInset);
     expect(s.borderRadius).toBe(8);
   });
 

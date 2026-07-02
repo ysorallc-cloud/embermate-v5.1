@@ -196,6 +196,10 @@ const createStyles = (c: any) =>
     vitalTile: {
       width: '48.5%' as const,
       backgroundColor: 'rgba(0,0,0,0.18)',
+      // B3 — data chips read RAISED: a lighter-than-fill lift edge. Device-
+      // conditional (may be imperceptible on OLED); isolated commit, reverts cheap.
+      borderWidth: 0.5,
+      borderColor: c.borderLift,
       borderRadius: 5,
       paddingVertical: 7,
       paddingHorizontal: 8,
