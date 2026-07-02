@@ -173,15 +173,19 @@ export function medicationNotificationChanged(
 /**
  * Create a CarePlanItem from a MedicationPlanItem
  */
-function createCarePlanItemFromConfigMed(
+// Shared med time-window resolver — the single derivation used by BOTH the
+// fresh-create path and the matched-edit reconciliation, so a med's time
+// (custom scheduledTimeHHmm / customTimes, else the timesOfDay default) is
+// mapped one way and the two paths can't drift. When existingTimes is passed
+// (the edit path), window ids are reused positionally so the DailyCareInstance
+// re-bakes its scheduledTime (carePlanGenerator re-bake path) rather than
+// thrashing a fresh windowId.
+function buildMedTimeWindows(
   configMed: MedicationPlanItem,
-  carePlanId: string
-): CarePlanItem {
-  const now = new Date().toISOString();
-
-  // Build time windows from timesOfDay
+  existingTimes?: TimeWindow[]
+): TimeWindow[] {
   const times: TimeWindow[] = configMed.timesOfDay.map((tod, index) => ({
-    id: generateUniqueId(),
+    id: existingTimes?.[index]?.id ?? generateUniqueId(),
     kind: 'exact' as const,
     label: TIME_OF_DAY_TO_WINDOW[tod],
     at: configMed.scheduledTimeHHmm || configMed.customTimes?.[index] || TIME_OF_DAY_DEFAULTS[tod],
@@ -190,12 +194,24 @@ function createCarePlanItemFromConfigMed(
   // If no times specified, default to morning
   if (times.length === 0) {
     times.push({
-      id: generateUniqueId(),
+      id: existingTimes?.[0]?.id ?? generateUniqueId(),
       kind: 'exact',
       label: 'morning',
       at: '08:00',
     });
   }
+
+  return times;
+}
+
+function createCarePlanItemFromConfigMed(
+  configMed: MedicationPlanItem,
+  carePlanId: string
+): CarePlanItem {
+  const now = new Date().toISOString();
+
+  // Build time windows from timesOfDay (shared resolver — see buildMedTimeWindows)
+  const times = buildMedTimeWindows(configMed);
 
   return {
     id: generateUniqueId(),
@@ -294,17 +310,39 @@ async function syncMedicationItemsWithConfig(
           freshNotification,
         );
         const activeChanged = matched.active === false;
-        if (notificationChanged || activeChanged) {
+
+        // Reconcile schedule.times so a TIME edit (custom or preset) on an
+        // existing med actually re-times the CarePlanItem the scheduler reads.
+        // Pre-fix this branch propagated only notification + active and spread
+        // `...matched`, PRESERVING the stale schedule.times — the "custom time
+        // doesn't apply / overdue can't be forced" bug (Jul 2 brief item 2).
+        // Mirrors the vitals (F5.1, L370+) and wellness (F5.3, L678+) Pass-B
+        // reconciliation; meds ("F5.4") were the last bucket without it.
+        const expectedTimes = buildMedTimeWindows(configMed, matched.schedule?.times);
+        const currentTimes = matched.schedule?.times ?? [];
+        const timesChanged =
+          currentTimes.length !== expectedTimes.length ||
+          expectedTimes.some(
+            (et, i) => currentTimes[i]?.label !== et.label || currentTimes[i]?.at !== et.at,
+          );
+
+        if (notificationChanged || activeChanged || timesChanged) {
           if (activeChanged) {
             devLog('[syncMedicationItemsWithConfig] Reactivating inactive medication item:', matched.name);
           }
           if (notificationChanged) {
             devLog('[syncMedicationItemsWithConfig] Updating notification config for:', matched.name);
           }
+          if (timesChanged) {
+            devLog('[syncMedicationItemsWithConfig] Reconciling schedule.times for:', matched.name);
+          }
           await upsertCarePlanItem({
             ...matched,
             active: true,
             notification: freshNotification,
+            schedule: timesChanged
+              ? { ...matched.schedule, frequency: 'daily', times: expectedTimes }
+              : matched.schedule,
           });
           changed = true;
         }
@@ -1250,19 +1288,24 @@ async function _ensureDailyInstancesCore(
             await updateDailyInstanceStatus(patientId, date, existing.id, 'missed');
           }
         }
-        // Phase 34 NOT.B3 — instance-time staleness refresh for wellness.
+        // Phase 34 NOT.B3 — instance-time staleness refresh.
         // The existing-instance match keyed by ${itemId}:${windowId}
         // skips regeneration when windowId is unchanged. But when the
-        // window's `at` changes (B3 wellnessSettings time edit), the
-        // instance's baked scheduledTime stays stale and the scheduler
-        // fires at the old time. Refresh wellness instances only — meds
-        // / vitals / meals manage their own time-edit paths outside the
-        // slice scope. Only fires when the time actually drifted, to
-        // avoid spurious writes (and the corresponding emit churn).
-        // Only refresh PENDING instances; caregiver-acted statuses
-        // (completed/skipped/partial) preserve the time they actually
-        // happened at.
-        if (item.type === 'wellness' && existing.status === 'pending') {
+        // window's `at` changes (a wellnessSettings time edit, OR a
+        // medication time edit reconciled by syncMedicationItemsWithConfig
+        // — Jul 2 brief item 2), the instance's baked scheduledTime stays
+        // stale and the scheduler / overdue logic fires at the old time.
+        // Refresh wellness + medication instances (both edit their window
+        // `at` in place, preserving windowId); vitals / meals change their
+        // window SET (add/remove), handled by the stale-window pass below.
+        // Only fires when the time actually drifted, to avoid spurious
+        // writes (and the corresponding emit churn). Only refresh PENDING
+        // instances; caregiver-acted statuses (completed/skipped/partial)
+        // preserve the time they actually happened at.
+        if (
+          (item.type === 'wellness' || item.type === 'medication') &&
+          existing.status === 'pending'
+        ) {
           const freshScheduledTime = computeScheduledTime(timeWindow, date);
           if (existing.scheduledTime !== freshScheduledTime) {
             const refreshed: DailyCareInstance = {
