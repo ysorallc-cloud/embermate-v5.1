@@ -23,12 +23,20 @@ import React from 'react';
 import { Switch, SwitchProps } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 
-export function ThemedSwitch({ value, ...rest }: SwitchProps) {
+// Downscale factor — the native iOS <Switch> (~51x31pt) reads oversized next
+// to the app's control scale (MoodStrip-class controls sit ~28pt). 0.8 brings
+// it into proportion; it's visual + proportional (touch still works) and one
+// line to revert. Applied here so every canonical Care Plan toggle shares the
+// scale. (Jul 2 brief item 3.)
+const SWITCH_SCALE = [{ scale: 0.8 }];
+
+export function ThemedSwitch({ value, style, ...rest }: SwitchProps) {
   const { colors } = useTheme();
   return (
     <Switch
       {...rest}
       value={value}
+      style={[{ transform: SWITCH_SCALE }, style]}
       trackColor={{ false: colors.glassStrong, true: colors.accentMuted }}
       thumbColor={value ? colors.textPrimary : colors.switchThumbOff}
       ios_backgroundColor={colors.glassStrong}

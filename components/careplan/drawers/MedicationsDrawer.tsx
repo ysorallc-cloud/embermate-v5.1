@@ -283,6 +283,8 @@ function MedRow({ med, onToggleActive, onRemove, editMode }: MedRowProps) {
           <Switch
             value={med.active}
             onValueChange={(v) => onToggleActive(med.id, v)}
+            // Match the canonical ThemedSwitch control scale (Jul 2 brief item 3).
+            style={{ transform: [{ scale: 0.8 }] }}
             trackColor={{ false: colors.glassStrong, true: colors.accent }}
             thumbColor={med.active ? colors.textPrimary : colors.switchThumbOff}
             ios_backgroundColor={colors.glassStrong}
