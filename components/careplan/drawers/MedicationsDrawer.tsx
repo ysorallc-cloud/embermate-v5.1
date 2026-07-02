@@ -618,15 +618,9 @@ export function MedicationsDrawer({ editMode }: MedicationsDrawerProps) {
         </TouchableOpacity>
       ) : (
         <>
-          {medications.map((med) => (
-            <MedRow
-              key={med.id}
-              med={med}
-              onToggleActive={handleToggleActive}
-              onRemove={handleRemove}
-              editMode={editMode}
-            />
-          ))}
+          {/* "+ Add medication" moved ABOVE the list (Jul 2 brief item 3) —
+              at the bottom it was hidden below existing entries. The quick-add
+              mini-form reveals in place, now at the top of the med list. */}
           {quickAddOpen ? (
             <QuickAddInline
               onSubmit={handleQuickAdd}
@@ -643,6 +637,15 @@ export function MedicationsDrawer({ editMode }: MedicationsDrawerProps) {
               <Text style={styles.addCta}>{'+ Add medication'}</Text>
             </TouchableOpacity>
           )}
+          {medications.map((med) => (
+            <MedRow
+              key={med.id}
+              med={med}
+              onToggleActive={handleToggleActive}
+              onRemove={handleRemove}
+              editMode={editMode}
+            />
+          ))}
         </>
       )}
 
