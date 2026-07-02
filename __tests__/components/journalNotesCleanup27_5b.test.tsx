@@ -223,12 +223,13 @@ describe('Phase 27.5b F5 — JournalNotesCard notes cleanup', () => {
     const tree = render({ ...baseProps, bare: true });
     const ti = tree.root.findByType('TextInput' as any);
     const s = flatStyle(ti);
-    // B3 (device-conditional, supersedes B1 on this field) — the handoff note
-    // field reads INSET: darkened fill (background) + borderInset. Reverting
-    // the B3 commit restores B1's borderHandoff.
-    expect(s.backgroundColor).toBe(themeColors.background);
+    // B1 restored (Jul 2 brief item 7, default-by-forfeit) — the handoff note
+    // field reverts from the B3 inset trial back to inset fill (glassDim) + the
+    // §5 handoff-blue border (borderHandoff). Re-apply background/borderInset if
+    // a device look prefers the recessed B3 treatment.
+    expect(s.backgroundColor).toBe(themeColors.glassDim);
     expect(s.borderWidth).toBe(0.5);
-    expect(s.borderColor).toBe(themeColors.borderInset);
+    expect(s.borderColor).toBe(themeColors.borderHandoff);
     expect(s.borderRadius).toBe(8);
   });
 

@@ -428,14 +428,15 @@ const createStyles = (c: any) =>
       // BLUE border — §5: blue = handoff, so the handoff note's input carries
       // the handoff-lane signal (journal-aligned). Migrated from the
       // rgba(0,0,0,.18) / rgba(255,255,255,.10) F5 literals.
-      // B3 (SUPERSEDES B1 on this field — FLAGGED): the handoff note field
-      // reads INSET/recessed (darkened fill + inset edge) instead of the B1
-      // handoff-blue border. Trade-off: this loses the §5 handoff signal on the
-      // field — device ruling pending; reverting this B3 commit restores B1's
-      // borderHandoff. Device-conditional, isolated commit.
-      backgroundColor: c.background,
+      // B1 restored (Jul 2 brief item 7): the B3 inset trial on THIS field was
+      // reverted by default-by-forfeit — no device confirmation of the recessed
+      // treatment was obtained, so the handoff field returns to B1's §5
+      // handoff-blue border. NOT a final ruling: if Amber looks on-device and
+      // prefers the recessed B3 inset, re-apply background/borderInset here.
+      // (The You-inset + Insights-raised B3 effects from fbf8d3fc are untouched.)
+      backgroundColor: c.glassDim,
       borderWidth: 0.5,
-      borderColor: c.borderInset,
+      borderColor: c.borderHandoff,
       borderRadius: 8,
       borderStyle: 'solid',
       paddingVertical: 10,
