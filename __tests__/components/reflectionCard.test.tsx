@@ -39,22 +39,33 @@ describe('ReflectionCard — file + exports', () => {
   });
 });
 
-describe('ReflectionCard — DE-BOXED (You rebuild S4, full de-purple)', () => {
-  // The mockup flattens the check-in to open fabric (only the SUPPORT tiles
-  // keep containers). The prior lavender lane-card chrome (caregiverAccentBg
-  // body + caregiverAccent left rule + border + radius) is removed. The
-  // free-text reflection + Save/F6 round-trip are UNCHANGED — only chrome.
-  it('card has NO lavender box chrome (no bg/border/borderLeft/radius)', () => {
+describe('ReflectionCard — reflection-lane coral frame (item 3, Jul 2 2026)', () => {
+  // Item 3 ruling: the You check-in card carries the B1 reflection-lane coral
+  // frame — the SAME frame the Now zone already renders (emberCard in
+  // ReflectionZoneNow: borderWidth 1 / borderColor borderReflect / borderRadius
+  // 12 / padding CARD_PADDING_V). This RE-FRAMES the S4 de-box (which had
+  // flattened the check-in to open fabric): the card regains a border+padding,
+  // but as a BORDER-ONLY frame in the coral register — NO lavender
+  // (caregiverAccent), NO background fill, NO left rule. The 0.26 alpha of
+  // borderReflect is the SHARED Now+You ruling and is not tuned here.
+  it('card carries the coral reflection frame (1px borderReflect, radius 12, padding CARD_PADDING_V)', () => {
     const block = styleBlock('card');
     expect(block).not.toBe('');
-    expect(block).not.toMatch(/caregiverAccent/);
-    expect(block).not.toMatch(/backgroundColor:/);
-    expect(block).not.toMatch(/borderWidth:/);
-    expect(block).not.toMatch(/borderLeftWidth:/);
-    expect(block).not.toMatch(/borderRadius:/);
+    expect(num(block, 'borderWidth')).toBe(1);
+    expect(block).toMatch(/borderColor:\s*(?:c|colors)\.borderReflect\b/);
+    expect(num(block, 'borderRadius')).toBe(12);
+    // padding matches emberCard exactly (the CARD_PADDING_V token, = 18).
+    expect(block).toMatch(/padding:\s*CARD_PADDING_V\b/);
   });
 
-  it('card is an open section — keeps only rhythm (marginBottom)', () => {
+  it('frame is border-only in the coral register — NO lavender, NO fill, NO left rule', () => {
+    const block = styleBlock('card');
+    expect(block).not.toMatch(/caregiverAccent/);
+    expect(block).not.toMatch(/backgroundColor:/);
+    expect(block).not.toMatch(/borderLeftWidth:/);
+  });
+
+  it('card keeps its marginBottom rhythm', () => {
     const block = styleBlock('card');
     expect(num(block, 'marginBottom')).toBeGreaterThan(0);
   });

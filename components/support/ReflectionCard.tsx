@@ -22,6 +22,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Colors, Sizing, Spacing } from '../../theme/theme-tokens';
+import { CARD_PADDING_V } from '../../theme/spacing';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   saveReflection,
@@ -208,6 +209,15 @@ export function ReflectionCard() {
 // Save/F6 round-trip are UNCHANGED — only presentation dropped.
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   card: {
+    // Item 3 (Jul 2 2026) — reflection-lane coral frame, matching the Now
+    // zone's emberCard (ReflectionZoneNow). B1 register tint: borderReflect =
+    // coral @ 0.26, the reflection/warm register. This re-frames the S4 de-box
+    // with the register tint per ruling; border-only (no fill, no lavender).
+    // The 0.26 alpha is the SHARED Now+You ruling — do NOT tune it here.
+    borderWidth: 1,
+    borderColor: c.borderReflect,
+    borderRadius: 12,
+    padding: CARD_PADDING_V,
     marginBottom: 12,
   },
   sectionLabel: {
