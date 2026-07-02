@@ -21,6 +21,11 @@ export interface EndOfShiftCardProps {
   outcomes?: DailyOutcomes;
   /** Active alerts, forwarded to the composer. */
   alerts?: Alert[];
+  /** True when a handoff note ("For the next caregiver") has been saved for
+   *  today. Drives a lightweight note-exists indicator (Jul 2 brief item 6).
+   *  Owned + loaded by the parent (now.tsx via getConsolidatedNotes) so this
+   *  card stays presentational. */
+  hasHandoffNote?: boolean;
   onDismiss?: () => void;
 }
 
@@ -28,6 +33,7 @@ export function EndOfShiftCard({
   completedCount,
   outcomes,
   alerts,
+  hasHandoffNote,
   onDismiss,
 }: EndOfShiftCardProps) {
   const { colors } = useTheme();
@@ -79,6 +85,15 @@ export function EndOfShiftCard({
       </TouchableOpacity>
       <Text style={s.title}>End of shift</Text>
       <Text style={s.body}>{body}</Text>
+      {/* Note-exists indicator (Jul 2 brief item 6) — a lightweight signal
+          that a handoff note is ready, only when one has been saved today.
+          Copy reuses the EXACT existing §5 handoff eyebrow "For the next
+          caregiver" (journal.tsx) + a note glyph; no invented copy. */}
+      {hasHandoffNote ? (
+        <Text style={s.noteIndicator} testID="eos-note-indicator">
+          {'📝 For the next caregiver'}
+        </Text>
+      ) : null}
       <TouchableOpacity
         style={s.cta}
         onPress={() => navigate('/(tabs)/journal?scrollTo=handoff')}
@@ -140,6 +155,15 @@ const createStyles = (c: any) => StyleSheet.create({
     // lavender-tinted card.
     color: c.textSecondary,
     lineHeight: 19,
+    marginBottom: 12,
+  },
+  // Note-exists indicator (Jul 2 brief item 6) — quiet handoff-lane line.
+  // Sits between the body and the CTA; caregiver-accent tone marks it as
+  // handoff content, small size keeps it a signal not a heading.
+  noteIndicator: {
+    fontSize: 12,
+    color: c.caregiverAccent,
+    marginTop: -4, // pull up toward the body it annotates
     marginBottom: 12,
   },
   // Phase 2.6.7 — ghost text link. The card itself is dimmed (Phase 2),

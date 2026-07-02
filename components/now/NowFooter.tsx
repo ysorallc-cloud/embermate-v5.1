@@ -62,6 +62,9 @@ export interface NowFooterProps {
   hasMissed: boolean;
   /** Structured outcomes for the End of Shift body composer. */
   outcomes?: DailyOutcomes;
+  /** True when a handoff note is saved for today — forwarded to the End of
+   *  Shift card's note-exists indicator (Jul 2 brief item 6). */
+  hasHandoffNote?: boolean;
 }
 
 // ============================================================================
@@ -74,6 +77,7 @@ export function NowFooter({
   hasRegimenInstances,
   hasMissed,
   outcomes,
+  hasHandoffNote,
 }: NowFooterProps) {
   const { colors } = useTheme();
   const s = useMemo(() => createStyles(colors), [colors]);
@@ -115,7 +119,7 @@ export function NowFooter({
         </View>
       )}
 
-      <EndOfShiftCard completedCount={completedCount} outcomes={outcomes} />
+      <EndOfShiftCard completedCount={completedCount} outcomes={outcomes} hasHandoffNote={hasHandoffNote} />
 
       {/* Care Circle teaser — gated off for v1.0 (see CARE_CIRCLE_V7_TEASER_ENABLED) */}
       {CARE_CIRCLE_V7_TEASER_ENABLED && showTeaser && (

@@ -44,6 +44,7 @@ import { useAppointments } from '../../hooks/useAppointments';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import { useTodayScope } from '../../hooks/useTodayScope';
 import { getTodayDateString } from '../../services/carePlanGenerator';
+import { getConsolidatedNotes } from '../../utils/consolidatedNotes';
 import { BUCKET_META, BucketType, MVP_HIDDEN_BUCKETS, type CarePlanConfig, type MedsBucketConfig } from '../../types/carePlanConfig';
 import { CARE_PLAN_TEMPLATES } from '../../constants/carePlanTemplates';
 
@@ -163,6 +164,9 @@ export default function NowScreen() {
 
   // Track today's date
   const [today, setToday] = useState(() => getTodayDateString());
+  // Jul 2 brief item 6 — true when a handoff note is saved for today (drives
+  // the End-of-shift card's note-exists indicator). Loaded in loadData.
+  const [hasHandoffNote, setHasHandoffNote] = useState(false);
 
   // Single source of truth: useCareTasks wraps useDailyCareInstances
   const {
@@ -1041,6 +1045,13 @@ export default function NowScreen() {
       const tracking = await getDailyTracking(todayDate);
       setDailyTracking(tracking);
 
+      // Jul 2 brief item 6 — note-exists flag for the End-of-shift card's
+      // handoff-note indicator. Reads the same consolidated store the Journal
+      // Section 4 note writes to; refreshes live because the data listener
+      // above reloads loadData on EVENT.NOTES.
+      const consolidated = await getConsolidatedNotes(todayDate);
+      setHasHandoffNote(!!consolidated?.text?.trim());
+
       // Load vitals to count (legacy fallback)
       const todayVitals = await getTodayVitalsLog();
       let vitalsLogged = 0;
@@ -1331,6 +1342,7 @@ export default function NowScreen() {
             hasRegimenInstances={!!hasRegimenInstances}
             hasMissed={todayTimeline.completed.some(i => i.status === 'missed')}
             outcomes={todayOutcomes}
+            hasHandoffNote={hasHandoffNote}
           />
 
         </View>
