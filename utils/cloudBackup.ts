@@ -13,7 +13,7 @@ import { devLog, logError } from './devLog';
 import { logAuditEvent, AuditEventType, AuditSeverity } from './auditLog';
 import * as SecureStore from 'expo-secure-store';
 import { isSensitiveKey, safeGetItem, safeSetItem } from './safeStorage';
-import { getSecureItem, setSecureItem } from './secureStorage';
+import { setSecureItem, getSecureItemResult, isEncryptedFormat, SecureDecryptError } from './secureStorage';
 import { StorageKeys, StorageKeyPrefixes } from './storageKeys';
 
 const ENCRYPTION_KEY_ALIAS = 'embermate_master_key';
@@ -246,17 +246,26 @@ async function gatherBackupData(): Promise<Record<string, any>> {
         if (isSensitiveKey(key)) {
           // Decrypt sensitive keys so backup contains plaintext.
           // The backup's own password-based encryption protects the data.
-          const decrypted = await getSecureItem(key, null);
-          if (decrypted !== null) {
-            backupData[key] = decrypted;
-          } else {
-            // Fallback: data may be pre-encryption plaintext (stored before
-            // encryption was enabled). Include it as-is.
+          // Gate B: distinguish a real decrypt from the two non-ok cases instead
+          // of treating null (decrypt_failed) as "probably plaintext" — that
+          // conflation would silently fold undecryptable ciphertext into the
+          // backup mislabeled as data.
+          const result = await getSecureItemResult<any>(key);
+          if (result.ok) {
+            backupData[key] = result.value;
+          } else if (!isEncryptedFormat(value)) {
+            // Genuinely un-migrated plaintext (stored before encryption). Keep.
             try {
               backupData[key] = JSON.parse(value);
             } catch {
               backupData[key] = value;
             }
+          } else {
+            // decrypt_failed on recognized ciphertext: preserve the blob VERBATIM
+            // so the backup never drops it, but surface it — this record cannot
+            // be decrypted with the current key and needs recovery, not silence.
+            logError('cloudBackup.gatherBackupData', new SecureDecryptError(key, (result as any).error));
+            backupData[key] = value;
           }
         } else {
           try {

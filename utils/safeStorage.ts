@@ -4,7 +4,12 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { setSecureItem, getSecureItem } from './secureStorage';
+import {
+  setSecureItem,
+  getSecureItemResult,
+  SecureDecryptError,
+  type SecureReadResult,
+} from './secureStorage';
 import { devLog, logError } from './devLog';
 import { StorageKeys, GlobalKeys } from './storageKeys';
 
@@ -118,13 +123,53 @@ export async function safeGetItem<T>(
 ): Promise<T> {
   try {
     if (isSensitiveKey(key)) {
-      return await getSecureItem<T>(key, defaultValue);
+      // Gate B: route sensitive reads through the result API so a decrypt
+      // failure SURFACES (throws) instead of silently becoming `defaultValue`.
+      // A silent default here is data loss: it renders an empty screen over
+      // still-present-but-unreadable ciphertext, and any read-modify-write that
+      // follows would clobber it. `not_found` is a real empty → default is fine.
+      const result = await getSecureItemResult<T>(key, defaultValue);
+      if (result.ok) return result.value as T;
+      if (result.reason === 'not_found') return defaultValue;
+      // "Soft" decrypt_failed: a non-ciphertext, non-JSON passthrough — either
+      // un-migrated bare-string plaintext (encrypt-pii: e.g. a legacy patient
+      // name) or corruption, indistinguishable here. Honor the pre-encryption
+      // contract and hand back the raw value rather than blank the field. A
+      // "hard" decrypt_failed (recognized ciphertext that would not decrypt) is
+      // real data loss and MUST surface.
+      if (result.passthroughValue !== undefined) {
+        return result.passthroughValue as unknown as T;
+      }
+      throw new SecureDecryptError(key, result.error);
     }
     const data = await AsyncStorage.getItem(key);
     return safeJSONParse(data, defaultValue, key);
   } catch (error) {
+    // Never swallow a decrypt failure into the default — that is the bug.
+    if (error instanceof SecureDecryptError) throw error;
     logError('safeStorage.safeGetItem', error, { key });
     return defaultValue;
+  }
+}
+
+/**
+ * Result-returning sensitive read for callers that want to handle a decrypt
+ * failure explicitly (show a recovery UI, offer restore-from-backup) rather
+ * than let safeGetItem throw. Non-sensitive keys always resolve to ok/not_found.
+ */
+export async function safeGetItemResult<T>(
+  key: string,
+  defaultValue: T,
+): Promise<SecureReadResult<T>> {
+  if (isSensitiveKey(key)) {
+    return getSecureItemResult<T>(key, defaultValue);
+  }
+  try {
+    const data = await AsyncStorage.getItem(key);
+    if (data === null || data === undefined) return { ok: false, reason: 'not_found' };
+    return { ok: true, value: safeJSONParse(data, defaultValue, key) };
+  } catch (error) {
+    return { ok: false, reason: 'decrypt_failed', error };
   }
 }
 
@@ -265,10 +310,19 @@ export async function clearCorruptedData(key: string): Promise<void> {
  */
 export async function encryptedGetRaw(key: string): Promise<string | null> {
   if (isSensitiveKey(key)) {
-    const result = await getSecureItem<any>(key, null);
-    if (result === null) return null;
-    // getSecureItem auto-parses JSON — re-stringify so callers get a raw string
-    return typeof result === 'string' ? result : JSON.stringify(result);
+    // Gate B: distinguish "no data" from "could not decrypt". Returning null on
+    // decrypt_failed is the catastrophic path — a read-modify-write caller
+    // (e.g. centralStorage.saveXLog) would treat null as "no existing logs" and
+    // write [newItem], CLOBBERING the unreadable-but-present ciphertext. Throw
+    // so the save aborts before writing and the ciphertext stays recoverable.
+    const result = await getSecureItemResult<any>(key);
+    if (result.ok) {
+      if (result.value === null || result.value === undefined) return null;
+      // getSecureItemResult auto-parses JSON — re-stringify so callers get a raw string
+      return typeof result.value === 'string' ? result.value : JSON.stringify(result.value);
+    }
+    if (result.reason === 'not_found') return null;
+    throw new SecureDecryptError(key, result.error);
   }
   return AsyncStorage.getItem(key);
 }
