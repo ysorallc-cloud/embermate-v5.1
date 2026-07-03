@@ -343,11 +343,12 @@ export default function VisitPrepPreviewScreen() {
                       data.vitals.map((v, i) => (
                         <Text key={`vital-${i}`} style={styles.bulletLine}>
                           {/* v1 launch-blocker — FACT only, no app-threshold verdict.
-                              The prior threshold-count annotation was derived from
-                              assembleVisitPrepData.outOfRange (a fixed cutoff), which
-                              is not the patient's baseline — dropped from this
-                              provider-facing surface. The outOfRange data field is
-                              intentionally LEFT in the builder for v1.1 to repurpose. */}
+                              The prior threshold-count annotation was derived from a
+                              fixed cutoff (not the patient's own baseline), so it was
+                              a false clinical claim — dropped from this provider-facing
+                              surface, and the underlying cutoff comparison was removed
+                              from the builder too. Per-person deviation is deferred to
+                              the v1.1 snapshot engine that computes a real baseline. */}
                           {`• ${v.label}: ${v.latestValue}`}
                         </Text>
                       ))

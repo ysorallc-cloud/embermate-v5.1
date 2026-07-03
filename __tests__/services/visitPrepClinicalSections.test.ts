@@ -113,7 +113,11 @@ beforeEach(() => {
 });
 
 describe('Phase 5.10.a — Red Flags & Alerts', () => {
-  it('renders the callout when 5+ BP readings are out of range', async () => {
+  it('does NOT raise a vitals threshold verdict, even with 5+ out-of-range BP readings (Gate D)', async () => {
+    // Pre-v1 this produced a "Systolic BP: 5 readings outside the usual range."
+    // critical callout — a fixed-cutoff clinical claim on the most prominent
+    // provider-facing surface. That branch was removed; out-of-range vitals
+    // alone now surface no red flag. Per-person deviation is a v1.1 concern.
     mockGetVitalsInRange.mockResolvedValue([
       ...Array.from({ length: 5 }, (_, i) => ({
         type: 'systolic', value: 148, unit: 'mmHg',
@@ -121,13 +125,8 @@ describe('Phase 5.10.a — Red Flags & Alerts', () => {
       })),
     ]);
     const data = await assembleVisitPrepData(baseConfig());
-    expect(data.redFlags.length).toBeGreaterThanOrEqual(1);
-    expect(data.redFlags[0].severity).toBe('critical');
-    const html = require('../../services/visitPrepPdf');
-    // No public buildHtml export — use generateAndShareVisitPrep's
-    // internal pipe. We re-assemble; the buildHtml step happens inside
-    // generateAndShareVisitPrep. Easier: assert structurally.
-    expect(data.redFlags.some((f) => /Systolic BP/.test(f.text))).toBe(true);
+    expect(data.redFlags.some((f) => /Systolic BP/.test(f.text))).toBe(false);
+    expect(data.redFlags.some((f) => /out of range|outside the usual range/i.test(f.text))).toBe(false);
   });
 
   it('omits the callout entirely when no flags surface', async () => {

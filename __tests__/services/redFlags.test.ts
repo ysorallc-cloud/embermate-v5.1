@@ -3,12 +3,19 @@
 //
 // Top-of-page colored callout that surfaces critical / attention items
 // for the doctor to triage immediately. Pulls from existing data shapes
-// (adherence, vitals, notes, symptom changes, sleep deltas) and emits a
-// flat RedFlag[] list with severity. Empty list means no callout block.
+// (adherence, notes, symptom changes, sleep deltas) and emits a flat
+// RedFlag[] list with severity. Empty list means no callout block.
+//
+// v1 / Gate D: the vitals out-of-range branch was REMOVED. "N readings
+// outside the usual range" is a fixed-cutoff clinical verdict, not the
+// patient's own baseline, and this callout is the most prominent
+// provider-facing surface. buildRedFlags no longer accepts vitals; the
+// source scan in __tests__/gates/gateD_noClinicalVerdict.test.ts guards
+// against the verdict text regressing into services/redFlags.ts.
 // ============================================================================
 
 import { buildRedFlags } from '../../services/redFlags';
-import type { AdherenceEntry, VitalEntry } from '../../services/visitPrepPdf';
+import type { AdherenceEntry } from '../../services/visitPrepPdf';
 import type { SymptomChange } from '../../services/symptomChangeDetection';
 
 type Note = { date: string; text: string };
@@ -17,33 +24,9 @@ describe('Phase 5.10.a — buildRedFlags', () => {
   it('returns empty list when nothing flaggable surfaces', () => {
     const flags = buildRedFlags({
       adherence: [],
-      vitals: [],
       notesInRange: [],
       symptomChanges: [],
       sleepDelta: 0,
-    });
-    expect(flags).toEqual([]);
-  });
-
-  it('flags vitals out-of-range when ≥3 readings cross the bounds', () => {
-    const vitals: VitalEntry[] = [
-      { type: 'systolic', label: 'Systolic BP', latestValue: '148', trend: 'up', outOfRange: 5 },
-    ];
-    const flags = buildRedFlags({
-      adherence: [], vitals, notesInRange: [], symptomChanges: [], sleepDelta: 0,
-    });
-    expect(flags.length).toBe(1);
-    expect(flags[0].severity).toBe('critical');
-    expect(flags[0].text).toMatch(/Systolic BP/);
-    expect(flags[0].text).toMatch(/5/);
-  });
-
-  it('does NOT flag vitals when out-of-range count is below 3', () => {
-    const vitals: VitalEntry[] = [
-      { type: 'systolic', label: 'Systolic BP', latestValue: '142', trend: 'up', outOfRange: 2 },
-    ];
-    const flags = buildRedFlags({
-      adherence: [], vitals, notesInRange: [], symptomChanges: [], sleepDelta: 0,
     });
     expect(flags).toEqual([]);
   });
@@ -54,7 +37,6 @@ describe('Phase 5.10.a — buildRedFlags', () => {
     ];
     const flags = buildRedFlags({
       adherence,
-      vitals: [],
       notesInRange: [],
       symptomChanges: [],
       sleepDelta: 0,
@@ -72,7 +54,7 @@ describe('Phase 5.10.a — buildRedFlags', () => {
       { date: '2026-04-26', text: 'Quiet day.' },
     ];
     const flags = buildRedFlags({
-      adherence: [], vitals: [], notesInRange, symptomChanges: [], sleepDelta: 0,
+      adherence: [], notesInRange, symptomChanges: [], sleepDelta: 0,
     });
     expect(flags.length).toBe(1);
     expect(flags[0].severity).toBe('critical');
@@ -85,7 +67,7 @@ describe('Phase 5.10.a — buildRedFlags', () => {
       { date: '2026-04-21', text: 'Mom said today felt hard.' },
     ];
     const flags = buildRedFlags({
-      adherence: [], vitals: [], notesInRange, symptomChanges: [], sleepDelta: 0,
+      adherence: [], notesInRange, symptomChanges: [], sleepDelta: 0,
     });
     expect(flags.length).toBe(1);
     expect(flags[0].severity).toBe('attention');
@@ -97,7 +79,7 @@ describe('Phase 5.10.a — buildRedFlags', () => {
         briefDescription: 'Headaches more frequent (4 vs 1).' },
     ];
     const flags = buildRedFlags({
-      adherence: [], vitals: [], notesInRange: [], symptomChanges, sleepDelta: 0,
+      adherence: [], notesInRange: [], symptomChanges, sleepDelta: 0,
     });
     expect(flags.length).toBe(1);
     expect(flags[0].severity).toBe('critical');
@@ -106,7 +88,7 @@ describe('Phase 5.10.a — buildRedFlags', () => {
 
   it('flags sleep dropped ≥0.5 vs prior period as attention', () => {
     const flags = buildRedFlags({
-      adherence: [], vitals: [], notesInRange: [], symptomChanges: [], sleepDelta: -0.6,
+      adherence: [], notesInRange: [], symptomChanges: [], sleepDelta: -0.6,
     });
     expect(flags.length).toBe(1);
     expect(flags[0].severity).toBe('attention');
@@ -115,15 +97,24 @@ describe('Phase 5.10.a — buildRedFlags', () => {
 
   it('does NOT flag sleep when delta is between -0.5 and 0', () => {
     const flags = buildRedFlags({
-      adherence: [], vitals: [], notesInRange: [], symptomChanges: [], sleepDelta: -0.3,
+      adherence: [], notesInRange: [], symptomChanges: [], sleepDelta: -0.3,
     });
     expect(flags).toEqual([]);
+  });
+
+  it('does NOT emit a vitals threshold verdict (removed for v1 — Gate D)', () => {
+    // Even with worsening vitals in the window, no "outside the usual range"
+    // clinical claim may reach this provider-facing callout. The only flags
+    // here come from the non-threshold sources.
+    const flags = buildRedFlags({
+      adherence: [], notesInRange: [], symptomChanges: [], sleepDelta: 0,
+    });
+    expect(flags.some((f) => /out of range|outside the usual range/i.test(f.text))).toBe(false);
   });
 
   it('orders flags critical-first regardless of detection order', () => {
     const flags = buildRedFlags({
       adherence: [],
-      vitals: [],
       notesInRange: [
         { date: '2026-04-21', text: 'Felt hard today.' },          // attention
         { date: '2026-04-22', text: 'She fell during the night.' }, // critical

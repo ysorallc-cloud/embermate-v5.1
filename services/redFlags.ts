@@ -8,9 +8,12 @@
 //
 // Severity rules (nurse-approved spec):
 //   critical
-//     • Vitals out-of-range ≥3 readings over the window
 //     • Symptom worsening (detectSymptomChanges → 'worse')
 //     • Notes containing "fell" / "hurt" / "severe" / "blood"
+//   (Vitals out-of-range was REMOVED for v1 — Gate D: "N readings outside the
+//    usual range" is a fixed-cutoff clinical verdict, not the patient's own
+//    baseline, and this callout is the most prominent provider-facing surface.
+//    Per-person vitals deviation is deferred to the v1.1 snapshot engine.)
 //   attention
 //     • Medication refused ≥2 times in window
 //     • Sleep quality dropped ≥0.5 vs prior period
@@ -32,7 +35,10 @@ export interface RedFlag {
 
 export interface BuildRedFlagsInput {
   adherence: AdherenceEntry[];
-  vitals: VitalEntry[];
+  /** Retained only so the existing caller keeps compiling; the vitals
+   *  out-of-range verdict this once fed was removed (Gate D). The field is
+   *  dropped entirely in the follow-up field-removal commit. */
+  vitals?: VitalEntry[];
   notesInRange: { date: string; text: string }[];
   symptomChanges: SymptomChange[];
   /** Delta of avg sleep quality in current window minus prior window. */
@@ -42,7 +48,6 @@ export interface BuildRedFlagsInput {
   refusedByMed?: Record<string, number>;
 }
 
-const VITALS_OOR_THRESHOLD = 3;
 const REFUSAL_THRESHOLD = 2;
 const SLEEP_DROP_THRESHOLD = -0.5;
 
@@ -72,15 +77,8 @@ export function buildRedFlags(input: BuildRedFlagsInput): RedFlag[] {
   const critical: RedFlag[] = [];
   const attention: RedFlag[] = [];
 
-  // Vitals out-of-range
-  for (const v of input.vitals) {
-    if (v.outOfRange >= VITALS_OOR_THRESHOLD) {
-      critical.push({
-        severity: 'critical',
-        text: `${v.label}: ${v.outOfRange} readings outside the usual range.`,
-      });
-    }
-  }
+  // Vitals out-of-range was removed for v1 (Gate D — no fixed-cutoff clinical
+  // verdict on a provider-facing surface). See the header note.
 
   // Symptom worsening
   for (const s of input.symptomChanges) {
