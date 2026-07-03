@@ -368,35 +368,28 @@ export async function getSecureItemResult<T = any>(
  * non-sensitive call sites are undisturbed.
  *
  * @param key - Storage key
- * @param defaultValue - Default value if key doesn't exist OR cannot be decrypted
- * @returns Decrypted data, or the default
+ * @param defaultValue - Default value ONLY when the key does not exist
+ * @returns Decrypted data, or the default when not found
+ * @throws SecureDecryptError when stored ciphertext exists but cannot be decrypted
  */
 export async function getSecureItem<T = any>(key: string, defaultValue?: T): Promise<T> {
-  // Deliberately NOT implemented on top of getSecureItemResult: the result API
-  // treats a non-ciphertext, non-JSON passthrough value as decrypt_failed (so
-  // the gate can distinguish corruption), whereas this legacy path must keep
-  // recovering un-migrated bare-string plaintext as a string. Behavior here is
-  // unchanged from before the result API was added.
-  try {
-    const encrypted = await AsyncStorage.getItem(key);
-
-    if (!encrypted) {
-      return defaultValue as T;
-    }
-
-    const decrypted = await decryptData(encrypted);
-
-    try {
-      return JSON.parse(decrypted) as T;
-    } catch {
-      // If not JSON, return as string
-      return decrypted as T;
-    }
-  } catch (error) {
-    // Expected on fresh installs or when encryption key changes — not a real error
-    devLog('[secureStorage.getSecureItem] Decrypt failed for key, returning default:', key);
-    return defaultValue as T;
+  // The swallow path is GONE: a decrypt failure is never folded into the
+  // default. Implemented on getSecureItemResult so there is exactly one place
+  // that classifies a read.
+  //   ok            -> value
+  //   not_found     -> default (a legit empty state)
+  //   soft failure  -> passthroughValue: un-migrated bare-string plaintext
+  //                    (encrypt-pii recovery contract) is returned as-is
+  //   hard failure  -> recognized ciphertext that will not decrypt (lost/
+  //                    rotated key, tamper) -> THROW. Surfacing beats handing
+  //                    back a default over recoverable-but-unreadable data.
+  const result = await getSecureItemResult<T>(key, defaultValue);
+  if (result.ok) return result.value as T;
+  if (result.reason === 'not_found') return defaultValue as T;
+  if (result.passthroughValue !== undefined) {
+    return result.passthroughValue as unknown as T;
   }
+  throw new SecureDecryptError(key, result.error);
 }
 
 /**

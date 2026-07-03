@@ -17,6 +17,7 @@ import {
   verifyHash,
   generateSecureToken,
   testEncryption,
+  SecureDecryptError,
 } from '../secureStorage';
 
 describe('SecureStorage', () => {
@@ -98,16 +99,18 @@ describe('SecureStorage', () => {
       expect(result).toBe(defaultValue);
     });
 
-    it('should handle CORRUPT v3 ciphertext gracefully (HMAC mismatch → default)', async () => {
-      // A v3-tagged blob whose authentication tag won't verify must fall
-      // back to the default — never hand unverified bytes to callers.
+    it('should SURFACE corrupt v3 ciphertext (HMAC mismatch → throws, never swallowed to default)', async () => {
+      // A v3-tagged blob whose authentication tag won't verify must never be
+      // handed to callers as unverified bytes — AND (Gate B) it must not be
+      // folded into the default either, since that silently hides data loss.
+      // The stored ciphertext exists but can't be decrypted → surface it.
       await AsyncStorage.setItem(
         'corrupt_cipher',
         'v3:00000000000000000000000000000000:deadbeef:0000',
       );
-      const defaultValue = { fallback: true };
-      const result = await getSecureItem('corrupt_cipher', defaultValue);
-      expect(result).toBe(defaultValue);
+      await expect(
+        getSecureItem('corrupt_cipher', { fallback: true }),
+      ).rejects.toBeInstanceOf(SecureDecryptError);
     });
 
     it('passes UN-ENCRYPTED plaintext through, even with colons (encrypt-pii — recover un-migrated values, do not blank)', async () => {
@@ -391,9 +394,11 @@ describe('SecureStorage', () => {
       const tampered = encrypted!.slice(0, -1) + (lastChar === '0' ? '1' : '0');
       await AsyncStorage.setItem('tamper_test', tampered);
 
-      // Try to retrieve - should fail and return default
-      const result = await getSecureItem('tamper_test', { tampered: true });
-      expect(result).toEqual({ tampered: true });
+      // Try to retrieve — tamper must SURFACE (throw), not be swallowed into
+      // the default. The stored ciphertext exists; a default here would hide it.
+      await expect(
+        getSecureItem('tamper_test', { tampered: true }),
+      ).rejects.toBeInstanceOf(SecureDecryptError);
     });
   });
 

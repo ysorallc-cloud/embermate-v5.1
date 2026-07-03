@@ -16,6 +16,7 @@ import {
   getSecureItem,
   removeSecureItem,
   testEncryption,
+  SecureDecryptError,
 } from '../../utils/secureStorage';
 import { safeSetItem, safeGetItem, isSensitiveKey } from '../../utils/safeStorage';
 import { StorageKeys } from '../../utils/storageKeys';
@@ -75,7 +76,9 @@ describe('secureStorage — round-trip', () => {
     expect(result).toBe('fallback');
   });
 
-  it('returns the default value when ciphertext is tampered with (HMAC fails)', async () => {
+  it('SURFACES (throws) when ciphertext is tampered with (HMAC fails) — never swallowed to default', async () => {
+    // Gate B: a stored blob that exists but won't decrypt is data at risk, not
+    // an empty state. Folding it into the default silently hides the loss.
     const key = 'test_tamper';
     const value = 'authentic content';
     await setSecureItem(key, value);
@@ -87,8 +90,9 @@ describe('secureStorage — round-trip', () => {
     const tampered = raw.slice(0, -1) + (lastChar === '0' ? '1' : '0');
     await AsyncStorage.setItem(key, tampered);
 
-    const result = await getSecureItem<string>(key, 'TAMPERED_DEFAULT');
-    expect(result).toBe('TAMPERED_DEFAULT');
+    await expect(
+      getSecureItem<string>(key, 'TAMPERED_DEFAULT'),
+    ).rejects.toBeInstanceOf(SecureDecryptError);
   });
 
   it('removeSecureItem clears the encrypted blob', async () => {
