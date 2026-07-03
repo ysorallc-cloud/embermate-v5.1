@@ -10,18 +10,31 @@
 // deviation language ("above his usual") is deferred to the v1.1 snapshot
 // engine, which actually computes the baseline.
 //
-// This test is the reproduction AND the permanent guard: it source-scans ONLY
-// the two provider surfaces for verdict language. It intentionally does NOT
-// scan vital-threshold-settings / interactions (there "range"/"high" is a
-// legitimate user-configurable concept) or the in-app caregiver views (Now,
-// Insights) — this unit is provider-facing surfaces only.
+// This test is the reproduction AND the permanent guard: it source-scans the
+// provider-facing surfaces for verdict language. That set is BOTH the two
+// preview screens (care-report, visit-prep-preview) AND the EXPORTED Visit Prep
+// PDF (services/visitPrepPdf.ts) — the PDF is the artifact the provider actually
+// receives, so a threshold verdict there is the same leak, and the screen-only
+// guard could not catch it (the two diverged: preview clean, PDF still leaking
+// an "Out of Range" column). visitPrepPdf's vitals-table header is a static HTML
+// template literal, so the source scan covers the rendered header directly.
+//
+// It intentionally does NOT scan vital-threshold-settings / interactions (there
+// "range"/"high" is a legitimate user-configurable concept) or the in-app
+// caregiver views (Now, Insights) — this guard is provider-facing surfaces only.
+// The redFlags callout / buildRedFlags is a separate product decision, NOT
+// covered here.
 // ============================================================================
 
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
 const ROOT = join(__dirname, '../..');
-const FILES = ['app/care-report.tsx', 'app/visit-prep-preview.tsx'];
+const FILES = [
+  'app/care-report.tsx',
+  'app/visit-prep-preview.tsx',
+  'services/visitPrepPdf.ts',
+];
 const VERDICT = /\b(out of range|outside usual range|within usual range|abnormal|elevated)\b/i;
 
 describe('v1 launch-blocker — no provider-facing threshold verdicts', () => {

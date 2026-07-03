@@ -632,12 +632,18 @@ function buildHtml(data: VisitPrepData): string {
     </tr>
   `).join('');
 
+  // v1 launch-blocker — the exported PDF (handed to a provider) renders the
+  // FACT only: Vital / Latest / Trend. The dropped verdict column was a
+  // threshold count from a fixed cutoff (VitalEntry.outOfRange vs VITAL_RANGES),
+  // not the patient's baseline, so it was a false clinical claim here. Trend
+  // stays — it's direction-of-change from the readings, not a threshold verdict.
+  // VitalEntry.outOfRange remains COMPUTED on the data (v1.1 snapshot engine may
+  // repurpose it); this is presentation-only.
   const vitalsRows = data.vitals.map(v => `
     <tr>
       <td>${v.label}</td>
       <td>${v.latestValue}</td>
       <td>${trendArrow(v.trend)}</td>
-      <td>${v.outOfRange > 0 ? v.outOfRange : '–'}</td>
     </tr>
   `).join('');
 
@@ -837,7 +843,7 @@ function buildHtml(data: VisitPrepData): string {
   ${data.includes.vitals ? (data.vitals.length > 0 ? `
   <h2>Vitals</h2>
   <table>
-    <tr><th>Vital</th><th>Latest</th><th>Trend</th><th>Out of Range</th></tr>
+    <tr><th>Vital</th><th>Latest</th><th>Trend</th></tr>
     ${vitalsRows}
   </table>
   ` : `
