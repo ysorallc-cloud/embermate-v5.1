@@ -342,7 +342,13 @@ export default function VisitPrepPreviewScreen() {
                     {data.vitals.length > 0 ? (
                       data.vitals.map((v, i) => (
                         <Text key={`vital-${i}`} style={styles.bulletLine}>
-                          {`• ${v.label}: ${v.latestValue}${v.outOfRange > 0 ? ` (${v.outOfRange} out of range)` : ''}`}
+                          {/* v1 launch-blocker — FACT only, no app-threshold verdict.
+                              The prior threshold-count annotation was derived from
+                              assembleVisitPrepData.outOfRange (a fixed cutoff), which
+                              is not the patient's baseline — dropped from this
+                              provider-facing surface. The outOfRange data field is
+                              intentionally LEFT in the builder for v1.1 to repurpose. */}
+                          {`• ${v.label}: ${v.latestValue}`}
                         </Text>
                       ))
                     ) : (

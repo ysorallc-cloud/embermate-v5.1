@@ -664,19 +664,24 @@ function TodayView({
   const appointmentsToday = appointments.filter(a => a.date === todayStr).length;
 
   const vitalsData = useMemo(() => {
-    const items: Array<{ type: string; value: string; unit: string; withinRange: boolean | null }> = [];
+    // v1 launch-blocker \u2014 provider-facing surface renders the FACT only
+    // (type/value/unit). No app-defined threshold verdict on the reading: the
+    // cutoff is not derived from the patient's history, so a "usual" claim is
+    // false on a page handed to a provider. Per-person deviation language is
+    // deferred to the v1.1 snapshot engine, which computes the baseline.
+    const items: Array<{ type: string; value: string; unit: string }> = [];
     if (!vitalsLog) return items;
     if (vitalsLog.systolic && vitalsLog.diastolic) {
-      items.push({ type: 'Blood Pressure', value: `${vitalsLog.systolic}/${vitalsLog.diastolic}`, unit: 'mmHg', withinRange: vitalsLog.systolic < 130 && vitalsLog.diastolic < 80 });
+      items.push({ type: 'Blood Pressure', value: `${vitalsLog.systolic}/${vitalsLog.diastolic}`, unit: 'mmHg' });
     }
     if (vitalsLog.heartRate) {
-      items.push({ type: 'Heart Rate', value: String(vitalsLog.heartRate), unit: 'bpm', withinRange: vitalsLog.heartRate >= 60 && vitalsLog.heartRate <= 100 });
+      items.push({ type: 'Heart Rate', value: String(vitalsLog.heartRate), unit: 'bpm' });
     }
     if (vitalsLog.oxygenSaturation) {
-      items.push({ type: 'O2 Saturation', value: String(vitalsLog.oxygenSaturation), unit: '%', withinRange: vitalsLog.oxygenSaturation >= 95 });
+      items.push({ type: 'O2 Saturation', value: String(vitalsLog.oxygenSaturation), unit: '%' });
     }
     if (vitalsLog.temperature) {
-      items.push({ type: 'Temperature', value: String(vitalsLog.temperature), unit: '\u00B0F', withinRange: vitalsLog.temperature >= 97.0 && vitalsLog.temperature <= 99.0 });
+      items.push({ type: 'Temperature', value: String(vitalsLog.temperature), unit: '\u00B0F' });
     }
     return items;
   }, [vitalsLog]);
@@ -754,11 +759,6 @@ function TodayView({
           {vitalsData.map((vital, i) => (
             <View key={i} style={styles.listItem}>
               <Text style={styles.listItemName}>{vital.type}: {vital.value} {vital.unit}</Text>
-              {vital.withinRange !== null && (
-                <Text style={[styles.rangeNote, vital.withinRange ? styles.rangeNormal : styles.rangeAbnormal]}>
-                  {vital.withinRange ? 'Within usual range' : 'Outside usual range'}
-                </Text>
-              )}
             </View>
           ))}
         </GlassCard>
@@ -1200,18 +1200,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   statusPending: {
     color: c.amber,
-  },
-
-  // Range notes
-  rangeNote: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  rangeNormal: {
-    color: c.green,
-  },
-  rangeAbnormal: {
-    color: c.coral,
   },
 
   // Notes
