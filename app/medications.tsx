@@ -23,6 +23,7 @@ import { SubScreenHeader } from '../components/SubScreenHeader';
 import { MedicationCardSkeleton } from '../components/LoadingSkeleton';
 import { getMedications, deleteMedication, calculateAdherence, Medication, markMedicationTaken } from '../utils/medicationStorage';
 import { checkInteraction } from '../utils/drugInteractions';
+import { isFeatureEnabled } from '../utils/featureFlags';
 import { logError } from '../utils/devLog';
 
 export default function MedicationsScreen() {
@@ -333,8 +334,10 @@ export default function MedicationsScreen() {
           }}
           ListHeaderComponent={
             <>
-              {/* Interaction Warning */}
-              {interactions.length > 0 && (
+              {/* Interaction Warning — gated behind the drugInteractions flag
+                  (OFF for v1). The checker is not surfaced until its data is
+                  trustworthy; see Gate C. */}
+              {isFeatureEnabled('drugInteractions') && interactions.length > 0 && (
                 <TouchableOpacity
                   style={styles.warningBanner}
                   onPress={() => router.push('/medication-interactions')}

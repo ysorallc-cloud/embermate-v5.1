@@ -25,6 +25,7 @@ import { checkMedicationInteractions } from '../utils/medicationStorage';
 import { DrugInteraction } from '../utils/drugInteractions';
 import InteractionWarnings from '../components/InteractionWarnings';
 import { logError } from '../utils/devLog';
+import { isFeatureEnabled } from '../utils/featureFlags';
 
 export default function InteractionsScreen() {
   const { colors } = useTheme();
@@ -34,11 +35,48 @@ export default function InteractionsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Gate C: the interaction checker is flagged OFF for v1 (kept in the tree,
+  // not surfaced) until its 22-pair list is trustworthy enough not to falsely
+  // reassure. When disabled, do not run or display any interaction result.
+  const featureEnabled = isFeatureEnabled('drugInteractions');
+
   useFocusEffect(
     useCallback(() => {
-      loadInteractions();
-    }, [])
+      if (featureEnabled) loadInteractions();
+    }, [featureEnabled])
   );
+
+  if (!featureEnabled) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <LinearGradient
+          colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
+          style={styles.gradient}
+        >
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+              accessibilityLabel="Go back"
+              accessibilityRole="button"
+            >
+              <Text style={styles.backIcon}>←</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerLabel}>INTERACTIONS</Text>
+            <View style={styles.placeholder} />
+          </View>
+          <View style={styles.emptyState}>
+            <Ionicons name="information-circle-outline" size={64} color={colors.accent} />
+            <Text style={styles.emptyTitle}>Not available in this version</Text>
+            <Text style={styles.emptyText}>
+              Automated interaction checking isn't part of this release. Please review
+              medications with your pharmacist or doctor.
+            </Text>
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
 
   const loadInteractions = async () => {
     try {
@@ -56,10 +94,6 @@ export default function InteractionsScreen() {
     await loadInteractions();
     setRefreshing(false);
   }, []);
-
-  const highRisk = interactions.filter((i) => i.severity === 'high');
-  const moderateRisk = interactions.filter((i) => i.severity === 'moderate');
-  const lowRisk = interactions.filter((i) => i.severity === 'low');
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -111,23 +145,11 @@ export default function InteractionsScreen() {
             </View>
           </View>
 
-          {/* Summary Cards */}
-          <View style={styles.summaryCards}>
-            <View style={[styles.summaryCard, { borderLeftColor: colors.coral }]}>
-              <Text style={styles.summaryValue}>{highRisk.length}</Text>
-              <Text style={styles.summaryLabel}>High Risk</Text>
-            </View>
-
-            <View style={[styles.summaryCard, { borderLeftColor: colors.amber }]}>
-              <Text style={styles.summaryValue}>{moderateRisk.length}</Text>
-              <Text style={styles.summaryLabel}>Moderate</Text>
-            </View>
-
-            <View style={[styles.summaryCard, { borderLeftColor: colors.gold }]}>
-              <Text style={styles.summaryValue}>{lowRisk.length}</Text>
-              <Text style={styles.summaryLabel}>Low Risk</Text>
-            </View>
-          </View>
+          {/* Affirmative severity-count summary intentionally removed (Gate C).
+              A zero tally from a fixed 22-pair exact-match list falsely reassures
+              a caregiver whose real dangerous combination the list never matches.
+              Individual matched interactions still render below; the app does not
+              present an affirmative "you're clear" count. */}
 
           {/* Interactions Display */}
           {!loading && interactions.length === 0 && (
