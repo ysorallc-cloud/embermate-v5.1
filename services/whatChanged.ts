@@ -15,7 +15,6 @@ export interface WhatChangedVitalSnapshot {
   type: string;
   label: string;
   trend: 'up' | 'down' | 'stable' | 'unknown';
-  outOfRange: number;
 }
 
 export interface WhatChangedInput {
@@ -42,17 +41,16 @@ const FUNCTIONAL_PRIORITY: Record<FunctionalIssue['severity'], number> = {
 };
 
 function describeVital(v: WhatChangedVitalSnapshot): string | null {
-  // Only surface vitals when there's a real change signal — directional
-  // trend AND at least one out-of-range reading. "Stable but high" stays in
-  // the table, not the lede.
+  // Surface a vital only on a directional trend. Trend is direction-of-change
+  // from the readings themselves — a fact, not a threshold verdict — so it is
+  // safe on a provider-facing surface. The former "N readings outside the usual
+  // range" clause was a fixed-cutoff clinical claim (not the patient's own
+  // baseline) and was removed for v1; per-person deviation language is deferred
+  // to the v1.1 snapshot engine that actually computes the baseline.
+  // "Stable" stays out of the lede — it's a status signal, not a change.
   if (v.trend === 'stable' || v.trend === 'unknown') return null;
-  if (v.outOfRange <= 0) return null;
-  const direction = v.trend === 'up' ? 'higher' : 'lower';
   const verb = v.trend === 'up' ? 'trending up' : 'trending down';
-  return (
-    `${v.label} readings have been ${verb} — ${v.outOfRange} ` +
-    `${v.outOfRange === 1 ? 'reading' : 'readings'} outside the usual range.`
-  );
+  return `${v.label} readings have been ${verb}.`;
 }
 
 export function buildWhatChanged(input: WhatChangedInput): WhatChangedResult {

@@ -36,6 +36,11 @@ const SUMMARY_FILES = [
   // verdict from its vitals branch. That branch was removed for v1; scan the
   // builder so it cannot regress.
   'services/redFlags.ts',
+  // Merged in from the now-deleted __tests__/architecture/noProviderVerdict.test.ts
+  // (its overlapping, narrower guard was folded into this broader one). The
+  // EXPORTED PDF is the artifact the provider actually receives, so a threshold
+  // verdict in its static HTML template is the same leak as one on a screen.
+  'services/visitPrepPdf.ts',
 ];
 
 // Verdict tokens AND the tell-tale style/flag names that drive verdict UI.

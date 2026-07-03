@@ -23,7 +23,7 @@
 // Empty list → caller omits the callout entirely.
 // ============================================================================
 
-import type { AdherenceEntry, VitalEntry } from './visitPrepPdf';
+import type { AdherenceEntry } from './visitPrepPdf';
 import type { SymptomChange } from './symptomChangeDetection';
 
 export type RedFlagSeverity = 'critical' | 'attention';
@@ -35,10 +35,6 @@ export interface RedFlag {
 
 export interface BuildRedFlagsInput {
   adherence: AdherenceEntry[];
-  /** Retained only so the existing caller keeps compiling; the vitals
-   *  out-of-range verdict this once fed was removed (Gate D). The field is
-   *  dropped entirely in the follow-up field-removal commit. */
-  vitals?: VitalEntry[];
   notesInRange: { date: string; text: string }[];
   symptomChanges: SymptomChange[];
   /** Delta of avg sleep quality in current window minus prior window. */

@@ -109,7 +109,6 @@ export interface VitalEntry {
   label: string;
   latestValue: string;
   trend: 'up' | 'down' | 'stable' | 'unknown';
-  outOfRange: number;
 }
 
 export interface SkippedDoseSummary {
@@ -247,14 +246,10 @@ const VITAL_LABELS: Record<string, string> = {
   weight: 'Weight',
 };
 
-const VITAL_RANGES: Record<string, { low: number; high: number }> = {
-  systolic: { low: 90, high: 140 },
-  diastolic: { low: 60, high: 90 },
-  heartRate: { low: 50, high: 100 },
-  glucose: { low: 70, high: 140 },
-  oxygen: { low: 92, high: 100 },
-  temperature: { low: 97, high: 99.5 },
-};
+// (Removed VITAL_RANGES — the fixed-cutoff table that drove the provider-facing
+// threshold verdict. It had no other consumer; leaving a dead cutoff table alive
+// is a standing invitation to reintroduce the false clinical claim. Per-person
+// baselines are the v1.1 snapshot engine's job.)
 
 // ============================================================================
 // DATA ASSEMBLY
@@ -344,17 +339,12 @@ export async function assembleVisitPrepData(config: VisitPrepConfig): Promise<Vi
         );
         const values = sorted.map(r => r.value);
         const latest = sorted[sorted.length - 1];
-        const range = VITAL_RANGES[type];
-        const outOfRange = range
-          ? values.filter(v => v < range.low || v > range.high).length
-          : 0;
 
         vitals.push({
           type,
           label: VITAL_LABELS[type] || type,
           latestValue: `${latest.value}${latest.unit ? ' ' + latest.unit : ''}`,
           trend: computeTrend(values),
-          outOfRange,
         });
       }
     } catch (err) {
@@ -518,7 +508,6 @@ export async function assembleVisitPrepData(config: VisitPrepConfig): Promise<Vi
       type: v.type,
       label: v.label,
       trend: v.trend,
-      outOfRange: v.outOfRange,
     })),
     functionalIssues,
     periodDays: days,
@@ -547,7 +536,7 @@ export async function assembleVisitPrepData(config: VisitPrepConfig): Promise<Vi
   // Phase 5.10.d — gated by includeRedFlags (default true).
   const redFlags = config.includeRedFlags !== false
     ? buildRedFlags({
-        adherence, vitals, notesInRange: notesForFlags,
+        adherence, notesInRange: notesForFlags,
         symptomChanges, sleepDelta, refusedByMed,
       })
     : [];
@@ -634,11 +623,12 @@ function buildHtml(data: VisitPrepData): string {
 
   // v1 launch-blocker — the exported PDF (handed to a provider) renders the
   // FACT only: Vital / Latest / Trend. The dropped verdict column was a
-  // threshold count from a fixed cutoff (VitalEntry.outOfRange vs VITAL_RANGES),
-  // not the patient's baseline, so it was a false clinical claim here. Trend
-  // stays — it's direction-of-change from the readings, not a threshold verdict.
-  // VitalEntry.outOfRange remains COMPUTED on the data (v1.1 snapshot engine may
-  // repurpose it); this is presentation-only.
+  // threshold count derived from a fixed cutoff (VITAL_RANGES), not the
+  // patient's own baseline, so it was a false clinical claim here. Trend stays
+  // — it's direction-of-change from the readings, not a threshold verdict. The
+  // per-reading cutoff comparison was removed entirely from this provider path
+  // (also from the "What changed" lede in whatChanged.ts); per-person deviation
+  // is deferred to the v1.1 snapshot engine that computes a real baseline.
   const vitalsRows = data.vitals.map(v => `
     <tr>
       <td>${v.label}</td>

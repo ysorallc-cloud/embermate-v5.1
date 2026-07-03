@@ -217,7 +217,7 @@ describe('assembleVisitPrepData — medications edge cases', () => {
 });
 
 describe('assembleVisitPrepData — vitals', () => {
-  it('groups vitals by type and computes trend + outOfRange', async () => {
+  it('groups vitals by type and computes label / latest / trend (no threshold verdict)', async () => {
     mockGetVitals.mockResolvedValue([
       { id: 'v1', type: 'systolic', value: 145, unit: 'mmHg', timestamp: '2026-04-12T08:00:00Z' },
       { id: 'v2', type: 'systolic', value: 138, unit: 'mmHg', timestamp: '2026-04-15T08:00:00Z' },
@@ -230,9 +230,10 @@ describe('assembleVisitPrepData — vitals', () => {
     expect(sys.label).toBe('Systolic BP');
     expect(sys.latestValue).toBe('128 mmHg');
     expect(['up', 'down', 'stable']).toContain(sys.trend);
-    // VITAL_RANGES.systolic = { low: 90, high: 140 }
-    // 145 is out; 138/132/128 are all in range → outOfRange = 1
-    expect(sys.outOfRange).toBe(1);
+    // Gate D: no app-defined threshold verdict on this provider-facing artifact.
+    // The former fixed-cutoff "outOfRange" count was removed end-to-end; the
+    // entry carries facts only (label / latest / trend), no cutoff comparison.
+    expect(sys).not.toHaveProperty('outOfRange');
   });
 
   it('vitals with single reading reports trend as "unknown"', async () => {
