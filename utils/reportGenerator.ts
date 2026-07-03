@@ -113,17 +113,21 @@ export interface ComprehensiveReport {
   };
   
   // 2. Vitals Stability Report
+  // Fact-only: the observed min–max range (and weight delta) per vital. No
+  // app-defined threshold verdict (Gate D) — the per-vital `status` label and
+  // the tally of readings past a hardcoded cutoff were fixed-cutoff clinical
+  // claims on a provider-facing artifact and were removed. Per-person baselines
+  // are the STEP 1 buildCareSnapshot engine's job.
   vitalsStability: {
     recentVitals: VitalLog[];
     trends: {
-      bloodPressure: { status: string; range: string };
-      heartRate: { status: string; range: string };
-      oxygenSaturation: { status: string; range: string };
-      glucose: { status: string; range: string };
-      temperature: { status: string; range: string };
-      weight: { status: string; change: string };
+      bloodPressure: { range: string };
+      heartRate: { range: string };
+      oxygenSaturation: { range: string };
+      glucose: { range: string };
+      temperature: { range: string };
+      weight: { change: string };
     };
-    outOfRangeCount: number;
   };
   
   // 3. Symptom Progression
@@ -283,47 +287,38 @@ function analyzeVitalsStability(vitals: VitalLog[]) {
   const temp = last7Days.map(v => v.temperature).filter((v): v is number => v != null);
   const weights = last7Days.map(v => v.weight).filter((v): v is number => v != null);
   
-  let outOfRangeCount = 0;
-  if (bpSystolic.some(v => v > 140 || v < 90)) outOfRangeCount++;
-  if (hr.some(v => v > 100 || v < 60)) outOfRangeCount++;
-  if (o2.some(v => v < 92)) outOfRangeCount++;
-  if (glucose.some(v => v > 140 || v < 70)) outOfRangeCount++;
-  
-  const weightChange = weights.length >= 2 
-    ? weights[0] - weights[weights.length - 1] 
+  // Gate D: no fixed-cutoff verdict. We report the observed range (min–max) and
+  // weight delta as facts; the prior per-vital `status` labels and
+  // `outOfRangeCount` were app-defined threshold claims, not the patient's own
+  // baseline, and are removed. Deviation-vs-history is the STEP 1 engine's job.
+  const weightChange = weights.length >= 2
+    ? weights[0] - weights[weights.length - 1]
     : 0;
-  
+
   return {
     recentVitals: recent,
     trends: {
       bloodPressure: {
-        status: bpSystolic.some(v => v > 140) ? 'Elevated' : 'Normal',
-        range: bpSystolic.length > 0 
-          ? `${Math.min(...bpSystolic)}-${Math.max(...bpSystolic)}` 
+        range: bpSystolic.length > 0
+          ? `${Math.min(...bpSystolic)}-${Math.max(...bpSystolic)}`
           : 'No data',
       },
       heartRate: {
-        status: hr.some(v => v > 100 || v < 60) ? 'Out of range' : 'Normal',
         range: hr.length > 0 ? `${Math.min(...hr)}-${Math.max(...hr)} bpm` : 'No data',
       },
       oxygenSaturation: {
-        status: o2.some(v => v < 92) ? 'Low' : 'Normal',
         range: o2.length > 0 ? `${Math.min(...o2)}-${Math.max(...o2)}%` : 'No data',
       },
       glucose: {
-        status: glucose.some(v => v > 140 || v < 70) ? 'Out of range' : 'Normal',
         range: glucose.length > 0 ? `${Math.min(...glucose)}-${Math.max(...glucose)} mg/dL` : 'No data',
       },
       temperature: {
-        status: temp.some(v => v > 99.5 || v < 97) ? 'Abnormal' : 'Normal',
         range: temp.length > 0 ? `${Math.min(...temp)}-${Math.max(...temp)}°F` : 'No data',
       },
       weight: {
-        status: Math.abs(weightChange) > 5 ? 'Significant change' : 'Stable',
         change: weightChange !== 0 ? `${weightChange > 0 ? '+' : ''}${weightChange.toFixed(1)} lbs` : 'No change',
       },
     },
-    outOfRangeCount,
   };
 }
 
@@ -381,25 +376,12 @@ function generateRedFlags(
     });
   }
   
-  // Vitals red flags
-  if (vitals.trends.oxygenSaturation.status === 'Low') {
-    flags.push({
-      type: 'Vitals',
-      message: 'O2 saturation below 92%',
-      severity: 'high',
-      timestamp: now,
-    });
-  }
-  
-  if (vitals.trends.weight.status === 'Significant change') {
-    flags.push({
-      type: 'Vitals',
-      message: `Weight change ${vitals.trends.weight.change}`,
-      severity: 'medium',
-      timestamp: now,
-    });
-  }
-  
+  // Vitals red flags — removed (Gate D). "O2 saturation below 92%" and the
+  // weight-change alert were fixed-cutoff clinical verdicts derived from the
+  // per-vital `status` label, which no longer exists. A per-person vitals
+  // alert belongs in the STEP 1 buildCareSnapshot engine, computed against the
+  // patient's own baseline, not a hardcoded cutoff.
+
   // Symptom red flags
   const recentSymptoms = symptoms.slice(0, 5);
   const severeSymptoms = recentSymptoms.flatMap(log => 
@@ -436,12 +418,11 @@ function generateClinicalSummary(
     concerns.push(`Medication logging incomplete (${medAdherence.missedDoses} pending)`);
   }
   
-  // Vitals summary
-  if (vitals.outOfRangeCount > 0) {
-    parts.push(`${vitals.outOfRangeCount} vital${vitals.outOfRangeCount !== 1 ? 's' : ''} out of range`);
-    concerns.push('Some vitals outside normal ranges');
-  }
-  
+  // Vitals summary — intentionally emits NO threshold verdict (Gate D). The
+  // prior count-past-cutoff summary lines were fixed-cutoff clinical claims on
+  // this provider-facing handoff PDF. The observed per-vital range is still
+  // rendered as a fact by the caller.
+
   // Appointments
   const upcomingAppts = appointments.filter(a => {
     const apptDate = new Date(a.date);
