@@ -8,6 +8,7 @@ import { useMemo, useCallback } from 'react';
 import { useDailyCareInstances, UseDailyCareInstancesReturn } from './useDailyCareInstances';
 import { DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { getTodayDateString } from '../services/carePlanGenerator';
+import { isInstanceSetComplete } from '../utils/careCompletion';
 import { TimeWindowLabel, LogEntry, DailyCareInstance } from '../types/carePlan';
 import {
   CarePlanTask,
@@ -161,7 +162,11 @@ export function useCareTasks(
       stats,
       nextPending,
       overdueTasks,
-      allComplete: stats.pending === 0 && stats.total > 0,
+      // 'missed' blocks completion alongside 'pending' — a day with a dropped
+      // dose is NOT complete, even though a missed task is no longer pending.
+      // 'skipped' (deliberate caregiver close) does not block. Mirrors
+      // useDailyCareInstances; see utils/careCompletion.
+      allComplete: isInstanceSetComplete(tasks),
       completionRate: stats.completionRate,
       date: targetDate,
     };

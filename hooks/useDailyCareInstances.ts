@@ -27,6 +27,7 @@ import {
   getCurrentWindowLabel,
 } from '../services/carePlanGenerator';
 import { useTodayScope } from './useTodayScope';
+import { statusBlocksCompletion, isInstanceSetComplete } from '../utils/careCompletion';
 
 // ============================================================================
 // TYPES
@@ -104,9 +105,12 @@ function getWindowStatus(
   instances: DailyCareInstance[],
   currentWindow: TimeWindowLabel
 ): 'upcoming' | 'available' | 'completed' {
-  // If all instances are completed or skipped, mark as completed
-  const pendingCount = instances.filter(i => i.status === 'pending').length;
-  if (instances.length > 0 && pendingCount === 0) {
+  // Complete only when nothing is left to resolve. 'missed' blocks completion
+  // just like 'pending' (a failure, not a caregiver-acted close) — a window
+  // with a missed dose must never read 'completed'/green. 'skipped' and
+  // 'completed' don't block. See utils/careCompletion.
+  const unresolvedCount = instances.filter(i => statusBlocksCompletion(i.status)).length;
+  if (instances.length > 0 && unresolvedCount === 0) {
     return 'completed';
   }
 
@@ -116,8 +120,10 @@ function getWindowStatus(
   const thisIndex = windowOrder.indexOf(windowLabel);
 
   if (thisIndex < currentIndex) {
-    // Past window - if has pending items, they should be available
-    return pendingCount > 0 ? 'available' : 'completed';
+    // Past window - if it has unresolved (pending or missed) items, they're
+    // still actionable (a missed dose can be logged late), so keep it
+    // 'available' rather than falsely 'completed'.
+    return unresolvedCount > 0 ? 'available' : 'completed';
   } else if (thisIndex === currentIndex) {
     return 'available';
   } else {
@@ -322,7 +328,9 @@ export function useDailyCareInstances(
       groups,
       stats,
       nextPending,
-      allComplete: stats.pending === 0 && stats.total > 0,
+      // 'missed' blocks completion alongside 'pending' — a day with a dropped
+      // dose is NOT complete. 'skipped' (deliberate close) does not block.
+      allComplete: isInstanceSetComplete(visibleInstances),
     };
   }, [instances, loading, scopeLoading, targetDate, isSuppressed, skipSuppression]);
 
