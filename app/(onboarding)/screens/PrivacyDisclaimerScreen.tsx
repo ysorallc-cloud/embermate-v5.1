@@ -20,16 +20,16 @@
 // tapping while checked calls onContinue.
 // ============================================================================
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Pressable,
-  Linking,
   ScrollView,
 } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
@@ -88,6 +88,18 @@ export const PrivacyDisclaimerScreen: React.FC<Props> = ({
     if (onContinue) onContinue();
   };
 
+  // Open Terms/Privacy in an IN-APP returnable browser (SFSafariViewController
+  // on iOS / Custom Tab on Android) rather than Linking.openURL, which ejects
+  // the caregiver out to the system browser mid-onboarding during a required-
+  // acceptance step with no way back to the checkbox. openBrowserAsync presents
+  // a modal over the app with a Done button — the user reads and returns to the
+  // acceptance gate without leaving the flow. Destinations are live
+  // (embermate.app/terms + /privacy). Failure is swallowed so a browser hiccup
+  // never crashes onboarding.
+  const openLegal = useCallback((url: string) => {
+    WebBrowser.openBrowserAsync(url).catch(() => {});
+  }, []);
+
   const showHelper = hasAttemptedSubmit && !accepted;
 
   return (
@@ -137,14 +149,14 @@ export const PrivacyDisclaimerScreen: React.FC<Props> = ({
               I understand and accept the{' '}
               <Text
                 style={styles.link}
-                onPress={() => Linking.openURL('https://embermate.app/terms')}
+                onPress={() => openLegal('https://embermate.app/terms')}
               >
                 terms of use
               </Text>
               {' and '}
               <Text
                 style={styles.link}
-                onPress={() => Linking.openURL('https://embermate.app/privacy')}
+                onPress={() => openLegal('https://embermate.app/privacy')}
               >
                 privacy policy
               </Text>

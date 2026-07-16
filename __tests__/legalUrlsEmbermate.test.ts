@@ -99,17 +99,23 @@ describe('Legal URLs point to embermate.app — ysorallc.org retired', () => {
     const SRC = readFileSync(SRC_PATH, 'utf8');
     const STRIPPED = stripComments(SRC);
 
-    it('terms-of-use link opens https://embermate.app/terms', () => {
+    it('terms-of-use link opens https://embermate.app/terms IN-APP (openLegal → WebBrowser), not an eject', () => {
+      // The link routes through openLegal(url), which opens the returnable
+      // in-app browser (expo-web-browser) — NOT Linking.openURL, which would
+      // eject the caregiver to Safari mid-onboarding.
       expect(STRIPPED).toMatch(
-        /Linking\.openURL\(\s*['"]https:\/\/embermate\.app\/terms['"]\s*\)/,
+        /openLegal\(\s*['"]https:\/\/embermate\.app\/terms['"]\s*\)/,
       );
+      expect(STRIPPED).toMatch(/WebBrowser\.openBrowserAsync/);
+      // The eject pattern must not survive on this required-acceptance screen.
+      expect(STRIPPED).not.toMatch(/Linking\.openURL/);
       // The pre-fix ysorallc URL must not survive in the disclaimer.
       expect(STRIPPED).not.toMatch(/ysorallc\.org/);
     });
 
-    it('privacy-policy link is rendered and opens https://embermate.app/privacy', () => {
+    it('privacy-policy link is rendered and opens https://embermate.app/privacy IN-APP', () => {
       expect(STRIPPED).toMatch(
-        /Linking\.openURL\(\s*['"]https:\/\/embermate\.app\/privacy['"]\s*\)/,
+        /openLegal\(\s*['"]https:\/\/embermate\.app\/privacy['"]\s*\)/,
       );
       // The visible link label must read as "privacy policy" copy so the
       // affordance is discoverable on the disclaimer surface (the user
