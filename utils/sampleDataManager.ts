@@ -8,7 +8,7 @@ import { safeGetItem, safeSetItem } from './safeStorage';
 import { emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
 import { devLog, logError } from './devLog';
-import { StorageKeys, StorageKeyPrefixes } from './storageKeys';
+import { StorageKeys, StorageKeyPrefixes, scopedKey } from './storageKeys';
 
 // ============================================================================
 // TYPES
@@ -312,6 +312,25 @@ export async function clearSampleData(): Promise<{
       const removed = await filterSampleFromArray(key);
       clearedCount += removed;
     }
+
+    // 10c. Clear sample records that live in keys the steps above never
+    // iterated. Each holds origin='sample' records written by
+    // initializeSampleData / seedSampleMedicationLogs but was previously
+    // absent from this routine, so the records survived "Start Fresh" and
+    // surfaced on real screens as a real loved one's record:
+    //   - CENTRAL_NOTES_LOGS: the caregiver note (getNotesLogs → Journal +
+    //     Care Report). Step 7 above clears StorageKeys.NOTES, which nothing
+    //     seeds to — the note actually lives here.
+    //   - CENTRAL_VITALS_LOGS: the daily vitals aggregates (getVitalsLogs →
+    //     Calendar / Baselines / Now / Visit-Prep).
+    //   - MEDICATION_LOGS (legacy scoped): the legacy adherence logs
+    //     (getMedicationLogs → Now-page med count + reports).
+    // filterSampleFromArray preserves origin!=='sample' rows, so real
+    // caregiver data entered before the clear is kept.
+    const { DEFAULT_PATIENT_ID: pid } = await import('../storage/carePlanRepo');
+    clearedCount += await filterSampleFromArray(scopedKey(StorageKeys.CENTRAL_NOTES_LOGS, pid));
+    clearedCount += await filterSampleFromArray(scopedKey(StorageKeys.CENTRAL_VITALS_LOGS, pid));
+    clearedCount += await filterSampleFromArray(scopedKey(StorageKeys.MEDICATION_LOGS, pid));
 
     // 11. Clear sample CarePlanConfig
     await AsyncStorage.removeItem(SAMPLE_DATA_KEYS.carePlanConfig);
