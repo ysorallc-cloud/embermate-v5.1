@@ -8,6 +8,7 @@ import { safeGetItem } from './safeStorage';
 import { getMorningWellness, getEveningWellness } from './wellnessCheckStorage';
 import { getUpcomingAppointments } from './appointmentStorage';
 import { getTodayVitalsLog, getMealsLogs, getTodaySleepLog, getTodayWaterLog, getVitalsLogs, getSleepLogs, getWaterLogs, type VitalsLog, type SleepLog, type WaterLog } from './centralStorage';
+import { observeVital, OBSERVATION_PHRASE } from './vitalsObservation';
 import { listDailyInstances, listLogsByDate, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { ensureDailyInstances, getTodayDateString } from '../services/carePlanGenerator';
 import { getCareItemStatus } from './careItemStatus';
@@ -634,6 +635,9 @@ export async function buildCareBrief(targetDate?: string): Promise<CareBrief> {
   let morningWellness: Awaited<ReturnType<typeof getMorningWellness>>;
   let eveningWellness: Awaited<ReturnType<typeof getEveningWellness>>;
   let todayVitals: VitalsLog | null;
+  // Full daily vitals history — the per-person baseline observeVital() compares
+  // the target-day reading against. Prior-day readings only (target day excluded).
+  let allVitalsLogs: VitalsLog[];
   let mealsLogs: Awaited<ReturnType<typeof getMealsLogs>>;
   let upcomingAppointments: Awaited<ReturnType<typeof getUpcomingAppointments>>;
   let sleepLog: SleepLog | null;
@@ -665,7 +669,7 @@ export async function buildCareBrief(targetDate?: string): Promise<CareBrief> {
       ? getTodayWaterLog()
       : getWaterLogs().then(arr => arr.find(l => new Date(l.timestamp).toDateString() === targetDateKey) || null);
 
-    [logs, morningWellness, eveningWellness, todayVitals, mealsLogs, upcomingAppointments, sleepLog, waterLog, medInfo, clinicalSettings, emergencyContacts, patientRegistry] =
+    [logs, morningWellness, eveningWellness, todayVitals, mealsLogs, upcomingAppointments, sleepLog, waterLog, medInfo, clinicalSettings, emergencyContacts, patientRegistry, allVitalsLogs] =
       await Promise.all([
         listLogsByDate(DEFAULT_PATIENT_ID, date),
         getMorningWellness(date),
@@ -679,6 +683,7 @@ export async function buildCareBrief(targetDate?: string): Promise<CareBrief> {
         getClinicalCareSettings(),
         getEmergencyContacts(),
         getPatientRegistry(),
+        getVitalsLogs(),
       ]);
     // Phase 5.13.1.c — derive patient name from the registry result we
     // already have in hand instead of a duplicate AsyncStorage read.
@@ -914,18 +919,47 @@ export async function buildCareBrief(targetDate?: string): Promise<CareBrief> {
     interpretations.medications = `${names} ${pendingOverdue.length === 1 ? 'is' : 'are'} overdue. Confirm whether ${pendingOverdue.length === 1 ? 'it was' : 'they were'} taken but not logged, or missed entirely.`;
   }
 
-  // Vitals: flag when glucose or BP exceeds typical thresholds
+  // Vitals: surface a reading that sits outside THIS person's own usual range.
+  // Per-person (no fixed population cutoff) and neutral (a fact about their
+  // baseline, never a clinical verdict) — all threshold logic lives in the
+  // canonical observeVital() and nowhere else.
   if (vitals.recorded && vitals.readings) {
     const r = vitals.readings;
+    // History = this person's prior-day readings (target day excluded).
+    const priorLogs = allVitalsLogs.filter(
+      (l) => new Date(l.timestamp) < new Date(`${date}T00:00:00`),
+    );
+    const seriesOf = (pick: (l: VitalsLog) => number | null | undefined): number[] =>
+      priorLogs
+        .map(pick)
+        .filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+
     const vitalFlags: string[] = [];
-    if (r.systolic != null && r.diastolic != null && (r.systolic >= 140 || r.diastolic >= 90)) {
-      vitalFlags.push(`Blood pressure ${r.systolic}/${r.diastolic} is elevated`);
+
+    if (r.systolic != null && r.diastolic != null) {
+      const sysObs = observeVital(r.systolic, seriesOf((l) => l.systolic));
+      const diaObs = observeVital(r.diastolic, seriesOf((l) => l.diastolic));
+      // The more notable component drives the BP note; 'above' takes priority.
+      const dir =
+        sysObs.direction === 'above_usual' || diaObs.direction === 'above_usual'
+          ? 'above_usual'
+          : sysObs.direction === 'below_usual' || diaObs.direction === 'below_usual'
+            ? 'below_usual'
+            : null;
+      if (dir) {
+        vitalFlags.push(`Blood pressure ${r.systolic}/${r.diastolic} is ${OBSERVATION_PHRASE[dir]}`);
+      }
     }
-    if (r.glucose != null && r.glucose >= 150) {
-      vitalFlags.push(`Glucose ${r.glucose} mg/dL is above typical range`);
+
+    if (r.glucose != null) {
+      const gluObs = observeVital(r.glucose, seriesOf((l) => l.glucose));
+      if (gluObs.direction === 'above_usual' || gluObs.direction === 'below_usual') {
+        vitalFlags.push(`Glucose ${r.glucose} mg/dL is ${OBSERVATION_PHRASE[gluObs.direction]}`);
+      }
     }
+
     if (vitalFlags.length > 0) {
-      interpretations.vitals = `${vitalFlags.join('. ')}. Compare with their usual baseline — if this is a pattern, it may be worth mentioning at the next visit.`;
+      interpretations.vitals = `${vitalFlags.join('. ')}. If this is a pattern rather than a one-off, it may be worth mentioning at the next visit.`;
     }
   }
 
