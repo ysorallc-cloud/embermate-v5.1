@@ -733,8 +733,11 @@ async function seedSampleMedicationLogs(): Promise<void> {
   const key = scopedKey(StorageKeys.CENTRAL_MED_LOGS, DEFAULT_PATIENT_ID);
   await encryptedSetRaw(key, JSON.stringify(logs));
 
-  // Also write to medicationStorage key (used by Now page legacy med count)
-  const legacyLogs = logs.map(log => ({
+  // Also write to medicationStorage key (used by Now page legacy med count).
+  // Tag origin='sample' so clearSampleData's origin filter can remove these
+  // on "Start Fresh" — without the tag they survived and surfaced as real
+  // adherence on the Now page + reports (getMedicationLogs).
+  const legacyLogs = logs.map(log => withSampleOrigin({
     medicationId: log.medicationIds[0],
     timestamp: log.timestamp,
     taken: true,
@@ -821,21 +824,28 @@ export const initializeSampleData = async (): Promise<boolean> => {
     // Seed 14 days of medication logs for adherence history
     await seedSampleMedicationLogs();
 
-    // Seed sample symptom
-    await saveSymptom({
+    // Seed sample symptom — origin-tagged so clearSampleData's origin filter
+    // removes it on "Start Fresh". Untagged, it survived (the SYMPTOMS key IS
+    // iterated, but the filter matches on origin) and showed as a real symptom
+    // on Provider Prep + Now (getSymptoms).
+    await saveSymptom(withSampleOrigin({
       symptom: 'Knee stiffness',
       severity: 5,
       bodyLocation: 'Left knee',
       description: 'Worse after sitting, improves with movement. Morning stiffness lasting ~2 hours.',
       timestamp: new Date().toISOString(),
       date: getTodayDateString(),
-    });
+    }));
 
-    // Seed sample note (caregiver observation)
-    await saveNotesLog({
+    // Seed sample note (caregiver observation) — origin-tagged so
+    // clearSampleData can recognize and remove it. This note lives at
+    // CENTRAL_NOTES_LOGS (getNotesLogs → Journal + Care Report); both the
+    // missing tag AND clearSampleData clearing the wrong key let it survive
+    // and read as a real caregiver observation.
+    await saveNotesLog(withSampleOrigin({
       content: 'Dad seemed confused about his evening meds. Double-checked Warfarin dose with pharmacy — confirmed 5mg is correct. Will label the pill organizer more clearly.',
       timestamp: new Date().toISOString(),
-    });
+    }));
 
     // Create sample CarePlanConfig with key buckets enabled
     // IMPORTANT: Config must be saved BEFORE createSampleCarePlanItems() so that
