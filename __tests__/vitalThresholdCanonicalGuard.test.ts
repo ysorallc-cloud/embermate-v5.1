@@ -13,8 +13,10 @@
 // per-person observation (above/within/below THIS person's usual), never a
 // fixed population cutoff and never a verdict.
 //
-// HOW IT SCANS: over utils/ + services/ (.ts/.tsx), comment content stripped
-// (line-preserving so reported line numbers match source), a line is a
+// HOW IT SCANS: over utils/ + services/ + app/ + components/ (.ts/.tsx) —
+// STEP 1b widened the scope from utils/services to the screen/component layer,
+// where the same fixed-cutoff verdicts also live. Comment content is stripped
+// (line-preserving so reported line numbers match source); a line is a
 // fixed-threshold computation if it has a comparison operator (>,>=,<,<=)
 // adjacent to a vital cutoff constant:
 //   • PRIMARY constants {130,140,150,180,200,99.5,100.4} — distinctive; they
@@ -32,22 +34,26 @@
 // EXCLUSIONS (legitimate, per spec):
 //   • utils/vitalThresholds.ts — population/user-config threshold reference
 //     (object literals, not verdict-emitting comparisons).
+//   • app/vital-threshold-settings.tsx — the user-config screen where a "range"
+//     is a setting the caregiver EDITS, not a verdict asserted about the patient.
 //   • utils/sampleDataGenerator.ts, utils/sampleData.ts — seed VALUES, not
 //     thresholds.
 //   • utils/vitalsObservation.ts — the ONE canonical home (UNIT 2).
 //   • __tests__ — test files.
 //
-// STATE: GREEN — STEP 1's 6 legacy sites are resolved. careSummaryBuilder,
-// insightEngine, careInsights (two branches), and narrativeSummaryBuilder were
-// migrated onto observeVital(); journalReflections was deleted as dead code
-// (built-but-unwired, referenced only by its own test). This guard now holds
-// the line: any new fixed vital-threshold computation outside the canonical
-// module re-reds it. Do NOT rename fields to dodge it — the root fix is
-// deleting the private cutoff, not hiding the number.
+// STATE: STEP 1's 6 legacy utils/services sites are resolved (careSummaryBuilder,
+// insightEngine, careInsights ×2, narrativeSummaryBuilder migrated onto
+// observeVital(); journalReflections deleted as dead code). STEP 1b widened the
+// scan to app/ + components/, which re-reds the guard on the 3 known screen-level
+// leaks (understand.tsx isHigh + glucose aboveRange, DayTimeline glucose gate).
+// It goes GREEN again as each is migrated. This guard then holds the line across
+// the whole app: any new fixed vital-threshold computation outside the canonical
+// module re-reds it. Do NOT rename fields to dodge it — the root fix is deleting
+// the private cutoff, not hiding the number.
 //
-// SCOPE NOTE: this scans utils/ + services/ only. Screen/component surfaces
-// (app/, components/) are NOT yet covered — STEP 1b widens the scope there and
-// migrates the three known screen-level leaks it surfaced.
+// SCOPE NOTE: hooks/ is not scanned. It was clean at STEP 1b (the only vitals
+// logic there, useNowInsights, routes through observeVital). Add it here if a
+// builder ever grows a cutoff.
 //
 // KNOWN LIMIT (documented, not airtight): the scanner matches numeric
 // LITERALS adjacent to a comparison operator. A threshold written as a NAMED
@@ -65,10 +71,12 @@ import { join } from 'path';
 const ROOT = join(__dirname, '..');
 
 const EXCLUDE_FILES = new Set([
-  'vitalThresholds.ts',     // population/user-config threshold reference
-  'sampleDataGenerator.ts', // seed values, not thresholds
-  'sampleData.ts',          // seed values, not thresholds
-  'vitalsObservation.ts',   // the ONE canonical home (UNIT 2)
+  'vitalThresholds.ts',            // population/user-config threshold reference
+  'sampleDataGenerator.ts',        // seed values, not thresholds
+  'sampleData.ts',                 // seed values, not thresholds
+  'vitalsObservation.ts',          // the ONE canonical home (UNIT 2)
+  'vital-threshold-settings.tsx',  // user-config screen: "range" is a setting the
+                                   // caregiver EDITS, not a verdict about the patient
 ]);
 
 /** Blank out comment CONTENT but preserve newlines so line numbers align. */
@@ -109,7 +117,12 @@ const RE_VITAL_TOKEN =
 
 function scanForFixedThresholds(): string[] {
   const hits: string[] = [];
-  const files = [...walk(join(ROOT, 'utils')), ...walk(join(ROOT, 'services'))];
+  const files = [
+    ...walk(join(ROOT, 'utils')),
+    ...walk(join(ROOT, 'services')),
+    ...walk(join(ROOT, 'app')),
+    ...walk(join(ROOT, 'components')),
+  ];
   for (const file of files) {
     const lines = stripComments(readFileSync(file, 'utf8')).split('\n');
     lines.forEach((line, i) => {
