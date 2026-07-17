@@ -18,10 +18,16 @@
 // fixed-threshold computation if it has a comparison operator (>,>=,<,<=)
 // adjacent to a vital cutoff constant:
 //   • PRIMARY constants {130,140,150,180,200,99.5,100.4} — distinctive; they
-//     essentially only appear as vital thresholds, so the operator alone flags.
-//   • SECONDARY constants {50,60,70,80,90,95,100,120} — common numbers; only
-//     flagged when a vital token (systolic/diastolic/glucose/heartRate/temp/…)
-//     also appears on the line, to avoid false positives on unrelated numbers.
+//     essentially only appear as vital thresholds, so the operator alone flags
+//     (needed for lines that alias vitals to single letters, e.g. `s >= 140`).
+//   • SECONDARY — any plausible vital VALUE in [40,400] (integer or one
+//     decimal), flagged only when a vital token (systolic/diastolic/glucose/
+//     heartRate/temp/spo2/bp/…) also appears on the line. A value RANGE beats a
+//     hand-picked constant list: it catches off-round cutoffs like 135/85 that
+//     a curated list misses (this exact gap let careInsights:171's
+//     `avgSystolic >= 135 || avgDiastolic >= 85` slip past the first cut). The
+//     ≥40 floor excludes small reading-count checks (`readings.length >= 3`);
+//     the vital-token requirement keeps unrelated numbers from false-positiving.
 //
 // EXCLUSIONS (legitimate, per spec):
 //   • utils/vitalThresholds.ts — population/user-config threshold reference
@@ -86,11 +92,14 @@ function walk(dir: string): string[] {
 
 const OP = '(?:>=|<=|>|<)';
 const PRIMARY = '(?:130|140|150|180|200|99\\.5|100\\.4)';
-const SECONDARY = '(?:50|60|70|80|90|95|100|120)';
+// Any plausible vital value 40–400 (integer or one decimal). The ≥40 floor
+// keeps small reading-count checks (`length >= 3`) out; the vital-token gate
+// below keeps unrelated numbers out.
+const SECONDARY = '(?:[4-9][0-9]|[1-3][0-9]{2}|400)(?:\\.[0-9])?';
 const RE_PRIMARY = new RegExp(OP + '\\s*' + PRIMARY + '\\b');
 const RE_SECONDARY = new RegExp(OP + '\\s*' + SECONDARY + '\\b');
 const RE_VITAL_TOKEN =
-  /(systolic|diastolic|glucose|avgSystolic|avgDiastolic|heartRate|\bhr\b|temperature|\btemp\b|oxygen|spo2|\bsys\b|\bdia\b|\bbpm\b|pulse)/i;
+  /(systolic|diastolic|glucose|avgSystolic|avgDiastolic|heartRate|\bhr\b|temperature|\btemp\b|oxygen|spo2|\bsys\b|\bdia\b|\bbpm\b|pulse|\bbp\b)/i;
 
 function scanForFixedThresholds(): string[] {
   const hits: string[] = [];
