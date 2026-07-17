@@ -15,6 +15,8 @@ import { getEventsByDateRange } from '../storage/eventRepo';
 import { getActivePatientId } from '../storage/patientRegistry';
 import { getReflection } from '../storage/reflectionStorage';
 import { listDailyInstances } from '../storage/carePlanRepo';
+import { getVitalsInRange } from './vitalsStorage';
+import { observeVital } from './vitalsObservation';
 import { logError } from './devLog';
 import type { CareEvent, EventType } from '../types/event';
 import type { DailyCareInstance, CarePlanItemType } from '../types/carePlan';
@@ -148,7 +150,10 @@ function eventLabel(e: CareEvent): string {
   }
 }
 
-function isNotable(e: CareEvent): NarrativeTone | null {
+function isNotable(
+  e: CareEvent,
+  bpBaseline: { systolic: number[]; diastolic: number[] },
+): NarrativeTone | null {
   const meta = (e.metadata || {}) as Record<string, any>;
   if (e.type === 'medication_skipped') return 'concern';
   if (e.type === 'symptom_reported') {
@@ -159,7 +164,14 @@ function isNotable(e: CareEvent): NarrativeTone | null {
   if (e.type === 'vitals_recorded') {
     const s = Number(meta.systolic);
     const d = Number(meta.diastolic);
-    if ((s && (s < 90 || s >= 140)) || (d && (d < 60 || d >= 90))) return 'concern';
+    // Notable when the reading sits outside THIS person's own usual (above OR
+    // below — the original bilateral intent), per-person via the canonical
+    // observeVital(). No fixed population cutoff; within-usual or too-little-
+    // baseline is not flagged.
+    const deviates = (dir?: string) => dir === 'above_usual' || dir === 'below_usual';
+    const sysDir = s ? observeVital(s, bpBaseline.systolic).direction : undefined;
+    const diaDir = d ? observeVital(d, bpBaseline.diastolic).direction : undefined;
+    if (deviates(sysDir) || deviates(diaDir)) return 'concern';
   }
   if (e.type === 'note_added') return 'neutral';
   return null;
@@ -172,11 +184,24 @@ export async function buildDayNarrative(
   const factualOnly = options.factualOnly === true;
   try {
     const patientId = await getActivePatientId();
-    const [events, instances, reflection] = await Promise.all([
+    // BP baseline = this person's readings in the 60 days BEFORE this day
+    // (anchored at noon so a timezone/DST shift can't pull the boundary a day
+    // either way). Feeds the per-person observeVital() notability check below.
+    const dayOffset = (n: number): string => {
+      const x = new Date(`${dateKey}T12:00:00`);
+      x.setDate(x.getDate() - n);
+      return x.toISOString().split('T')[0];
+    };
+    const [events, instances, reflection, bpBaselineReadings] = await Promise.all([
       getEventsByDateRange(dateKey, dateKey, patientId),
       listDailyInstances(patientId, dateKey),
       getReflection(dateKey),
+      getVitalsInRange(dayOffset(60), dayOffset(1), patientId),
     ]);
+    const bpBaseline = {
+      systolic: bpBaselineReadings.filter((r) => r.type === 'systolic').map((r) => r.value),
+      diastolic: bpBaselineReadings.filter((r) => r.type === 'diastolic').map((r) => r.value),
+    };
 
     const medInstances = instances.filter((i) => i.itemType === 'medication');
     const medsTaken = medInstances.filter((i) => i.status === 'completed').length;
@@ -303,7 +328,7 @@ export async function buildDayNarrative(
     // Notable moments — flagged events surfaced inline.
     const notableMoments: NotableMoment[] = [];
     for (const e of events) {
-      const tone = isNotable(e);
+      const tone = isNotable(e, bpBaseline);
       if (!tone) continue;
       notableMoments.push({
         icon: e.type === 'medication_skipped' ? '⏭'
