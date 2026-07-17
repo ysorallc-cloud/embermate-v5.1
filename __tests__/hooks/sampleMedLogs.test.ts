@@ -46,9 +46,9 @@ describe('Sample medication log generation', () => {
     expect(generatorSource).toContain("origin: 'sample'");
   });
 
-  it('should generate logs for all 3 sample medications', () => {
-    expect(generatorSource).toContain("id: 'med-1'");
-    expect(generatorSource).toContain("id: 'med-2'");
-    expect(generatorSource).toContain("id: 'med-3'");
+  it('should generate logs for the 3 trimmed sample medications (med-1/4/5)', () => {
+    expect(generatorSource).toContain("id: 'med-1'"); // Warfarin
+    expect(generatorSource).toContain("id: 'med-4'"); // Lisinopril
+    expect(generatorSource).toContain("id: 'med-5'"); // Gabapentin
   });
 });

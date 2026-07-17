@@ -22,22 +22,13 @@ describe('Sample data matches Mom profile spec', () => {
       }
     });
 
-    it('heart rate should span elevated→normal (76–105)', () => {
-      const hr = vitals.filter(v => v.type === 'heartRate');
-      expect(hr.length).toBe(3);
-      for (const v of hr) {
-        expect(v.value).toBeGreaterThanOrEqual(70);
-        expect(v.value).toBeLessThanOrEqual(110);
-      }
-    });
-
-    it('weight should be in 194–195 range', () => {
-      const weight = vitals.filter(v => v.type === 'weight');
-      expect(weight.length).toBe(3);
-      for (const v of weight) {
-        expect(v.value).toBeGreaterThanOrEqual(190);
-        expect(v.value).toBeLessThanOrEqual(200);
-      }
+    // Heart rate, weight, temperature, oxygen were removed in the sample-data
+    // trim (Blood pressure + glucose only).
+    it('trimmed vital types (heart rate / weight / temperature / oxygen) are absent', () => {
+      expect(vitals.filter(v => v.type === 'heartRate').length).toBe(0);
+      expect(vitals.filter(v => v.type === 'weight').length).toBe(0);
+      expect(vitals.filter(v => v.type === 'temperature').length).toBe(0);
+      expect(vitals.filter(v => v.type === 'oxygen').length).toBe(0);
     });
 
     it('glucose should span critical→improving (135–260)', () => {

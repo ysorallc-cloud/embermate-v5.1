@@ -281,7 +281,7 @@ export const getSampleActivities = () => {
       performedBy: 'Maria',
       performedById: 'cg-1',
       timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
-      details: { medications: ['Aspirin', 'Metformin', 'Lisinopril'] },
+      details: { medications: ['Lisinopril', 'Warfarin', 'Gabapentin'] },
     }),
     withSampleOrigin({
       id: 'act-2',
@@ -323,34 +323,6 @@ export const getSampleMedications = (): (Medication & { origin: DataOrigin })[] 
       notes: 'Blood thinner — INR check weekly',
     }),
     withSampleOrigin({
-      id: 'med-2',
-      name: 'Aspirin',
-      dosage: '81mg',
-      time: '8:00 AM',
-      timeSlot: 'morning' as const,
-      taken: true,
-      active: true,
-      createdAt: new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000).toISOString(),
-      lastTaken: new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString(),
-      pillsRemaining: 55,
-      daysSupply: 90,
-      notes: 'Low-dose, take with breakfast',
-    }),
-    withSampleOrigin({
-      id: 'med-3',
-      name: 'Metformin',
-      dosage: '1000mg',
-      time: '8:00 AM',
-      timeSlot: 'morning' as const,
-      taken: true,
-      active: true,
-      createdAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString(),
-      lastTaken: new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString(),
-      pillsRemaining: 28,
-      daysSupply: 30,
-      notes: 'Take with food — diabetes management',
-    }),
-    withSampleOrigin({
       id: 'med-4',
       name: 'Lisinopril',
       dosage: '20mg',
@@ -377,19 +349,6 @@ export const getSampleMedications = (): (Medication & { origin: DataOrigin })[] 
       daysSupply: 30,
       notes: 'Nerve pain — take at bedtime',
     }),
-    withSampleOrigin({
-      id: 'med-6',
-      name: 'Lorazepam',
-      dosage: '0.5mg',
-      time: 'As needed',
-      timeSlot: 'bedtime' as const,
-      taken: false,
-      active: true,
-      createdAt: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-      pillsRemaining: 4,
-      daysSupply: 30,
-      notes: 'Anxiety PRN — max 2x per day. LOW SUPPLY.',
-    }),
   ];
 };
 
@@ -405,32 +364,22 @@ export const getSampleVitals = () => {
   const day3 = now;
 
   return [
-    // Day 1 — critical glucose, elevated BP, low SpO2
+    // Trimmed sample set — Blood pressure + glucose only (the glucose arc
+    // 260 → 180 → 135 demonstrates a believable trend for the care summary).
+    // Day 1 — elevated BP, high glucose
     withSampleOrigin({ id: 'sv-d1-sys', type: 'systolic', value: 158, unit: 'mmHg', timestamp: day1.toISOString() }),
     withSampleOrigin({ id: 'sv-d1-dia', type: 'diastolic', value: 95, unit: 'mmHg', timestamp: day1.toISOString() }),
-    withSampleOrigin({ id: 'sv-d1-hr', type: 'heartRate', value: 105, unit: 'bpm', timestamp: day1.toISOString() }),
     withSampleOrigin({ id: 'sv-d1-glu', type: 'glucose', value: 260, unit: 'mg/dL', timestamp: day1.toISOString() }),
-    withSampleOrigin({ id: 'sv-d1-o2', type: 'oxygen', value: 93, unit: '%', timestamp: day1.toISOString() }),
-    withSampleOrigin({ id: 'sv-d1-temp', type: 'temperature', value: 100.2, unit: '°F', timestamp: day1.toISOString() }),
-    withSampleOrigin({ id: 'sv-d1-wt', type: 'weight', value: 195, unit: 'lbs', timestamp: day1.toISOString() }),
 
-    // Day 2 — improving but still flagged
+    // Day 2 — improving
     withSampleOrigin({ id: 'sv-d2-sys', type: 'systolic', value: 145, unit: 'mmHg', timestamp: day2.toISOString() }),
     withSampleOrigin({ id: 'sv-d2-dia', type: 'diastolic', value: 88, unit: 'mmHg', timestamp: day2.toISOString() }),
-    withSampleOrigin({ id: 'sv-d2-hr', type: 'heartRate', value: 90, unit: 'bpm', timestamp: day2.toISOString() }),
     withSampleOrigin({ id: 'sv-d2-glu', type: 'glucose', value: 180, unit: 'mg/dL', timestamp: day2.toISOString() }),
-    withSampleOrigin({ id: 'sv-d2-o2', type: 'oxygen', value: 94, unit: '%', timestamp: day2.toISOString() }),
-    withSampleOrigin({ id: 'sv-d2-temp', type: 'temperature', value: 99.8, unit: '°F', timestamp: day2.toISOString() }),
-    withSampleOrigin({ id: 'sv-d2-wt', type: 'weight', value: 195, unit: 'lbs', timestamp: day2.toISOString() }),
 
-    // Day 3 (today) — mostly normal
+    // Day 3 (today) — near baseline
     withSampleOrigin({ id: 'sv-d3-sys', type: 'systolic', value: 132, unit: 'mmHg', timestamp: day3.toISOString() }),
     withSampleOrigin({ id: 'sv-d3-dia', type: 'diastolic', value: 82, unit: 'mmHg', timestamp: day3.toISOString() }),
-    withSampleOrigin({ id: 'sv-d3-hr', type: 'heartRate', value: 76, unit: 'bpm', timestamp: day3.toISOString() }),
     withSampleOrigin({ id: 'sv-d3-glu', type: 'glucose', value: 135, unit: 'mg/dL', timestamp: day3.toISOString() }),
-    withSampleOrigin({ id: 'sv-d3-o2', type: 'oxygen', value: 97, unit: '%', timestamp: day3.toISOString() }),
-    withSampleOrigin({ id: 'sv-d3-temp', type: 'temperature', value: 98.6, unit: '°F', timestamp: day3.toISOString() }),
-    withSampleOrigin({ id: 'sv-d3-wt', type: 'weight', value: 194, unit: 'lbs', timestamp: day3.toISOString() }),
   ];
 };
 
@@ -445,9 +394,9 @@ export const getSampleVitalsLogs = () => {
   const day3 = now;
 
   return [
-    withSampleOrigin({ id: 'svl-d1', timestamp: day1.toISOString(), systolic: 158, diastolic: 95, heartRate: 105, glucose: 260, oxygen: 93, temperature: 100.2, weight: 195 }),
-    withSampleOrigin({ id: 'svl-d2', timestamp: day2.toISOString(), systolic: 145, diastolic: 88, heartRate: 90, glucose: 180, oxygen: 94, temperature: 99.8, weight: 195 }),
-    withSampleOrigin({ id: 'svl-d3', timestamp: day3.toISOString(), systolic: 132, diastolic: 82, heartRate: 76, glucose: 135, oxygen: 97, temperature: 98.6, weight: 194 }),
+    withSampleOrigin({ id: 'svl-d1', timestamp: day1.toISOString(), systolic: 158, diastolic: 95, glucose: 260 }),
+    withSampleOrigin({ id: 'svl-d2', timestamp: day2.toISOString(), systolic: 145, diastolic: 88, glucose: 180 }),
+    withSampleOrigin({ id: 'svl-d3', timestamp: day3.toISOString(), systolic: 132, diastolic: 82, glucose: 135 }),
   ];
 };
 
@@ -456,17 +405,11 @@ export const getSampleVitalsLogs = () => {
 // ============================================================================
 
 export const getSampleMoodLogs = () => {
-  const now = new Date();
-  const day1 = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
-  const day2 = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000);
-  const day3 = now;
+  const today = new Date();
 
+  // Trimmed to a single check-in for today — a calm, ordinary day.
   return [
-    withSampleOrigin({ mood: 'tired', note: 'Rough night, knee pain woke him up twice', timestamp: new Date(day1.setHours(7, 30)).toISOString() }),
-    withSampleOrigin({ mood: 'okay', note: 'Better after morning meds kicked in', timestamp: new Date(day1.setHours(14, 0)).toISOString() }),
-    withSampleOrigin({ mood: 'anxious', note: 'Worried about upcoming lab results', timestamp: new Date(day2.setHours(9, 0)).toISOString() }),
-    withSampleOrigin({ mood: 'calm', note: 'Good visit with James, seemed relaxed after', timestamp: new Date(day2.setHours(17, 0)).toISOString() }),
-    withSampleOrigin({ mood: 'anxious', note: 'Pre-appointment nerves, Dr. Kim today at 2:30', timestamp: new Date(day3.setHours(10, 0)).toISOString() }),
+    withSampleOrigin({ mood: 'okay', note: 'Steady morning. Ate well, seemed comfortable.', timestamp: new Date(today.setHours(9, 30)).toISOString() }),
   ];
 };
 
@@ -547,54 +490,6 @@ export async function createSampleCarePlanItems(): Promise<void> {
     // Only create medication samples here — meals, wellness, and vitals
     // are auto-created by syncOtherBucketsWithConfig() to avoid duplicates
     const sampleItems: CarePlanItem[] = [
-      // Aspirin 81mg (morning)
-      {
-        id: 'sample-med-aspirin',
-        carePlanId,
-        type: 'medication',
-        name: 'Aspirin 81mg',
-        instructions: 'Low-dose, take with breakfast',
-        priority: 'required',
-        active: true,
-        emoji: '💊',
-        medicationDetails: { medicationId: 'med-2', dose: '81mg', instructions: 'Low-dose, take with breakfast' },
-        schedule: {
-          frequency: 'daily',
-          times: [{
-            id: 'med-aspirin-window',
-            kind: 'window',
-            label: 'morning' as TimeWindowLabel,
-            start: DEFAULT_TIME_WINDOWS.morning.start,
-            end: DEFAULT_TIME_WINDOWS.morning.end,
-          }],
-        },
-        createdAt: now,
-        updatedAt: now,
-      },
-      // Metformin 1000mg (morning)
-      {
-        id: 'sample-med-metformin',
-        carePlanId,
-        type: 'medication',
-        name: 'Metformin 1000mg',
-        instructions: 'Take with food — diabetes management',
-        priority: 'required',
-        active: true,
-        emoji: '💊',
-        medicationDetails: { medicationId: 'med-3', dose: '1000mg', instructions: 'Take with food — diabetes management' },
-        schedule: {
-          frequency: 'daily',
-          times: [{
-            id: 'med-metformin-window',
-            kind: 'window',
-            label: 'morning' as TimeWindowLabel,
-            start: DEFAULT_TIME_WINDOWS.morning.start,
-            end: DEFAULT_TIME_WINDOWS.morning.end,
-          }],
-        },
-        createdAt: now,
-        updatedAt: now,
-      },
       // Lisinopril 20mg (morning)
       {
         id: 'sample-med-lisinopril',
@@ -685,15 +580,13 @@ export async function createSampleCarePlanItems(): Promise<void> {
 // ============================================================================
 
 /**
- * Seed 14 days of medication logs for sample meds (Lisinopril, Metformin, Atorvastatin).
+ * Seed 14 days of medication logs for the 3 sample meds (Warfarin, Lisinopril, Gabapentin).
  * Writes to the same scopedKey(CENTRAL_MED_LOGS) that getMedicationLogs() reads from,
  * so Visit Prep adherence calculations work correctly (~85-93%).
  */
 async function seedSampleMedicationLogs(): Promise<void> {
   const meds = [
     { id: 'med-1', name: 'Warfarin', evening: true },
-    { id: 'med-2', name: 'Aspirin' },
-    { id: 'med-3', name: 'Metformin' },
     { id: 'med-4', name: 'Lisinopril' },
     { id: 'med-5', name: 'Gabapentin', evening: true },
   ];
@@ -777,11 +670,8 @@ async function seedSamplePatientProfile(): Promise<void> {
     hospitalizations: [],
     currentMedications: [
       { name: 'Warfarin', dosage: '5mg' },
-      { name: 'Aspirin', dosage: '81mg' },
-      { name: 'Metformin', dosage: '1000mg' },
       { name: 'Lisinopril', dosage: '20mg' },
       { name: 'Gabapentin', dosage: '300mg' },
-      { name: 'Lorazepam', dosage: '0.5mg' },
     ],
     emergencyNotes: 'On blood thinners (Warfarin) — notify ER immediately. Allergic to Sulfa drugs and Shellfish. Primary caregiver: Maria (555) 111-2222',
   });
@@ -854,23 +744,22 @@ export const initializeSampleData = async (): Promise<boolean> => {
     const config = createDefaultCarePlanConfig(DEFAULT_PATIENT_ID);
     const now = new Date().toISOString();
     const sampleMeds = getSampleMedications();
-    // Core 4 are already enabled by default — just add sample medications and vitals config
+    // Core 4 are already enabled by default — just add the 3 sample medications
+    // (Warfarin PM, Lisinopril AM, Gabapentin PM) and the trimmed vitals config.
     config.meds = {
       ...config.meds,
-      medications: sampleMeds
-        .filter(m => m.id !== 'med-6') // Exclude Lorazepam (PRN, not scheduled)
-        .map(m => ({
-          id: m.id,
-          name: m.name,
-          dosage: m.dosage,
-          instructions: m.notes || '',
-          timesOfDay: [m.timeSlot === 'evening' || m.timeSlot === 'bedtime' ? 'evening' as const : 'morning' as const],
-          active: true,
-          createdAt: m.createdAt || now,
-          updatedAt: now,
-        })),
+      medications: sampleMeds.map(m => ({
+        id: m.id,
+        name: m.name,
+        dosage: m.dosage,
+        instructions: m.notes || '',
+        timesOfDay: [m.timeSlot === 'evening' || m.timeSlot === 'bedtime' ? 'evening' as const : 'morning' as const],
+        active: true,
+        createdAt: m.createdAt || now,
+        updatedAt: now,
+      })),
     };
-    config.vitals = { ...config.vitals, vitalTypes: ['bp', 'hr', 'spo2', 'glucose', 'temp', 'weight'] };
+    config.vitals = { ...config.vitals, vitalTypes: ['bp', 'glucose'] };
     // meals and wellness already enabled by default in createDefaultCarePlanConfig
     // Phase 11.9.1 — sleep + water default to enabled: false in
     // createDefaultCarePlanConfig (DEFAULT_BUCKET_CONFIG / DEFAULT_WATER_CONFIG).
@@ -895,20 +784,39 @@ export const initializeSampleData = async (): Promise<boolean> => {
     // Create sample Care Plan items (medication CarePlanItems)
     await createSampleCarePlanItems();
 
-    // Pre-complete morning instances for a realistic mid-day demo look
+    // Set up a naturally MIXED "today" — a normal caregiving day that reads
+    // calm, instead of the old all-missed wall:
+    //   • DONE cluster — the morning/midday items are completed (Lisinopril AM,
+    //     BP + glucose, the wellness check-in, breakfast, lunch, + any water).
+    //   • The EVENING items are left pending (Warfarin PM, Gabapentin PM,
+    //     dinner). The app decides their state by the clock — "upcoming" if the
+    //     example is opened before evening, "missed" if opened later. We do NOT
+    //     force a 'missed' status: forcing one on an item that isn't actually
+    //     past its window would read as a bug (an evening dose "missed" at 10am).
+    // The done cluster + pending evening items guarantee the day never looks
+    // empty and always shows more than one state.
     try {
       const today = getTodayDateString();
       const instances = await ensureDailyInstances(DEFAULT_PATIENT_ID, today);
 
+      let completed = 0;
       for (const inst of instances) {
-        if (inst.windowLabel === 'morning' && inst.status === 'pending') {
-          await logInstanceCompletion(DEFAULT_PATIENT_ID, today, inst.id, 'completed');
-        }
+        if (inst.status !== 'pending') continue;
+        const name = (inst.itemName || '').toLowerCase();
+        const isEveningMed = inst.itemType === 'medication'
+          && (name.includes('warfarin') || name.includes('gabapentin'));
+        const isDinner = inst.itemType === 'nutrition'
+          && (name.includes('dinner') || name.includes('supper'));
+
+        // Leave evening meds + dinner pending — the clock decides their state.
+        if (isEveningMed || isDinner) continue;
+
+        await logInstanceCompletion(DEFAULT_PATIENT_ID, today, inst.id, 'completed');
+        completed++;
       }
 
       if (__DEV__) {
-        const morningCount = instances.filter(i => i.windowLabel === 'morning').length;
-        devLog(`[SampleDataGenerator] Pre-completed ${morningCount} morning instances`);
+        devLog(`[SampleDataGenerator] Set up mixed today: completed ${completed}/${instances.length} (evening items left pending for the clock)`);
       }
     } catch (error) {
       logError('sampleDataGenerator.initializeSampleData', error);
