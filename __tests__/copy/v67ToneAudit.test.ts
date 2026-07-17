@@ -30,7 +30,8 @@ const CAREGIVER_DIRS = [
   'components/now',
   'components/journal',
   'components/support',
-  'components/today',
+  // 'components/today' removed — the orphaned legacy timeline family was
+  // deleted as dead code; the live timeline lives in components/now.
   'components/aurora',
   'components/sample',
   'components/watchFor',

@@ -62,16 +62,9 @@ describe('Record<BucketType> completeness', () => {
     }
   });
 
-  describe('BucketCarePlanPanel.tsx — BUCKET_CONFIG_ROUTES', () => {
-    const src = read('components/careplan/BucketCarePlanPanel.tsx');
-    const keys = extractRecordKeys(src, 'BUCKET_CONFIG_ROUTES');
-
-    for (const k of REQUIRED_BUCKET_KEYS) {
-      it(`has entry for "${k}"`, () => {
-        expect(keys).toContain(k);
-      });
-    }
-  });
+  // BucketCarePlanPanel.tsx — BUCKET_CONFIG_ROUTES completeness block removed
+  // when that orphaned (zero-caller) panel was deleted in the today/-family
+  // dead-code sweep. today-scope.tsx above is the live BUCKET route surface.
 });
 
 // ── CarePlanItemType Records ──

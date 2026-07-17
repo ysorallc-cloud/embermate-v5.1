@@ -158,7 +158,9 @@ const WHITELIST: Array<{ path: string; rationale: string }> = [
   // F7 C5 (2026-06-12) — ActionCardsRow migrated from caregiverAccent
   // (lavender) icon accent to dusty blue (#6b8cae). Whitelist entry
   // retired; the file no longer consumes bare c.caregiverAccent.
-  { path: 'components/today/EndOfDayCard.tsx', rationale: 'end-of-day caregiver reflection card' },
+  // components/today/EndOfDayCard.tsx entry removed when the orphaned today/
+  // timeline family was deleted as dead code (staleness check readFileSyncs
+  // whitelist paths — a deleted file would fail it).
   { path: 'components/understand/RecentWindowCard.tsx', rationale: 'recent-window understand surface' },
 ];
 
