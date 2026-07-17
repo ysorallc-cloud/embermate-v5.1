@@ -55,17 +55,21 @@ describe('You tab — required components all render', () => {
     expect(supportSrc).toMatch(/import\s*\{\s*ReflectionCard\s*\}\s*from\s*['"][^'"]*ReflectionCard['"]/);
   });
 
-  it('ActionCardsRow renders with all three handlers wired (Phase 29 Batch B F4 — successor to QuickResetPills)', () => {
-    expect(supportSrc).toMatch(/<ActionCardsRow[\s\S]*?onHelpline=\{[\s\S]*?onCommunity=\{[\s\S]*?onWellness=\{/);
+  it('GuidanceTiles renders (wellness content moved up from the retired /caregiver-wellness sub-page)', () => {
+    expect(supportSrc).toMatch(/<GuidanceTiles\b/);
+    expect(supportSrc).toMatch(/import\s*\{\s*GuidanceTiles\s*\}\s*from\s*['"][^'"]*GuidanceTiles['"]/);
   });
 
-  it('Plan ahead — compact ResourcesList renders under the "When you have a moment" header (Phase 29 Batch B F4 reframe)', () => {
-    // F4 retired the planAheadCard wrapper — compact ResourcesList
-    // chevron rows ARE the chrome. Header still sits above the list.
-    expect(supportSrc).toContain('When you have a moment');
-    expect(supportSrc).toMatch(/<ResourcesList\s+variant=['"]compact['"]/);
-    // Absence pin: planAheadCard wrapper retired.
-    expect(supportSrc).not.toMatch(/<View style=\{styles\.planAheadCard\}/);
+  it('a single Caregiver Action Network resource link renders; the resources page + action cards are retired', () => {
+    // You-tab restructure — the "For when you need it" page, the compact
+    // ResourcesList, and the Helpline/Community/Wellness action cards were all
+    // removed (every deep link was dead). The one honest resource stays.
+    expect(supportSrc).toContain('Caregiver Action Network');
+    expect(supportSrc).toContain('caregiveraction.org');
+    // Absence pins: the removed surfaces do not survive at the screen level.
+    expect(supportSrc).not.toMatch(/<ActionCardsRow\b/);
+    expect(supportSrc).not.toMatch(/<ResourcesList\b/);
+    expect(supportSrc).not.toContain('When you have a moment');
   });
 
   it('BreathingExercise modal stays mounted (the orb opens it via the single shared mount)', () => {
@@ -166,15 +170,15 @@ describe('You tab — header structure contract (post-Phase-29 reframe)', () => 
 describe('You tab — required-component files still exist on disk', () => {
   // Belt-and-suspenders: if any of the new components got deleted by an
   // overzealous future cleanup, this catches it before the imports break.
-  // Phase 29 Batch B F4 — QuickResetPills.tsx retired; ActionCardsRow
-  // and BreathingOrbCard added to the dependency list.
+  // You-tab restructure — ActionCardsRow + ResourcesList retired; GuidanceTiles
+  // moved up from the /caregiver-wellness sub-page into the dependency list.
   const required = [
     'components/support/AffirmationHeader.tsx',
     'components/support/ReflectionCard.tsx',
-    'components/support/ActionCardsRow.tsx',
     'components/support/BreathingExercise.tsx',
     'components/support/BreathingOrbCard.tsx',
-    'components/support/ResourcesList.tsx',
+    'components/support/MoodStrip.tsx',
+    'components/wellness/GuidanceTiles.tsx',
   ];
   for (const rel of required) {
     it(`${rel} exists`, () => {

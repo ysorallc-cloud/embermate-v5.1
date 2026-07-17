@@ -195,26 +195,7 @@ describe('QuickResetPills — retired in Phase 29 Batch B F4 (absence pin)', () 
   });
 });
 
-// Plan-ahead: assert at the source level since the support.tsx structure
-// is what governs eyebrow placement.
-import { readFileSync } from 'fs';
-import { join } from 'path';
-
-describe('You tab — Plan-ahead header (Phase 29 Batch B F4 reframe)', () => {
-  const supportSrc = readFileSync(
-    join(__dirname, '../../app/(tabs)/support.tsx'),
-    'utf8',
-  );
-
-  it('"When you have a moment" header lives above the compact ResourcesList', () => {
-    // Phase 7.3 collapsed the prior eyebrow + subtitle pair into a single
-    // serif-italic header. Phase 29 Batch B F4 retired the planAheadCard
-    // wrapper (compact ResourcesList chevron rows ARE the chrome now);
-    // the header still sits above the ResourcesList JSX in source order.
-    const listIdx = supportSrc.indexOf('<ResourcesList');
-    const headerIdx = supportSrc.indexOf('When you have a moment');
-    expect(headerIdx).toBeGreaterThan(0);
-    expect(listIdx).toBeGreaterThan(0);
-    expect(headerIdx).toBeLessThan(listIdx);
-  });
-});
+// The "Plan-ahead header + compact ResourcesList" block was retired in the
+// You-tab restructure (the resources page + list were deleted). Its source-order
+// pin is removed with it; the single Caregiver Action Network row that replaced
+// it is contracted in youTabReflection.test.tsx.

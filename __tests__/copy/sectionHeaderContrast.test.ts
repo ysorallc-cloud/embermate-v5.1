@@ -28,25 +28,11 @@ function num(block: string, prop: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
-describe('You tab — "Plan ahead" header contrast', () => {
-  it('Plan ahead surface does not re-introduce the low-contrast #6a7a72 override', () => {
-    // v6.7: Plan ahead is now a card with an internal "PLAN AHEAD" eyebrow.
-    // The card markup must not contain the deprecated low-contrast hex.
-    const cardMatch = supportSrc.match(/planAheadCard[\s\S]{0,1200}?planAheadBody/);
-    expect(cardMatch).toBeTruthy();
-    expect(cardMatch![0]).not.toContain('#6a7a72');
-  });
-
-  it('Plan ahead header uses a theme token (no hardcoded hex)', () => {
-    // Phase 7.3 collapsed the prior eyebrow into a single serif-italic
-    // header. The contract — theme-token color, no hardcoded hex —
-    // continues to apply to the new style block.
-    const block = styleBlock(supportSrc, 'planAheadHeader');
-    expect(block).not.toBe('');
-    expect(block).toMatch(/color:\s*c\.text(?:Primary|Secondary|Tertiary)|color:\s*colors\.text(?:Primary|Secondary|Tertiary)/);
-    expect(block).not.toMatch(/color:\s*['"]#[0-9a-fA-F]/);
-  });
-});
+// The "Plan ahead" header + its planAheadHeader/planAheadCard styles were
+// retired in the You-tab restructure (the resources section was removed). The
+// Caregiver Action Network resource row that replaced it uses theme tokens
+// (resourceTitle/resourceDesc → c.textPrimary/c.textTertiary); the no-hardcoded-
+// hex contract now lives with the Journal-Patterns / gear checks below.
 
 describe('Insights — Settings gear icon visibility', () => {
   it('settingsGearText style declares color: textSecondary', () => {

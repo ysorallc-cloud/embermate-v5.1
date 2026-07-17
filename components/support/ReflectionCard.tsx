@@ -29,6 +29,7 @@ import {
   getReflection,
   ReflectionMood,
 } from '../../services/reflectionRepo';
+import { emitMoodEvent } from '../../utils/eventEmitter';
 import { InlineSaveToast } from '../shared/InlineSaveToast';
 
 // ============================================================================
@@ -46,6 +47,13 @@ const MOODS: { value: ReflectionMood; emoji: string; label: string }[] = [
   { value: 'okay',    emoji: '🙂', label: 'Okay' },
   { value: 'good',    emoji: '😊', label: 'Good' },
 ];
+
+// Map the 5-step reflection mood to the 1–5 MoodLevel the mood_logged event
+// store uses (rough=1 … good=5), so the check-in lands where the MoodStrip and
+// the rest of the app actually read mood/check-in data.
+const MOOD_SCORE: Record<ReflectionMood, number> = {
+  rough: 1, low: 2, neutral: 3, okay: 4, good: 5,
+};
 
 function todayKey(): string {
   const d = new Date();
@@ -109,6 +117,13 @@ export function ReflectionCard() {
       mood: value,
       text: text.trim().length > 0 ? text : null,
     });
+    // Also record the mood in the mood_logged event store — the store the
+    // MoodStrip (and the rest of the app) reads. Without this the check-in
+    // saved only into reflectionRepo, an isolated silo nothing else sees, so
+    // the caregiver's mood never surfaced. reflectionRepo still holds the
+    // free-text + card prefill. Mood is captured on tap (immediate-save UX);
+    // the Save button below commits text only, so there's no double-emit.
+    await emitMoodEvent(MOOD_SCORE[value], value, { source: 'dedicated_screen' });
     setSavedAt(entry.savedAt);
     setLocked(true);
     setToastVisible(true);

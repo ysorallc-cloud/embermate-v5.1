@@ -2,13 +2,16 @@
 // YOU TAB — Reflection space (Option C, v6.7).
 //
 // Composition (top to bottom):
-//   • Standardized 32pt "You" header + caregiver chip (Phase 26 F3) +
-//     subtitle (56pt top / 24pt bottom)
+//   • Greeting + settings gear
 //   • Daily affirmation header (serif italic ambient line)
-//   • Reflection card (mood + free-text + save — the heart of the redesign)
-//   • Quick reset pills (Breathe / Helpline / Community)
-//   • Compact wellness link row (tappable, routes to /caregiver-wellness)
-//   • Plan ahead section (header + quiet subtitle + ResourcesList)
+//   • Breathing orb card (opens the shared BreathingExercise)
+//   • Reflection card (mood + free-text + save — the mood now persists to the
+//     mood_logged event store, not just the isolated reflectionRepo silo)
+//   • Mood strip (display-only 7-day check-in timeline)
+//   • Guidance tiles (wellness content — burnout, reflection prompts, box
+//     breathing — moved up from the retired /caregiver-wellness sub-page)
+//   • Single Caregiver Action Network resource link (the one live resource;
+//     the "For when you need it" page + dead action cards were removed)
 //
 // Phase 26 — You-lane visual identity (Commit B):
 //   F3 — Caregiver chip at top-left of the header row, on the same
@@ -40,10 +43,9 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { navigate } from '../../lib/navigate';
 import { AffirmationHeader } from '../../components/support/AffirmationHeader';
 import { ReflectionCard } from '../../components/support/ReflectionCard';
-import { ActionCardsRow } from '../../components/support/ActionCardsRow';
 import { BreathingExercise } from '../../components/support/BreathingExercise';
 import { BreathingOrbCard } from '../../components/support/BreathingOrbCard';
-import { ResourcesList } from '../../components/support/ResourcesList';
+import { GuidanceTiles } from '../../components/wellness/GuidanceTiles';
 import { Colors, Spacing, Fonts } from '../../theme/theme-tokens';
 import { SECTION_GAP, TITLE_CLEARANCE } from '../../theme/spacing';
 import {
@@ -147,7 +149,12 @@ export default function SupportScreen() {
         const d = new Date();
         d.setDate(d.getDate() - i);
         const key = d.toISOString().split('T')[0];
-        const event = moods.find((e) => e.timestamp.slice(0, 10) === key);
+        // Latest check-in for the day wins — a caregiver who changes their mood
+        // in the ReflectionCard emits a new mood_logged event; show the final one.
+        const dayEvents = moods.filter((e) => e.timestamp.slice(0, 10) === key);
+        const event = dayEvents.length
+          ? dayEvents.reduce((a, b) => (a.timestamp > b.timestamp ? a : b))
+          : undefined;
         const mood = event && typeof event.value === 'number'
           ? (event.value as MoodLevel)
           : undefined;
@@ -250,35 +257,38 @@ export default function SupportScreen() {
               Sits between the ReflectionCard's daily check-in and the
               support tile row. SECTION_GAP carries the rhythm; the
               strip itself is open fabric — no card chrome. */}
+          {/* Display-only mood strip — the caregiver's own week at a glance,
+              read from the mood_logged event store the ReflectionCard now
+              writes to. The /caregiver-wellness sub-page hop was retired, so
+              there is no tap target. */}
           <View style={styles.rule} />
-          <MoodStrip
-            days={moodDays}
-            onWellnessTap={() => navigate('/caregiver-wellness')}
-          />
+          <MoodStrip days={moodDays} />
           <View style={styles.rule} />
 
-          {/* ═══ Phase 29 Batch B F4 — Action cards row.
-                Replaces QuickResetPills (Breathe folded into the orb
-                card above; Helpline + Community preserved as cards;
-                Wellness added, folding the retired wellnessLink row).
-                Pure presentational — handlers wire Linking + navigate
-                here in the parent. ═══ */}
-          <ActionCardsRow
-            onHelpline={() => Linking.openURL('tel:18552273640').catch(() => {})}
-            onCommunity={() => Linking.openURL('https://caregiveraction.org/').catch(() => {})}
-            onWellness={() => navigate('/caregiver-wellness')}
-          />
+          {/* Wellness guidance — surfaced directly on the You tab (moved up
+              from the retired "Your wellness" sub-page): "Recognizing
+              caregiver burnout", the reflection prompts, and box-breathing
+              guidance. The breathing exercise stays accessible via the orb
+              card above. */}
+          <GuidanceTiles />
 
-          {/* ═══ Plan ahead — Phase 7.3 reframe: the prior admin
-                eyebrow + serif subtitle pair was retired in favour of a
-                single caregiver-voice header sized to match the
-                affirmation bump. Phase 29 Batch B F4 — planAheadCard
-                wrapper retired alongside the ResourcesList compact
-                variant; chevron rows are the chrome now. ═══ */}
-          {/* Hairline rule — receded resources zone. */}
+          {/* Single honest resource — Caregiver Action Network (caregiveraction.org
+              resolves; every other resource link was dead). Replaces the retired
+              resources page + the dead Helpline/Community action cards. */}
           <View style={styles.rule} />
-          <Text style={styles.planAheadHeader}>When you have a moment</Text>
-          <ResourcesList variant="compact" />
+          <TouchableOpacity
+            style={styles.resourceRow}
+            onPress={() => Linking.openURL('https://caregiveraction.org/').catch(() => {})}
+            activeOpacity={0.7}
+            accessibilityRole="link"
+            accessibilityLabel="Caregiver Action Network — education, peer support, and advocacy"
+          >
+            <View style={styles.resourceText}>
+              <Text style={styles.resourceTitle}>Caregiver Action Network</Text>
+              <Text style={styles.resourceDesc}>Education, peer support, and advocacy</Text>
+            </View>
+            <Ionicons name="open-outline" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
 
           {/* Phase 26 F5 — footer affirmation block retired. The
               AffirmationHeader at the top of this tab already carries
@@ -384,15 +394,28 @@ function createStyles(c: typeof Colors) {
     // planAheadCard / planAheadBody also retired — the ResourcesList
     // compact variant renders chevron rows that ARE the chrome, so the
     // outer card wrapper became redundant (per Batch B R2).
-    planAheadHeader: {
-      fontFamily: Fonts.serifItalic,
-      fontStyle: 'italic' as const,
-      fontSize: 18,
-      lineHeight: 30,
-      color: c.textPrimary,
-      marginTop: Spacing.lg,
-      marginBottom: 12, // allow: tap-target padding (Apple HIG ≥44pt)
+    // Single Caregiver Action Network resource row — the one honest external
+    // link, replacing the retired resources page + dead action cards.
+    resourceRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 13, // allow: tap-target padding (Apple HIG ≥44pt)
       paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
+      marginTop: Spacing.sm,
+    },
+    resourceText: {
+      flex: 1,
+    },
+    resourceTitle: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: c.textPrimary,
+      marginBottom: 2,
+    },
+    resourceDesc: {
+      fontSize: 11,
+      color: c.textTertiary,
     },
     // Phase 26 F5 — footer + footerText style entries retired alongside
     // the JSX block. The closing emotional beat moved entirely onto

@@ -4,21 +4,21 @@
 // 7-dot mood timeline for the past week. Each day surfaces as either a
 // colored circle + emoji (logged mood) or a quiet empty circle (no
 // check-in). Below the dots: day labels (Mon/Tue/etc), then a single
-// italic-serif line composed by composeWeekRecap — the same composer
-// caregiver-wellness uses, so the recap voice stays consistent across
-// surfaces.
+// italic-serif line composed by composeWeekRecap — the canonical recap voice
+// for the caregiver's week of check-ins.
 //
 // Empty state: no logged check-ins at all → the 7-dot row is replaced
 // by an italic-serif onboarding line so the surface still earns its
 // place on the You tab on day 1.
 //
-// Section header above the strip: "THIS WEEK" micro label left ·
-// "Your wellness →" dusty link right (navigates to /caregiver-wellness
-// via the onWellnessTap prop).
+// Section header above the strip: "THIS WEEK" micro label. Display-only —
+// the "Your wellness →" link (and the /caregiver-wellness sub-page) were
+// retired in the You-tab restructure; this strip is the caregiver's own
+// read-only week-at-a-glance.
 // ============================================================================
 
 import React, { useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, Fonts } from '../../theme/theme-tokens';
 import { TypeScale } from '../../theme/spacing';
@@ -44,17 +44,15 @@ function moodColor(mood: 1 | 2 | 3 | 4 | 5): string {
 }
 
 export interface MoodStripProps {
-  /** 7 days of mood data, oldest-to-newest. Caller (You tab) constructs
-   *  this via the same pattern as caregiver-wellness: iterate the past
-   *  7 calendar days, look up the day's mood in moodEvents, build the
-   *  WeekRecapDay shape. composeWeekRecap is the canonical recap voice. */
+  /** 7 days of mood data, oldest-to-newest. The You tab builds this from the
+   *  mood_logged event store (the same store the ReflectionCard check-in now
+   *  writes to). composeWeekRecap is the canonical recap voice.
+   *  Display-only — no tap target (the /caregiver-wellness sub-page was
+   *  retired; this strip is the caregiver's own read-only week-at-a-glance). */
   days: WeekRecapDay[];
-  /** Fires when "Your wellness →" is tapped. Parent wires this to
-   *  navigate('/caregiver-wellness'). */
-  onWellnessTap: () => void;
 }
 
-export function MoodStrip({ days, onWellnessTap }: MoodStripProps) {
+export function MoodStrip({ days }: MoodStripProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -63,18 +61,9 @@ export function MoodStrip({ days, onWellnessTap }: MoodStripProps) {
 
   return (
     <View style={styles.zone} testID="mood-strip">
-      {/* Section header — "THIS WEEK" left · "Your wellness →" right */}
+      {/* Section header — "THIS WEEK" micro label (display-only strip). */}
       <View style={styles.header}>
         <Text style={styles.headerLabel}>THIS WEEK</Text>
-        <TouchableOpacity
-          onPress={onWellnessTap}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel="View your wellness history"
-          testID="mood-strip-wellness-link"
-        >
-          <Text style={styles.headerLink}>Your wellness →</Text>
-        </TouchableOpacity>
       </View>
 
       {hasAnyCheckIn ? (

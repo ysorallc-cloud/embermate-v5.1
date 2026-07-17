@@ -22,18 +22,13 @@ const affirmationsSrc = stripComments(
   readFileSync(join(ROOT, 'utils/affirmations.ts'), 'utf8'),
 );
 
-describe('You tab — Plan ahead reframing (Phase 7.3)', () => {
-  it('the Plan ahead header uses the caregiver-voice "When you have a moment" copy', () => {
-    expect(supportSrc).toContain('When you have a moment');
-  });
-
+describe('You tab — resource copy stays non-instructional', () => {
+  // The "Plan ahead" / resources page was retired in the You-tab restructure.
+  // The single Caregiver Action Network row that replaced it must still avoid
+  // instructional voice.
   it('does NOT contain instructional copy ("these help you", "use this to")', () => {
     expect(supportSrc).not.toMatch(/these help you/i);
     expect(supportSrc).not.toMatch(/use this to/i);
-  });
-
-  it('still renders Plan ahead as a contained resources card', () => {
-    expect(supportSrc).toContain('planAheadCard');
   });
 });
 

@@ -105,11 +105,11 @@ describe('Phase 11.7.5 — getDailyOutcomes consumers paired with useDataListene
 // per the phase plan; the canonical-storage refactor in Phase 17
 // either retires these or migrates them in bulk.
 const EVENT_ONLY_READERS_DOCUMENTED = [
-  // Caregiver-wellness sub-screen — reads mood_logged events for the
-  // caregiver's own check-in history. Sample-data caregiver-wellness
-  // writes go through events too (see saveMoodLog), so this surface
-  // is event-pipeline-correct for now. Listed for completeness.
-  'app/caregiver-wellness.tsx',
+  // You tab — reads mood_logged events for the caregiver's own check-in
+  // history (the MoodStrip). The /caregiver-wellness sub-screen that formerly
+  // owned this read was retired in the You-tab restructure; the You tab is now
+  // the event-only mood reader (getEventsByDateRange in refreshMoodDays).
+  'app/(tabs)/support.tsx',
 
   // Nearby-days-with-records hook — drives JournalEmptyDay's
   // "nearby days" continuity affordance. Events-only; instance-only

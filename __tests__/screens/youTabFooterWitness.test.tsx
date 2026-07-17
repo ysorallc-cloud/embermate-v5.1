@@ -70,20 +70,17 @@ jest.mock('../../lib/navigate', () => ({ navigate: jest.fn() }));
 jest.mock('../../components/support/ReflectionCard', () => ({
   ReflectionCard: () => null,
 }));
-// Phase 29 Batch B F4 — QuickResetPills retired; ActionCardsRow took
-// its slot. Mock the successor (and the new BreathingOrbCard from
-// A.2) to keep this test focused on footer witness wiring.
-jest.mock('../../components/support/ActionCardsRow', () => ({
-  ActionCardsRow: () => null,
-}));
+// You-tab restructure — ActionCardsRow + the compact ResourcesList were
+// retired; GuidanceTiles moved up from the /caregiver-wellness sub-page. Mock
+// the child components to keep this test focused on footer witness wiring.
 jest.mock('../../components/support/BreathingOrbCard', () => ({
   BreathingOrbCard: () => null,
 }));
 jest.mock('../../components/support/BreathingExercise', () => ({
   BreathingExercise: () => null,
 }));
-jest.mock('../../components/support/ResourcesList', () => ({
-  ResourcesList: () => null,
+jest.mock('../../components/wellness/GuidanceTiles', () => ({
+  GuidanceTiles: () => null,
 }));
 jest.mock('../../components/support/AffirmationHeader', () => ({
   AffirmationHeader: () => null,
