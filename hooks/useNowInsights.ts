@@ -11,6 +11,7 @@ import type { Medication } from '../utils/medicationStorage';
 import type { Appointment } from '../utils/appointmentStorage';
 import { listLogsInRange } from '../storage/carePlanRepo';
 import { getVitalsInRange } from '../utils/vitalsStorage';
+import { observeVital, ObservationDirection } from '../utils/vitalsObservation';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { DEFAULT_PATIENT_ID } from '../types/patient';
 import { logError } from '../utils/devLog';
@@ -40,10 +41,14 @@ export function useNowInsights(
         const end = getTodayDateString();
         const start = getDateNDaysAgo(7);
 
-        // Fetch logs and vitals in parallel
-        const [logs, vitals] = await Promise.all([
+        // Fetch logs + recent vitals + an OLDER baseline window (days 8–60) in
+        // parallel. The baseline is what the recent average is compared against
+        // to produce a per-person direction (observeVital) — not a population
+        // cutoff. Recent (7-day) logic below is unchanged.
+        const [logs, vitals, baselineVitals] = await Promise.all([
           listLogsInRange(DEFAULT_PATIENT_ID, start, end),
           getVitalsInRange(start, end),
+          getVitalsInRange(getDateNDaysAgo(60), getDateNDaysAgo(8)),
         ]);
 
         // Count lunch skips over last 5 days
@@ -72,6 +77,31 @@ export function useNowInsights(
         const avgDiastolic = diastolicReadings.length >= 3
           ? diastolicReadings.reduce((sum, v) => sum + v.value, 0) / diastolicReadings.length
           : null;
+
+        // Per-person BP direction: compare the recent average to THIS person's
+        // own baseline (days 8–60) via the canonical observeVital(). 'above'
+        // when either component is above their usual; null when there isn't
+        // enough baseline to compare. This is the single source of the
+        // "is BP unusual for them" signal careInsights consumes.
+        const baselineSys = baselineVitals
+          .filter(v => v.type === 'systolic')
+          .map(v => v.value);
+        const baselineDia = baselineVitals
+          .filter(v => v.type === 'diastolic')
+          .map(v => v.value);
+        let bpVsUsual: ObservationDirection | null = null;
+        if (avgSystolic != null) {
+          const sysObs = observeVital(avgSystolic, baselineSys);
+          const diaObs = avgDiastolic != null ? observeVital(avgDiastolic, baselineDia) : null;
+          if (sysObs.direction === 'above_usual' || diaObs?.direction === 'above_usual') {
+            bpVsUsual = 'above_usual';
+          } else if (sysObs.direction === 'below_usual' || diaObs?.direction === 'below_usual') {
+            bpVsUsual = 'below_usual';
+          } else if (sysObs.direction === 'within_usual') {
+            bpVsUsual = 'within_usual';
+          }
+          // else: insufficient_history → leave null
+        }
 
         // Count consecutive days with 100% med adherence (from today backwards)
         const medLogsByDate = new Map<string, number>();
@@ -102,6 +132,7 @@ export function useNowInsights(
           avgSystolic,
           avgDiastolic,
           bpReadingCount: Math.max(systolicReadings.length, diastolicReadings.length),
+          bpVsUsual,
           consecutiveMedDays,
           daysTracked: daysWithData,
         });

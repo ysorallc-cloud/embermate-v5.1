@@ -80,7 +80,7 @@ describe('Insight language — three-sentence concise prose', () => {
     const stats = { ...baseStats, vitals: { completed: 1, total: 1 } };
     const tomorrow = '2026-04-25';
     const appts = [{ id: 'a1', provider: 'Dr. Kim', specialty: 'Cardiology', date: tomorrow, cancelled: false, completed: false }] as any[];
-    const history = { avgSystolic: 148, avgDiastolic: 92, bpReadingCount: 3, lunchSkipCount: 0, consecutiveMedDays: 0, daysTracked: 7 };
+    const history = { avgSystolic: 148, avgDiastolic: 92, bpReadingCount: 3, bpVsUsual: 'above_usual' as const, lunchSkipCount: 0, consecutiveMedDays: 0, daysTracked: 7 };
     const result = generateCareInsight(stats, [], 1, history, appts);
     expect(result).not.toBeNull();
     assertInsightLanguage(result!.message);
@@ -100,7 +100,7 @@ describe('Insight language — three-sentence concise prose', () => {
   // P3: BP trend elevated
   it('BP trend insight', () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-04-24T10:00:00'));
-    const history = { lunchSkipCount: 0, bpReadingCount: 5, avgSystolic: 142, avgDiastolic: 88, consecutiveMedDays: 0, daysTracked: 7 };
+    const history = { lunchSkipCount: 0, bpReadingCount: 5, avgSystolic: 142, avgDiastolic: 88, bpVsUsual: 'above_usual' as const, consecutiveMedDays: 0, daysTracked: 7 };
     const result = generateCareInsight(baseStats, [], 0, history);
     expect(result).not.toBeNull();
     assertInsightLanguage(result!.message);

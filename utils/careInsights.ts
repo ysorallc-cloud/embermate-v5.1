@@ -12,6 +12,7 @@
 import type { TodayStats, CareInsight, AIInsight } from './nowHelpers';
 import type { Appointment } from './appointmentStorage';
 import type { Medication } from './medicationStorage';
+import type { ObservationDirection } from './vitalsObservation';
 
 // ============================================================================
 // RECENT HISTORY TYPE — built by useNowInsights from multi-day data
@@ -21,6 +22,12 @@ export interface RecentHistory {
   avgSystolic: number | null; // avg systolic BP over last 7 days (null if <3 readings)
   avgDiastolic: number | null;
   bpReadingCount: number;
+  // Per-person direction of the recent BP average vs THIS person's own
+  // baseline, precomputed by the builder (useNowInsights) via the canonical
+  // observeVital(). Null when there isn't enough baseline to compare. Replaces
+  // the old fixed population cutoffs (>=140/90, >=135/85) — careInsights stays
+  // a pure function and never computes a threshold itself.
+  bpVsUsual?: ObservationDirection | null;
   consecutiveMedDays: number; // consecutive days with 100% med adherence
   daysTracked: number;
 }
@@ -121,20 +128,22 @@ export function generateCareInsight(
     );
 
     if (tomorrowAppt) {
-      // Check if BP was logged today and is elevated
-      if (stats.vitals.completed > 0 && recentHistory?.avgSystolic != null) {
-        // Use today's latest reading if available via avgSystolic proxy
+      // Surface BP for the visit when it's running above THIS person's usual
+      // (per-person direction precomputed by the builder — no fixed cutoff).
+      if (
+        stats.vitals.completed > 0 &&
+        recentHistory?.avgSystolic != null &&
+        recentHistory.bpVsUsual === 'above_usual'
+      ) {
         const sys = recentHistory.avgSystolic;
         const dia = recentHistory.avgDiastolic ?? 0;
-        if (sys >= 140 || dia >= 90) {
-          return {
-            icon: '🩺',
-            title: 'Visit tomorrow',
-            message: `${tomorrowAppt.specialty || 'Doctor'} visit tomorrow — BP was ${Math.round(sys)}/${Math.round(dia)} today. Worth mentioning.`,
-            type: 'dependency',
-            confidence: 0.9,
-          };
-        }
+        return {
+          icon: '🩺',
+          title: 'Visit tomorrow',
+          message: `${tomorrowAppt.specialty || 'Doctor'} visit tomorrow — BP was ${Math.round(sys)}/${Math.round(dia)} today, above their usual. Worth mentioning.`,
+          type: 'dependency',
+          confidence: 0.9,
+        };
       }
 
       // Generic appointment prep
@@ -165,14 +174,14 @@ export function generateCareInsight(
       };
     }
 
-    // BP average elevated (≥135 sys or ≥85 dia) with ≥3 readings
-    if (recentHistory.bpReadingCount >= 3 &&
-        recentHistory.avgSystolic != null && recentHistory.avgDiastolic != null &&
-        (recentHistory.avgSystolic >= 135 || recentHistory.avgDiastolic >= 85)) {
+    // BP average running above THIS person's own usual (per-person direction
+    // from the builder — no fixed cutoff, no "recommended range" verdict).
+    if (recentHistory.avgSystolic != null && recentHistory.avgDiastolic != null &&
+        recentHistory.bpVsUsual === 'above_usual') {
       return {
         icon: '📊',
         title: 'BP trend',
-        message: `Blood pressure has averaged ${Math.round(recentHistory.avgSystolic)}/${Math.round(recentHistory.avgDiastolic)} over recent readings. This is slightly above the recommended range. Worth mentioning at the next visit.`,
+        message: `Blood pressure has averaged ${Math.round(recentHistory.avgSystolic)}/${Math.round(recentHistory.avgDiastolic)} over recent readings, above their usual. Worth mentioning at the next visit.`,
         type: 'pattern',
         confidence: 0.85,
       };
