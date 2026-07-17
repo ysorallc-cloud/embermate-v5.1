@@ -159,9 +159,10 @@ export const DayDetail: React.FC<Props> = ({ day }) => {
             <Text style={styles.gridItemDetail}>
               {day.vitalsData.bp ? `BP ${day.vitalsData.bp}` : ''}
               {day.vitalsData.hr ? ` \u00B7 HR ${day.vitalsData.hr}` : ''}
-              {day.vitalsData.glucose && day.vitalsData.glucose > 140
-                ? ` \u00B7 Glucose ${day.vitalsData.glucose}\u2191`
-                : ''}
+              {/* Glucose shown as a plain fact like BP/HR above \u2014 no fixed
+                  cutoff and no "high" arrow (STEP 1b: the calendar states the
+                  reading, it doesn't render a population verdict). */}
+              {day.vitalsData.glucose ? ` \u00B7 Glucose ${day.vitalsData.glucose}` : ''}
             </Text>
           )}
         </View>
