@@ -57,12 +57,10 @@ const targets: Array<{ file: string; styles: string[] }> = [
   // GetStartedScreen.tsx had a `bucketLabelSelected` style backing the
   // bucket-grid selection UI. The grid was retired in v6.7 (default care
   // plan now generated at the orchestrator level), so the style is gone.
-  {
-    // Time-slot picker inside the medication form. Uses the *Active suffix
-    // instead of *Selected, but the contract is the same.
-    file: 'components/medication/DosageSection.tsx',
-    styles: ['timeSlotTimeTextActive', 'timeSlotLabelTextActive'],
-  },
+  // components/medication/DosageSection.tsx entry removed when that
+  // orphaned (never-rendered) component was deleted as dead code. Its
+  // time-slot picker chrome now lives only in the canonical
+  // medication-form.tsx / the inline drawers.
 ];
 
 function styleBody(src: string, name: string): string {

@@ -2,7 +2,7 @@
 // Notification-bell redundancy audit — when a bell icon sits next to a
 // toggle that controls THAT SAME notification, the bell is redundant. The
 // toggle alone communicates state. This locks in: in the three reminder-
-// toggle patterns audited (medication-form, appointment-form, ReminderSection),
+// toggle patterns audited (medication-form, appointment-form),
 // the bell icon next to the Switch is removed.
 //
 // Out of scope (legitimate uses): section icons in the Settings categories,
@@ -26,10 +26,8 @@ const targets: Array<{ rel: string; reason: string }> = [
     rel: 'app/appointment-form.tsx',
     reason: 'Appointment Reminder toggle row — bell removed.',
   },
-  {
-    rel: 'components/medication/ReminderSection.tsx',
-    reason: 'Shared ReminderSection toggle — bell removed.',
-  },
+  // components/medication/ReminderSection.tsx entry removed when that
+  // orphaned (never-rendered) component was deleted as dead code.
 ];
 
 describe.each(targets)('Notification-bell redundancy — $rel ($reason)', ({ rel }) => {
