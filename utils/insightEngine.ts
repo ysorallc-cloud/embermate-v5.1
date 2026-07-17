@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { safeGetItem, safeSetItem } from './safeStorage';
 import { getMedications, getMedicationLogs, Medication, MedicationLog } from './medicationStorage';
 import { getVitalsInRange, VitalReading } from './vitalsStorage';
+import { observeVital } from './vitalsObservation';
 import { getDailyTrackingLogs, DailyTrackingLog } from './dailyTrackingStorage';
 import { getDailyChecks, type CaregiverDailyCheck } from './caregiverWellnessStorage';
 import { logError } from './devLog';
@@ -224,29 +225,50 @@ export async function analyzeMedicationAdherence(lookbackDays: number = 7): Prom
  */
 export async function analyzeBloodPressureTrends(): Promise<InsightData | null> {
   try {
-    const endDate = new Date().toISOString();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 14);
+    const now = new Date();
+    const recentStart = new Date(now);
+    recentStart.setDate(now.getDate() - 14);
+    const baselineStart = new Date(now);
+    baselineStart.setDate(now.getDate() - 60);
 
-    const vitals = await getVitalsInRange(startDate.toISOString(), endDate);
+    // Pull a longer window so "recent vs their usual" has a real baseline to
+    // compare against — the recent 14 days are the reading, days 15–60 are the
+    // person's own baseline.
+    const vitals = await getVitalsInRange(baselineStart.toISOString(), now.toISOString());
+    const recentCutoff = recentStart.getTime();
 
-    const systolicReadings = vitals.filter(v => v.type === 'systolic');
-    const diastolicReadings = vitals.filter(v => v.type === 'diastolic');
+    const splitBy = (type: string) => {
+      const readings = vitals.filter(v => v.type === type);
+      const recent = readings.filter(v => new Date(v.timestamp).getTime() >= recentCutoff);
+      const baseline = readings
+        .filter(v => new Date(v.timestamp).getTime() < recentCutoff)
+        .map(v => v.value);
+      return { recent, baseline };
+    };
+    const mean = (xs: number[]) => xs.reduce((sum, x) => sum + x, 0) / xs.length;
 
-    if (systolicReadings.length < 3) {
-      return null; // Not enough data
+    const sys = splitBy('systolic');
+    const dia = splitBy('diastolic');
+
+    if (sys.recent.length < 3) {
+      return null; // Not enough recent data
     }
 
-    // Calculate averages
-    const avgSystolic = systolicReadings.reduce((sum, v) => sum + v.value, 0) / systolicReadings.length;
-    const avgDiastolic = diastolicReadings.length > 0
-      ? diastolicReadings.reduce((sum, v) => sum + v.value, 0) / diastolicReadings.length
-      : 0;
+    const avgSystolic = mean(sys.recent.map(v => v.value));
+    const avgDiastolic = dia.recent.length > 0 ? mean(dia.recent.map(v => v.value)) : 0;
 
-    // Check if elevated (>130/80 is considered elevated)
-    const isElevated = avgSystolic > 130 || avgDiastolic > 80;
+    // Per-person: is the recent average above THIS person's own baseline? No
+    // fixed population cutoff — observeVital compares to their history and
+    // returns 'insufficient_history' (→ no insight) when there isn't enough.
+    const sysObs = observeVital(avgSystolic, sys.baseline);
+    const diaObs = dia.recent.length > 0 ? observeVital(avgDiastolic, dia.baseline) : null;
 
-    if (!isElevated) {
+    // Surface only an UPWARD deviation from their usual — this card's identity
+    // (title, "prepare for visit" action) is a rising-trend prompt. A drop is a
+    // different observation and not this insight's job.
+    const aboveUsual =
+      sysObs.direction === 'above_usual' || diaObs?.direction === 'above_usual';
+    if (!aboveUsual) {
       return null;
     }
 
@@ -254,25 +276,32 @@ export async function analyzeBloodPressureTrends(): Promise<InsightData | null> 
     const adherence = await analyzeMedicationAdherence();
     const hasAdherenceIssue = adherence && adherence.specificData.percentage! < 80;
 
-    const severity: 'info' | 'warning' | 'alert' = avgSystolic > 140 ? 'alert' : 'warning';
+    // Their own usual (baseline mean) — the neutral reference this compares to,
+    // NOT a population target.
+    const usualSystolic = sysObs.usual != null ? Math.round(sysObs.usual) : Math.round(avgSystolic);
+    const usualDiastolic = diaObs?.usual != null ? Math.round(diaObs.usual) : null;
 
     return {
       id: 'blood-pressure-elevated',
       type: 'vitals',
-      severity,
-      title: 'Blood Pressure Trending Higher',
+      // Severity collapsed to a flat, non-escalating tier. It is NOT derived
+      // from any cutoff — this is a neutral per-person observation, so the app
+      // assigns no clinical urgency. (The field stays required on InsightData,
+      // shared with medication/mood insights that are out of STEP 1's scope.)
+      severity: 'info',
+      title: 'Blood pressure above their usual',
       specificData: {
         current: Math.round(avgSystolic),
-        target: 120,
+        target: usualSystolic, // their own usual, not a population target
         unit: 'mmHg (systolic)',
         percentage: undefined,
       },
       context: avgDiastolic > 0
-        ? `Average BP this week is ${Math.round(avgSystolic)}/${Math.round(avgDiastolic)} mmHg, above the recommended 130/80 target. Sustained elevation increases cardiovascular risk. Consider mentioning this trend at the next appointment.`
-        : `Average systolic BP this week is ${Math.round(avgSystolic)} mmHg, above the typical target. Sustained elevation increases cardiovascular risk. Consider mentioning this trend at the next appointment.`,
+        ? `Average BP over the last 2 weeks is ${Math.round(avgSystolic)}/${Math.round(avgDiastolic)} mmHg, above their usual of about ${usualSystolic}${usualDiastolic != null ? '/' + usualDiastolic : ''}. If this holds rather than a one-off, it may be worth mentioning at the next visit.`
+        : `Average systolic BP over the last 2 weeks is ${Math.round(avgSystolic)} mmHg, above their usual of about ${usualSystolic}. If this holds rather than a one-off, it may be worth mentioning at the next visit.`,
       whyItMatters: hasAdherenceIssue
-        ? 'This may be related to missed medication doses. Consistent medication helps control blood pressure.'
-        : 'Keeping blood pressure under 130/80 reduces risk of heart attack and stroke.',
+        ? 'This lines up with some missed medication doses — worth checking whether doses are being taken consistently.'
+        : 'Comparing a reading to their own recent pattern says more than any single number.',
       pattern: hasAdherenceIssue ? 'Correlates with missed medication doses' : undefined,
       actions: [
         {

@@ -193,48 +193,77 @@ describe('analyzeMedicationAdherence', () => {
 // Requires ≥3 systolic readings.
 // ────────────────────────────────────────────────────────────────────────────
 
-describe('analyzeBloodPressureTrends', () => {
-  it('returns null when fewer than 3 systolic readings', async () => {
+// STEP 1: this insight was migrated off fixed population cutoffs
+// (avgSystolic > 130 / > 140) onto the canonical observeVital(), which compares
+// the recent 2-week average to THIS person's own baseline (days 15–60). The old
+// severity tier (warning/alert from a cutoff) collapsed to a flat, non-verdict
+// 'info'. Contract below reflects the per-person, neutral behavior.
+describe('analyzeBloodPressureTrends (per-person, no population cutoff)', () => {
+  it('returns null when fewer than 3 recent systolic readings', async () => {
     mockGetVitals.mockResolvedValue([vital('systolic', 145, 1), vital('systolic', 142, 2)]);
     const result = await analyzeBloodPressureTrends();
     expect(result).toBeNull();
   });
 
-  it('returns null when average BP is at or below 130/80', async () => {
+  it('returns null with recent readings but no baseline to compare against', async () => {
+    // 3 recent readings, nothing older than 14 days → no per-person baseline →
+    // no insight. A population fallback ("> 130 = elevated") is exactly what
+    // STEP 1 removes, so a textbook-high average alone no longer fires.
     mockGetVitals.mockResolvedValue([
-      vital('systolic', 120, 1), vital('systolic', 122, 2), vital('systolic', 118, 3),
-      vital('diastolic', 75, 1), vital('diastolic', 78, 2), vital('diastolic', 76, 3),
+      vital('systolic', 150, 1), vital('systolic', 152, 2), vital('systolic', 148, 3),
     ]);
     const result = await analyzeBloodPressureTrends();
     expect(result).toBeNull();
   });
 
-  it('triggers "warning" when systolic averages between 131–140', async () => {
+  it('fires — as neutral "info" — when the recent average is ABOVE the person\'s own baseline', async () => {
     mockGetVitals.mockResolvedValue([
-      vital('systolic', 134, 1), vital('systolic', 136, 2), vital('systolic', 132, 3),
-      vital('diastolic', 82, 1), vital('diastolic', 84, 2), vital('diastolic', 81, 3),
+      // baseline (days 15–45): their usual ≈ 120
+      vital('systolic', 118, 20), vital('systolic', 122, 25), vital('systolic', 120, 30), vital('systolic', 119, 35),
+      // recent (last 14 days): ≈ 150, well above their usual
+      vital('systolic', 150, 1), vital('systolic', 152, 2), vital('systolic', 148, 3),
     ]);
     const result = await analyzeBloodPressureTrends();
     expect(result).not.toBeNull();
-    expect(result!.severity).toBe('warning');
-    expect(result!.title).toMatch(/Blood Pressure/i);
-    expect(result!.context).toMatch(/mmHg/i);
+    // Severity collapsed — no app-assigned urgency tier from a cutoff.
+    expect(result!.severity).toBe('info');
+    // Neutral, per-person copy — no population verdict words.
+    expect(result!.title).toMatch(/usual/i);
+    expect(result!.context).toMatch(/above their usual/i);
+    expect(result!.context).not.toMatch(/\b(elevated|abnormal|high|risk|recommended|cardiovascular)\b/i);
   });
 
-  it('triggers "alert" when systolic averages above 140', async () => {
+  it('does NOT fire when a population-"high" average is WITHIN the person\'s own usual', async () => {
+    // Someone who always runs ~150 — textbook-high, but normal FOR THEM.
     mockGetVitals.mockResolvedValue([
-      vital('systolic', 148, 1), vital('systolic', 152, 2), vital('systolic', 145, 3),
+      vital('systolic', 149, 20), vital('systolic', 151, 25), vital('systolic', 150, 30), vital('systolic', 148, 35),
+      vital('systolic', 150, 1), vital('systolic', 152, 2), vital('systolic', 149, 3),
     ]);
     const result = await analyzeBloodPressureTrends();
-    expect(result).not.toBeNull();
-    expect(result!.severity).toBe('alert');
-    expect(result!.specificData.current).toBeGreaterThan(140);
+    expect(result).toBeNull();
   });
 
-  it('triggers when diastolic alone is elevated (>80)', async () => {
+  it('per-person: identical recent readings fire for a low-baseline person, not a high-baseline one', async () => {
+    const recent = [vital('systolic', 145, 1), vital('systolic', 147, 2), vital('systolic', 146, 3)];
+    mockGetVitals.mockResolvedValueOnce([
+      vital('systolic', 118, 20), vital('systolic', 121, 25), vital('systolic', 119, 30), ...recent,
+    ]);
+    const lowBaseline = await analyzeBloodPressureTrends();
+    mockGetVitals.mockResolvedValueOnce([
+      vital('systolic', 144, 20), vital('systolic', 147, 25), vital('systolic', 145, 30), ...recent,
+    ]);
+    const highBaseline = await analyzeBloodPressureTrends();
+
+    expect(lowBaseline).not.toBeNull(); // unusual for THIS person
+    expect(highBaseline).toBeNull();    // normal for THIS person
+  });
+
+  it('fires on a diastolic deviation from usual too, and includes it in the copy', async () => {
     mockGetVitals.mockResolvedValue([
-      vital('systolic', 125, 1), vital('systolic', 128, 2), vital('systolic', 124, 3),
-      vital('diastolic', 88, 1), vital('diastolic', 92, 2), vital('diastolic', 90, 3),
+      vital('systolic', 120, 20), vital('systolic', 121, 25), vital('systolic', 119, 30),
+      vital('diastolic', 75, 20), vital('diastolic', 76, 25), vital('diastolic', 74, 30),
+      vital('systolic', 121, 1), vital('systolic', 122, 2), vital('systolic', 120, 3),
+      vital('diastolic', 92, 1), vital('diastolic', 94, 2), vital('diastolic', 90, 3),
     ]);
     const result = await analyzeBloodPressureTrends();
     expect(result).not.toBeNull();
@@ -492,10 +521,13 @@ describe('analyzeCaregiverCorrelations', () => {
 
 describe('getAllInsights — aggregation', () => {
   it('returns at most 3 insights even when many trigger', async () => {
-    // Trigger med adherence (alert), BP (alert), mood (alert), hydration (warning), sleep-mood
+    // Trigger med adherence (alert), BP (info — above their usual), mood (alert),
+    // hydration (warning), sleep-mood. BP needs a baseline (days 15+) to compare
+    // the recent ~150 average against, post per-person migration.
     const instances = Array.from({ length: 10 }, () => instance('missed'));
     mockListInstances.mockResolvedValue(instances);
     mockGetVitals.mockResolvedValue([
+      vital('systolic', 118, 20), vital('systolic', 121, 25), vital('systolic', 119, 30),
       vital('systolic', 150, 1), vital('systolic', 152, 2), vital('systolic', 148, 3),
     ]);
     mockGetTracking.mockResolvedValue(

@@ -314,7 +314,10 @@ function generateHumanReadableEngineInsight(insight: InsightData, timeRange: Tim
       return null;
 
     case 'blood-pressure-elevated':
-      return `Blood pressure is running higher than target this ${timeRange === 7 ? 'week' : 'period'}.`;
+      // Matches the per-person trigger (STEP 1): the insight now fires when the
+      // recent average is above THIS person's own baseline, not a population
+      // "target". Copy is neutral — their usual, no verdict.
+      return `Blood pressure is running higher than their usual this ${timeRange === 7 ? 'week' : 'period'}.`;
 
     case 'mood-pattern-low':
       return `Mood has been lower on more days than usual recently.`;
