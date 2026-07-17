@@ -37,11 +37,17 @@
 //   • utils/vitalsObservation.ts — the ONE canonical home (UNIT 2).
 //   • __tests__ — test files.
 //
-// STATE: RED today — it names the 6 legacy sites (careSummaryBuilder,
-// insightEngine, careInsights, narrativeSummaryBuilder, journalReflections).
-// It goes GREEN one file at a time as UNIT 3 migrates each onto the canonical
-// module; all-green is the completion signal. Do NOT rename fields to dodge
-// it — the root fix is deleting the private cutoff, not hiding the number.
+// STATE: GREEN — STEP 1's 6 legacy sites are resolved. careSummaryBuilder,
+// insightEngine, careInsights (two branches), and narrativeSummaryBuilder were
+// migrated onto observeVital(); journalReflections was deleted as dead code
+// (built-but-unwired, referenced only by its own test). This guard now holds
+// the line: any new fixed vital-threshold computation outside the canonical
+// module re-reds it. Do NOT rename fields to dodge it — the root fix is
+// deleting the private cutoff, not hiding the number.
+//
+// SCOPE NOTE: this scans utils/ + services/ only. Screen/component surfaces
+// (app/, components/) are NOT yet covered — STEP 1b widens the scope there and
+// migrates the three known screen-level leaks it surfaced.
 //
 // KNOWN LIMIT (documented, not airtight): the scanner matches numeric
 // LITERALS adjacent to a comparison operator. A threshold written as a NAMED

@@ -19,8 +19,8 @@
 //     (__tests__/gates/gateD_noClinicalVerdict.test.ts).
 //
 // Every surface that used to compute its own cutoff (careSummaryBuilder,
-// insightEngine, careInsights, narrativeSummaryBuilder, journalReflections)
-// migrates onto observeVital(); the guard test
+// insightEngine, careInsights, narrativeSummaryBuilder) migrates onto
+// observeVital(); the guard test
 // (__tests__/vitalThresholdCanonicalGuard.test.ts) forbids a 7th.
 // ============================================================================
 
