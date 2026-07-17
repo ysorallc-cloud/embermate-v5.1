@@ -6,14 +6,17 @@
 // common quick-log paths without leaving Now.
 //
 // Picker rows:
-//   • Note   — drills into NoteSheetBody (NoteForm reused from /log-note)
 //   • Vitals — drills into VitalsSheetBody (BP + HR fast-path)
 //   • Water  — INLINE preset chips on the row (+1 +2 +3 +4)
 //   • Meal   — INLINE preset chips on the row (Breakfast / Lunch / Dinner / Snack)
 //   • More   — routes to /quick-log-more (full quick-log grid)
 //
+// The freeform "Note" row was removed with the unanchored note feature (it
+// wrote to noteStorage, which nothing live reads). The anchored notes stay:
+// custom care-plan tasks still complete via /log-note (+NoteForm), and the
+// quick-log-more "Quick observation" note (→ Journal by date) is untouched.
+//
 // Tap-budget guarantees from the device-walk gate:
-//   • Note    — FAB + Note row + Save                       = 3 taps
 //   • Vitals  — FAB + Vitals row + Save                     = 3 taps  (≤4 budget)
 //   • Water   — FAB + chip                                   = 2 taps
 //   • Meal    — FAB + chip                                   = 2 taps
@@ -24,7 +27,7 @@
 // saveMealsLog for Meal); no parallel storage paths are introduced.
 // ============================================================================
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -36,7 +39,6 @@ import {
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { navigate } from '../../lib/navigate';
-import { NoteForm, type NoteFormHandle } from '../logging/NoteForm';
 import { saveVital } from '../../utils/vitalsStorage';
 import { saveVitalsLog, updateTodayWaterLog, getTodayWaterLog, saveMealsLog } from '../../utils/centralStorage';
 import { hapticSuccess } from '../../utils/hapticFeedback';
@@ -44,7 +46,7 @@ import { emitDataUpdate } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
 import { logError } from '../../utils/devLog';
 
-type SheetMode = 'picker' | 'note' | 'vitals';
+type SheetMode = 'picker' | 'vitals';
 type MealPreset = 'Breakfast' | 'Lunch' | 'Dinner' | 'Snack';
 
 export interface QuickLogSheetProps {
@@ -89,7 +91,6 @@ export function QuickLogSheet({ visible, onClose }: QuickLogSheetProps) {
           <View style={styles.handle} />
 
           {mode === 'picker' && <PickerBody styles={styles} setMode={setMode} onClose={handleClose} />}
-          {mode === 'note' && <NoteSheetBody styles={styles} onBack={handleBackToPicker} onSaved={handleClose} />}
           {mode === 'vitals' && <VitalsSheetBody styles={styles} onBack={handleBackToPicker} onSaved={handleClose} />}
         </TouchableOpacity>
       </TouchableOpacity>
@@ -155,13 +156,6 @@ function PickerBody({
     <>
       <Text style={styles.title}>Quick log</Text>
 
-      <DrilldownRow
-        styles={styles}
-        icon="✎"
-        label="Note"
-        testID="quick-log-row-note"
-        onPress={() => setMode('note')}
-      />
       <DrilldownRow
         styles={styles}
         icon="♥"
@@ -248,47 +242,6 @@ function DrilldownRow({
       <Text style={styles.rowLabel}>{label}</Text>
       <Text style={styles.rowChevron}>{'›'}</Text>
     </TouchableOpacity>
-  );
-}
-
-// ============================================================================
-// NOTE SHEET BODY — reuses <NoteForm/> with sheet-shaped Save button.
-// ============================================================================
-
-function NoteSheetBody({
-  styles,
-  onBack,
-  onSaved,
-}: {
-  styles: ReturnType<typeof createStyles>;
-  onBack: () => void;
-  onSaved: () => void;
-}) {
-  const formRef = useRef<NoteFormHandle>(null);
-  const [canSave, setCanSave] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  return (
-    <>
-      <SheetSubHeader styles={styles} title="Note" onBack={onBack} />
-      <Text style={styles.disclaimer}>
-        For caregiver record-keeping. Not medical advice.
-      </Text>
-      <NoteForm
-        ref={formRef}
-        onSaved={onSaved}
-        onCanSaveChange={setCanSave}
-        onSavingChange={setSaving}
-        autoFocus
-      />
-      <SheetSaveButton
-        styles={styles}
-        label={saving ? 'Saving…' : 'Save note'}
-        disabled={!canSave}
-        testID="quick-log-note-save"
-        onPress={() => void formRef.current?.save()}
-      />
-    </>
   );
 }
 
@@ -491,12 +444,6 @@ const createStyles = (c: any) =>
       alignItems: 'center',
       gap: 12,
       marginBottom: 16, // allow: sub-header to body rhythm
-    },
-    disclaimer: {
-      fontSize: 12,
-      fontStyle: 'italic',
-      color: c.textTertiary,
-      marginBottom: 12,
     },
     backRow: {
       flexDirection: 'row',

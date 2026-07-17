@@ -705,7 +705,7 @@ export default function QuickLogMoreScreen() {
                       ) : (
                         <TouchableOpacity
                           style={styles.goButton}
-                          onPress={() => navigate(option.screen)}
+                          onPress={() => option.screen && navigate(option.screen)}
                           activeOpacity={0.7}
                           accessibilityRole="button"
                           accessibilityLabel={done ? `Update ${option.label}` : `Log ${option.label}`}

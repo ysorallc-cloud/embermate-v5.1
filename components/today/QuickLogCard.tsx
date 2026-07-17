@@ -51,7 +51,7 @@ export const QuickLogCard: React.FC = () => {
           <TouchableOpacity
             key={option.id}
             style={styles.optionButton}
-            onPress={() => handleOptionPress(option.screen)}
+            onPress={() => option.screen && handleOptionPress(option.screen)}
             activeOpacity={0.7}
             accessibilityLabel={`Log ${option.label}`}
             accessibilityRole="button"

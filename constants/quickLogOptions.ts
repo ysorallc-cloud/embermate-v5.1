@@ -11,7 +11,9 @@ export interface QuickLogOption {
   icon: string;
   label: string;
   description: string;
-  screen: string; // Navigation target
+  /** Navigation target. Optional: inline-handled options (e.g. the Note
+   *  observation, rendered inline in quick-log-more) have no route. */
+  screen?: string;
   isCore: boolean; // Shows on TODAY screen
   category: 'core' | 'health' | 'daily' | 'care';
   bucketType: BucketType | null; // null = always visible regardless of config
@@ -53,10 +55,13 @@ export const QUICK_LOG_OPTIONS: QuickLogOption[] = [
   // MORE OPTIONS
   {
     id: 'note',
+    // No `screen`: the note is rendered INLINE in quick-log-more (a "Quick
+    // observation" saved to the notes log → shown in the Journal by date), not
+    // navigated to. It formerly pointed at /log-note (the unanchored-note
+    // route), which no longer applies.
     icon: '📝',
     label: 'Note',
     description: 'Observation or reminder',
-    screen: '/log-note',
     isCore: false,
     category: 'care',
     bucketType: null, // Always visible

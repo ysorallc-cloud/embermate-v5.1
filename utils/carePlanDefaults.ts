@@ -650,15 +650,6 @@ export const ITEM_TYPE_OPTIONS: ItemTypeOption[] = [
     link: '/log-activity',
     description: 'Physical therapy or exercise',
   },
-  {
-    type: 'custom',
-    label: 'Notes',
-    emoji: '📝',
-    defaultTarget: 1,
-    targetType: 'done',
-    link: '/log-note',
-    description: 'General observations',
-  },
 ];
 
 /**

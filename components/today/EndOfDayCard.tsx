@@ -23,10 +23,6 @@ export const EndOfDayCard: React.FC<EndOfDayCardProps> = ({
     router.push('/log-evening-wellness');
   };
 
-  const handleAddNote = () => {
-    router.push('/log-note');
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -45,16 +41,6 @@ export const EndOfDayCard: React.FC<EndOfDayCardProps> = ({
         >
           <Text style={styles.buttonIcon}>😊</Text>
           <Text style={styles.buttonText}>Log mood</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.button}
-          onPress={handleAddNote}
-          accessibilityLabel={`Add note for ${careRecipientName}`}
-          accessibilityRole="button"
-        >
-          <Text style={styles.buttonIcon}>📝</Text>
-          <Text style={styles.buttonText}>Add note</Text>
         </TouchableOpacity>
       </View>
     </View>
