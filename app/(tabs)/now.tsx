@@ -79,6 +79,7 @@ import { RoutineSheet } from '../../components/now/RoutineSheet';
 // Component files preserved on disk (dormant).
 import { NowHeader } from '../../components/now/NowHeader';
 import { NowTimeline } from '../../components/now/NowTimeline';
+import { AddMedicationsPrompt } from '../../components/now/AddMedicationsPrompt';
 import { NowFooter } from '../../components/now/NowFooter';
 import { UpcomingAppointmentCard } from '../../components/now/UpcomingAppointmentCard';
 import { StatRings } from '../../components/now/StatRings';
@@ -1279,6 +1280,18 @@ export default function NowScreen() {
             onWaterUpdate={handleWaterUpdate}
           />
           </View>
+
+          {/* Empty-meds discoverability — when the caregiver enabled
+              medication tracking in onboarding but no meds are entered yet
+              (config.meds.enabled && medications.length === 0), the schedule
+              shows no meds and reads as broken. This warm affordance links to
+              the existing Care Plan med-add flow. Self-gates: null unless
+              enabled-but-empty. Changes no data. */}
+          <AddMedicationsPrompt
+            medsEnabled={welcomeSummary.medsBucketEnabled}
+            medicationCount={welcomeSummary.medicationCount}
+            patientName={patientName}
+          />
 
           {/* ═══ F7 HEALTH ZONE — Today's Health (review) ═══
               Phase B (2026-06-13) — HealthZoneNow + the "Log something
