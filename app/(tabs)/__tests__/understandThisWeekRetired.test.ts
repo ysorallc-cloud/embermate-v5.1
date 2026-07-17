@@ -79,17 +79,20 @@ describe('Phase 15.10 — "This Week" RecentWindowCard retired from Insights', (
   });
 
   it('contract 5: BP / Vitals canonical data pipeline preserved', () => {
-    // Phase 28 Batch B F6 (audit-revised) reframed this contract:
-    // pre-F6 the "Vitals this week" string lived inline in understand.tsx
-    // as the SECTION 4 eyebrow text. F6 folded the Vitals render into
-    // `<InsightsDataCard>`, which now owns the eyebrow text. The
-    // canonical data pipeline (computeVitalTiles + setVitalTiles +
-    // systolic-by-type slice) is what still must live in understand.tsx —
-    // it feeds the card. The eyebrow text moved with the render and is
-    // contracted at the card layer (components/insights/InsightsDataCard).
-    expect(code).toMatch(/function computeVitalTiles\b/);
+    // The canonical Vitals pipeline (computeVitalTiles + setVitalTiles +
+    // systolic-by-type slice) still feeds the InsightsDataCard. STEP 1b moved
+    // the pure computation (computeVitalTiles + the systolic-by-type slice) to
+    // utils/vitalTiles.ts so the per-person tile logic is unit-testable without
+    // mounting the screen (same pattern as computeDataGaps → insightsDataGaps).
+    // understand.tsx still owns the WIRING: it imports computeVitalTiles and
+    // feeds the card via setVitalTiles.
+    expect(code).toMatch(/computeVitalTiles/); // imported + called
     expect(code).toMatch(/setVitalTiles\b/);
-    expect(code).toMatch(/byType\[['"]systolic['"]\]/);
+    const tilesSrc = readFileSync(
+      join(__dirname, '../../../utils/vitalTiles.ts'), 'utf8',
+    );
+    expect(tilesSrc).toMatch(/export function computeVitalTiles\b/);
+    expect(tilesSrc).toMatch(/byType\[['"]systolic['"]\]/);
   });
 
   it('contract 6: classifyInsightsState + gatingForState still present (used by other sections)', () => {

@@ -72,6 +72,7 @@ import { InsightsEmptyStatePreview } from '../../components/understand/InsightsE
 // buildJournalPreview pattern).
 import { classifyInsightsState, gatingForState, EMPTY_STATE_DAYS_THRESHOLD } from '../../utils/insightsState';
 import { getVitalsInRange, VitalReading } from '../../utils/vitalsStorage';
+import { VitalTile, computeVitalTiles } from '../../utils/vitalTiles';
 import { listDailyInstancesRange, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
 import { getTodayDateString, toLocalDateString } from '../../services/carePlanGenerator';
 import { computeCanonicalAdherence } from '../../utils/adherenceCanonical';
@@ -86,15 +87,8 @@ import { computeInsightsSubtitle } from '../../utils/insightsSubtitle';
 // TYPES
 // ============================================================================
 
-interface VitalTile {
-  label: string;
-  value: string;
-  unit: string;
-  trendVal: string;
-  trendDir: 'up' | 'down' | 'stable';
-  color: string;
-  sparkPoints: string;
-}
+// VitalTile + computeVitalTiles + generateSparkPoints moved to utils/vitalTiles
+// (STEP 1b — testable per-person tile logic, same pattern as computeDataGaps).
 
 // Phase 11.9.3 — DataGap + computeDataGaps moved to utils/insightsDataGaps
 // so the integration tests can import them without pulling React Native
@@ -202,116 +196,6 @@ function TimeRangeToggle({ value, onChange }: { value: TimeRange; onChange: (r: 
 // HELPERS
 // ============================================================================
 
-function generateSparkPoints(values: number[], w = 50, h = 20): string {
-  if (values.length === 0) return '';
-  if (values.length === 1) return `${w / 2},${h / 2}`;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-  return values.map((v, i) => {
-    const x = 2 + (i / (values.length - 1)) * (w - 4);
-    const y = (h - 3) - ((v - min) / range) * (h - 6);
-    return `${x.toFixed(0)},${y.toFixed(0)}`;
-  }).join(' ');
-}
-
-// Phase 11.9.3 — computeDataGaps moved to utils/insightsDataGaps.
-// The function stays pure; this extraction enables integration
-// tests to assert the gap output without mounting the screen's
-// component graph.
-
-function computeVitalTiles(readings: VitalReading[]): VitalTile[] {
-  const tiles: VitalTile[] = [];
-  const byType: Record<string, VitalReading[]> = {};
-  for (const r of readings) {
-    if (!byType[r.type]) byType[r.type] = [];
-    byType[r.type].push(r);
-  }
-  for (const type of Object.keys(byType)) {
-    byType[type].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-  }
-
-  // Blood Pressure
-  const systolic = byType['systolic'];
-  const diastolic = byType['diastolic'];
-  if (systolic && systolic.length >= 2) {
-    const latestSys = systolic[systolic.length - 1].value;
-    const latestDia = diastolic?.[diastolic.length - 1]?.value ?? 0;
-    const mid = Math.floor(systolic.length / 2);
-    const firstAvg = systolic.slice(0, Math.max(mid, 1)).reduce((s, r) => s + r.value, 0) / Math.max(mid, 1);
-    const secondAvg = systolic.slice(mid).reduce((s, r) => s + r.value, 0) / Math.max(systolic.length - mid, 1);
-    const changePct = Math.round(((secondAvg - firstAvg) / firstAvg) * 100);
-    const trending = secondAvg > firstAvg ? 'up' : secondAvg < firstAvg ? 'down' : 'stable';
-    const isHigh = latestSys >= 130 || latestDia >= 85;
-
-    tiles.push({
-      label: 'Blood Pressure',
-      value: `${Math.round(latestSys)}/${Math.round(latestDia)}`,
-      unit: 'avg mmHg',
-      trendVal: changePct !== 0 ? `${changePct > 0 ? '+' : ''}${changePct}%` : '\u2192',
-      trendDir: trending,
-      color: isHigh ? Colors.amberBright : Colors.green,
-      sparkPoints: generateSparkPoints(systolic.map(r => r.value)),
-    });
-  }
-
-  // Heart Rate
-  const hr = byType['heartRate'];
-  if (hr && hr.length >= 2) {
-    const latest = hr[hr.length - 1].value;
-    const mid = Math.floor(hr.length / 2);
-    const firstAvg = hr.slice(0, Math.max(mid, 1)).reduce((s, r) => s + r.value, 0) / Math.max(mid, 1);
-    const secondAvg = hr.slice(mid).reduce((s, r) => s + r.value, 0) / Math.max(hr.length - mid, 1);
-    const isStable = Math.abs(secondAvg - firstAvg) < 5;
-
-    tiles.push({
-      label: 'Heart Rate',
-      value: `${Math.round(latest)}`,
-      unit: 'avg bpm',
-      trendVal: isStable ? '\u2192' : secondAvg > firstAvg ? '\u2191' : '\u2193',
-      trendDir: isStable ? 'stable' : 'up',
-      color: Colors.green,
-      sparkPoints: generateSparkPoints(hr.map(r => r.value)),
-    });
-  }
-
-  // Glucose
-  const glucose = byType['glucose'];
-  if (glucose && glucose.length >= 2) {
-    const latest = glucose[glucose.length - 1].value;
-    const aboveRange = glucose.filter(r => r.value > 180).length;
-
-    tiles.push({
-      label: 'Glucose',
-      value: `${Math.round(latest)}`,
-      unit: 'avg mg/dL',
-      trendVal: aboveRange > 0 ? `${aboveRange} high` : '\u2192',
-      trendDir: aboveRange > 0 ? 'up' : 'stable',
-      color: aboveRange > 0 ? Colors.amberBright : Colors.green,
-      sparkPoints: generateSparkPoints(glucose.map(r => r.value)),
-    });
-  }
-
-  // Weight
-  const weight = byType['weight'];
-  if (weight && weight.length >= 2) {
-    const latest = weight[weight.length - 1].value;
-    const first = weight[0].value;
-    const change = latest - first;
-
-    tiles.push({
-      label: 'Weight',
-      value: `${latest.toFixed(0)}`,
-      unit: 'lbs',
-      trendVal: Math.abs(change) < 1 ? '\u2192' : `${change > 0 ? '+' : ''}${change.toFixed(1)}`,
-      trendDir: Math.abs(change) < 1 ? 'stable' : change > 0 ? 'up' : 'down',
-      color: Math.abs(change) >= 3 ? Colors.amberBright : Colors.green,
-      sparkPoints: generateSparkPoints(weight.map(r => r.value)),
-    });
-  }
-
-  return tiles;
-}
 
 async function computeAdherence(timeRange: number): Promise<AdherenceData> {
   try {
@@ -434,8 +318,16 @@ export default function UnderstandScreen() {
         const now = new Date();
         const start = new Date(now);
         start.setDate(start.getDate() - timeRange);
-        const readings = await getVitalsInRange(start.toISOString(), now.toISOString());
-        setVitalTiles(computeVitalTiles(readings));
+        // Baseline = this person's readings in the 60 days BEFORE the displayed
+        // window, so tile "unusual" flags compare to their own history (not a
+        // population cutoff). See computeVitalTiles.
+        const baselineStart = new Date(start);
+        baselineStart.setDate(baselineStart.getDate() - 60);
+        const [readings, baseline] = await Promise.all([
+          getVitalsInRange(start.toISOString(), now.toISOString()),
+          getVitalsInRange(baselineStart.toISOString(), start.toISOString()),
+        ]);
+        setVitalTiles(computeVitalTiles(readings, baseline));
       } catch (err) {
         logError('UnderstandScreen.loadVitals', err);
         setVitalTiles([]);
