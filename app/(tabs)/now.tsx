@@ -287,6 +287,12 @@ export default function NowScreen() {
   // collapse returns to focus.
   const [scheduleExpanded, setScheduleExpanded] = useState(false);
 
+  // Part 3 disclosure — Reflection + End of shift collapse to a single header
+  // row by default; per-section expand state persists for the session only
+  // (React state, not storage). Schedule + Today's Health stay always-open.
+  const [reflectionExpanded, setReflectionExpanded] = useState(false);
+  const [endOfShiftExpanded, setEndOfShiftExpanded] = useState(false);
+
   // Phase 15.6 — `brief` state + setter retired. The Today's Journal
   // preview tile in NowFooter consumed it; the tile has been removed
   // (the bottom tab bar already reaches the Journal tab).
@@ -1369,8 +1375,13 @@ export default function NowScreen() {
               {/* Reflection honesty — gate the celebratory State A on the whole
                   day being done (nowFocus.dayState), not just evening meds. An
                   active day gets the honest quiet line; it never claims a
-                  completion that didn't happen. */}
-              <ReflectionZoneNow dayComplete={nowFocus.dayState === 'done'} />
+                  completion that didn't happen. Part 3 — collapsed to its header
+                  row by default (session-persisted expand). */}
+              <ReflectionZoneNow
+                dayComplete={nowFocus.dayState === 'done'}
+                collapsed={!reflectionExpanded}
+                onToggleCollapse={() => setReflectionExpanded(v => !v)}
+              />
               </View>
             </>
           )}
@@ -1391,6 +1402,8 @@ export default function NowScreen() {
             hasMissed={todayTimeline.completed.some(i => i.status === 'missed')}
             outcomes={todayOutcomes}
             hasHandoffNote={hasHandoffNote}
+            endOfShiftCollapsed={!endOfShiftExpanded}
+            onToggleEndOfShift={() => setEndOfShiftExpanded(v => !v)}
           />
 
         </View>

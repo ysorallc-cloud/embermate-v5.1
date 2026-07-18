@@ -63,9 +63,14 @@ export interface ReflectionZoneNowProps {
    *  completion when only evening meds — or nothing — was pending while the
    *  rest of the day stayed open.) */
   dayComplete: boolean;
+  /** Part 3 disclosure — collapsed to a single header row by default; the Now
+   *  tab owns the per-session expand state and toggles it. Defaults to expanded
+   *  when unset so existing render paths are unaffected. */
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-export function ReflectionZoneNow({ dayComplete }: ReflectionZoneNowProps) {
+export function ReflectionZoneNow({ dayComplete, collapsed = false, onToggleCollapse }: ReflectionZoneNowProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -156,13 +161,24 @@ export function ReflectionZoneNow({ dayComplete }: ReflectionZoneNowProps) {
 
   return (
     <View style={styles.zone} testID="reflection-zone-now">
-      <Text style={styles.eyebrow}>
-        {'☕ '}
-        <Text style={styles.eyebrowLabel}>REFLECTION</Text>
-        <Text style={styles.eyebrowVerb}>{' · reflect'}</Text>
-      </Text>
-      {body}
-      <ReflectionSheet visible={sheetOpen} onClose={handleSheetClose} />
+      {/* Part 3 — the eyebrow is the collapse header. Collapsed = this row only. */}
+      <TouchableOpacity
+        onPress={onToggleCollapse}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: !collapsed }}
+        accessibilityLabel={collapsed ? 'Expand reflection' : 'Collapse reflection'}
+        style={styles.headerRow}
+        testID="reflection-zone-header"
+      >
+        <Text style={styles.eyebrow}>
+          {'☕ '}
+          <Text style={styles.eyebrowLabel}>REFLECTION</Text>
+          <Text style={styles.eyebrowVerb}>{' · reflect'}</Text>
+        </Text>
+        <Text style={styles.chevron}>{collapsed ? '▸' : '▾'}</Text>
+      </TouchableOpacity>
+      {!collapsed && body}
+      {!collapsed && <ReflectionSheet visible={sheetOpen} onClose={handleSheetClose} />}
     </View>
   );
 }
@@ -176,10 +192,19 @@ const createStyles = (c: typeof Colors) =>
       paddingHorizontal: CARD_PADDING_H,
       borderRadius: 12,
     },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 14, // allow: zone-eyebrow rhythm matches Zone primitive
+    },
     eyebrow: {
       ...TypeScale.micro,
       color: c.textTertiary,
-      marginBottom: 14, // allow: zone-eyebrow rhythm matches Zone primitive
+    },
+    chevron: {
+      ...TypeScale.micro,
+      color: c.textTertiary,
     },
     eyebrowLabel: {
       // Now rebuild — Reflection is SELF-CARE, so its eyebrow takes SAGE

@@ -27,6 +27,14 @@ export interface EndOfShiftCardProps {
    *  card stays presentational. */
   hasHandoffNote?: boolean;
   onDismiss?: () => void;
+  /** Part 3 — total unresolved (pending/missed) items; part of the handoff-
+   *  context gate below (there's something worth handing off). */
+  allPendingCount?: number;
+  /** Part 3 disclosure — collapsed to the title row by default; the Now tab owns
+   *  the per-session expand state. Defaults to expanded so other callers (none
+   *  today) are unaffected. */
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export function EndOfShiftCard({
@@ -35,6 +43,9 @@ export function EndOfShiftCard({
   alerts,
   hasHandoffNote,
   onDismiss,
+  allPendingCount,
+  collapsed = false,
+  onToggleCollapse,
 }: EndOfShiftCardProps) {
   const { colors } = useTheme();
   const s = useMemo(() => createStyles(colors), [colors]);
@@ -57,6 +68,13 @@ export function EndOfShiftCard({
   if (hour < EVENING_HOUR) return null;
   if (dismissed) return null;
   if (hiddenForDay) return null;
+
+  // Part 3 — only surface end-of-shift when there's handoff-relevant context:
+  // something was logged today, a handoff note is saved, or unresolved items
+  // remain worth flagging. An evening with no activity at all does not render.
+  const hasHandoffContext =
+    completedCount > 0 || !!hasHandoffNote || (allPendingCount ?? 0) > 0;
+  if (!hasHandoffContext) return null;
 
   // Phase 23.1 Fix 4 — fallback prose softened to match the composer's
   // witness voice ("Today's care is wrapping up. Review before handing
@@ -83,29 +101,42 @@ export function EndOfShiftCard({
       >
         <Text style={s.dismissText}>×</Text>
       </TouchableOpacity>
-      <Text style={s.title}>End of shift</Text>
-      <Text style={s.body}>{body}</Text>
+      {/* Part 3 — the title is the collapse header. Collapsed = this row only. */}
+      <TouchableOpacity
+        onPress={onToggleCollapse}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: !collapsed }}
+        accessibilityLabel={collapsed ? 'Expand end of shift' : 'Collapse end of shift'}
+        style={s.titleRow}
+        testID="eos-header"
+      >
+        <Text style={s.title}>End of shift</Text>
+        <Text style={s.chevron}>{collapsed ? '▸' : '▾'}</Text>
+      </TouchableOpacity>
+      {!collapsed && <Text style={s.body}>{body}</Text>}
       {/* Note-exists indicator (Jul 2 brief item 6) — a lightweight signal
           that a handoff note is ready, only when one has been saved today.
           Copy reuses the EXACT existing §5 handoff eyebrow "For the next
           caregiver" (journal.tsx) + a note glyph; no invented copy. */}
-      {hasHandoffNote ? (
+      {!collapsed && hasHandoffNote ? (
         <Text style={s.noteIndicator} testID="eos-note-indicator">
           {'📝 For the next caregiver'}
         </Text>
       ) : null}
-      <TouchableOpacity
-        style={s.cta}
-        onPress={() => navigate('/(tabs)/journal?scrollTo=handoff')}
-        activeOpacity={0.7}
-        // Phase 2.6.7 — visual padding dropped to make the CTA a ghost
-        // text link; tap area carried by hitSlop to clear HIG 44pt min.
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        accessibilityLabel="View today's journal"
-        accessibilityRole="button"
-      >
-        <Text style={s.ctaText}>View journal →</Text>
-      </TouchableOpacity>
+      {!collapsed && (
+        <TouchableOpacity
+          style={s.cta}
+          onPress={() => navigate('/(tabs)/journal?scrollTo=handoff')}
+          activeOpacity={0.7}
+          // Phase 2.6.7 — visual padding dropped to make the CTA a ghost
+          // text link; tap area carried by hitSlop to clear HIG 44pt min.
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityLabel="View today's journal"
+          accessibilityRole="button"
+        >
+          <Text style={s.ctaText}>View journal →</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -138,6 +169,16 @@ const createStyles = (c: any) => StyleSheet.create({
     color: c.caregiverAccentText,
     fontWeight: '300',
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  chevron: {
+    fontSize: 12,
+    color: c.textSecondary,
+    marginLeft: 8,
+  },
   title: {
     fontSize: 15,
     fontWeight: '600',
@@ -146,7 +187,7 @@ const createStyles = (c: any) => StyleSheet.create({
     // is a soft suggestion, not an accent surface; the cream title
     // reads as content rather than an emphasis layer.
     color: c.textPrimary,
-    marginBottom: 4,
+    // bottom rhythm now lives on titleRow (the collapse header).
   },
   body: {
     fontSize: 13,

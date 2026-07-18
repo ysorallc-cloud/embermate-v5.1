@@ -65,6 +65,10 @@ export interface NowFooterProps {
   /** True when a handoff note is saved for today — forwarded to the End of
    *  Shift card's note-exists indicator (Jul 2 brief item 6). */
   hasHandoffNote?: boolean;
+  /** Part 3 disclosure — the End of Shift card's per-session collapse state,
+   *  owned by the Now tab. */
+  endOfShiftCollapsed?: boolean;
+  onToggleEndOfShift?: () => void;
 }
 
 // ============================================================================
@@ -78,6 +82,8 @@ export function NowFooter({
   hasMissed,
   outcomes,
   hasHandoffNote,
+  endOfShiftCollapsed = false,
+  onToggleEndOfShift,
 }: NowFooterProps) {
   const { colors } = useTheme();
   const s = useMemo(() => createStyles(colors), [colors]);
@@ -119,7 +125,14 @@ export function NowFooter({
         </View>
       )}
 
-      <EndOfShiftCard completedCount={completedCount} outcomes={outcomes} hasHandoffNote={hasHandoffNote} />
+      <EndOfShiftCard
+        completedCount={completedCount}
+        outcomes={outcomes}
+        hasHandoffNote={hasHandoffNote}
+        allPendingCount={allPendingCount}
+        collapsed={endOfShiftCollapsed}
+        onToggleCollapse={onToggleEndOfShift}
+      />
 
       {/* Care Circle teaser — gated off for v1.0 (see CARE_CIRCLE_V7_TEASER_ENABLED) */}
       {CARE_CIRCLE_V7_TEASER_ENABLED && showTeaser && (
