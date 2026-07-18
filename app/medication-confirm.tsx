@@ -137,11 +137,25 @@ export default function MedicationLogScreen() {
   };
 
   const handleAddCustomMedication = () => {
-    if (searchQuery.trim()) {
-      setSelectedMedication(searchQuery.trim());
-      setSearchQuery('');
-      setShowMedDropdown(false);
+    const customName = searchQuery.trim();
+    if (!customName) return;
+    // Piece 2 (Shape 1) — a custom med (not in the common suggestion list) is
+    // NOT created inline as a legacy record anymore (that never became a
+    // scheduled med → never appeared on the schedule). Instead route to the
+    // canonical medication-form so the caregiver sets a real schedule; the form
+    // creates the scheduled config med AND logs this dose (logDose=1). Care-plan
+    // context is passed through so progress still tracks.
+    const formParams: Record<string, string> = {
+      source: 'careplan',
+      prefillName: customName,
+      logDose: '1',
+    };
+    if (dosage.trim()) formParams.prefillDosage = dosage.trim();
+    if (carePlanContext) {
+      formParams.routineId = carePlanContext.routineId;
+      formParams.carePlanItemId = carePlanContext.carePlanItemId;
     }
+    router.push({ pathname: '/medication-form', params: formParams });
   };
 
   const handleSave = async () => {

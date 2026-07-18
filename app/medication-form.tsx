@@ -31,6 +31,7 @@ import {
   getMedications,
   Medication
 } from '../utils/medicationStorage';
+import { createScheduledMedAndLogDose } from '../utils/medDoseLog';
 import {
   getActiveCarePlan,
   createCarePlan,
@@ -238,6 +239,16 @@ export default function MedicationFormScreen() {
   const isCarePlanSource = source === 'careplan';
   const isEditing = !!medId;
 
+  // Piece 2 (Shape 1) — the medication-confirm custom-add flow routes here with
+  // a prefilled name/dosage + logDose=1 (+ care-plan context), so a custom med
+  // becomes a proper scheduled regimen med AND the dose the caregiver was
+  // logging is recorded on save. Inert on every normal add/edit entry.
+  const prefillName = params.prefillName as string | undefined;
+  const prefillDosage = params.prefillDosage as string | undefined;
+  const shouldLogDose = params.logDose === '1' || params.logDose === 'true';
+  const logRoutineId = params.routineId as string | undefined;
+  const logCarePlanItemId = params.carePlanItemId as string | undefined;
+
   const [name, setName] = useState('');
   const [dosage, setDosage] = useState('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot>('morning');
@@ -289,8 +300,12 @@ export default function MedicationFormScreen() {
       // data in the "Add medication" form. Pre-fix, the effect only
       // had the if-branch — no path to clear fields on the edit→add
       // transition. Pinned by medicationFormAddModeAfterEdit32A1.
-      setName('');
-      setDosage('');
+      //
+      // Piece 2 (Shape 1) — when the medication-confirm custom-add flow routes
+      // here it passes prefillName/prefillDosage; seed them instead of clearing
+      // so the caregiver only has to set the schedule. Empty on normal adds.
+      setName(prefillName ?? '');
+      setDosage(prefillDosage ?? '');
       setSelectedTimeSlot('morning');
       setCustomTime('8:00 AM');
       setCustomTimeDisplay('8:00 AM');
@@ -313,7 +328,7 @@ export default function MedicationFormScreen() {
       // (always returns true → always reschedules new meds).
       setLoadedMed(null);
     }
-  }, [medId, isCarePlanSource]);
+  }, [medId, isCarePlanSource, prefillName, prefillDosage]);
 
   const loadMedication = async () => {
     if (!medId) return;
@@ -521,6 +536,26 @@ export default function MedicationFormScreen() {
 
         if (isEditing && medId) {
           await updateMedicationInPlan(DEFAULT_PATIENT_ID, medId, planMedData);
+        } else if (shouldLogDose) {
+          // Piece 2 (Shape 1) — custom med routed from the medication-confirm
+          // log screen. The helper creates the scheduled med (duplicate-guarded)
+          // + a legacy mirror AND records the dose the caregiver was logging.
+          // Runs BEFORE the reschedule block below so the new med is scheduled;
+          // the normal legacy-sync block further down is skipped for this path.
+          const doseLegacyData: Omit<Medication, 'id' | 'createdAt'> = {
+            name: name.trim(),
+            dosage: dosage.trim(),
+            time: customTime,
+            timeSlot: selectedTimeSlot,
+            notes: notes.trim(),
+            daysSupply: parseInt(daysSupply) || 30,
+            active: true,
+            taken: false,
+          };
+          await createScheduledMedAndLogDose(planMedData, doseLegacyData, {
+            routineId: logRoutineId,
+            carePlanItemId: logCarePlanItemId,
+          });
         } else {
           await addMedicationToPlan(DEFAULT_PATIENT_ID, planMedData);
         }
@@ -588,7 +623,9 @@ export default function MedicationFormScreen() {
           } catch (e) {
             // Legacy record may not exist, that's OK
           }
-        } else {
+        } else if (!shouldLogDose) {
+          // logDose path already created the legacy mirror inside
+          // createScheduledMedAndLogDose above — don't create a second one.
           await createMedication(legacyData);
         }
       } else {

@@ -241,14 +241,17 @@ describe('Phase 32A.1 STOP-C bug — add-mode opens blank, never inherits prior 
     // Pull a 1000-char window starting at the useEffect declaration —
     // captures both the if-branch (loadMedication) and the new else /
     // reset path the fix adds.
-    const idx = stripped.search(/useEffect\(\s*\(\s*\)\s*=>\s*\{[\s\S]*?\}\s*,\s*\[\s*medId\s*,\s*isCarePlanSource\s*\]/);
+    // The dep array leads with [medId, isCarePlanSource, …]; Piece 2 appended
+    // prefillName/prefillDosage so the reset re-seeds from prefill params.
+    const idx = stripped.search(/useEffect\(\s*\(\s*\)\s*=>\s*\{[\s\S]*?\}\s*,\s*\[\s*medId\s*,\s*isCarePlanSource\b[^\]]*\]/);
     expect(idx).toBeGreaterThan(-1);
     const window = stripped.slice(idx, idx + 1200);
-    // The reset path must include (at minimum) a setName('') call —
-    // setName('') is the canonical "blank the visible field" cue. Any
-    // function name pattern is accepted as long as setName empty
-    // appears inside the effect's body.
-    expect(window).toMatch(/setName\s*\(\s*['"`]\s*['"`]\s*\)/);
+    // The reset path must blank the visible name field. Piece 2 (Shape 1)
+    // reframed the literal setName('') to setName(prefillName ?? '') so the
+    // medication-confirm custom-add flow can pre-seed the name — but it still
+    // blanks to '' on a normal add (no prefill). Accept both: a setName call
+    // whose argument terminates in an empty string literal.
+    expect(window).toMatch(/setName\s*\([^)]*['"`]\s*['"`]\s*\)/);
   });
 
   // --------------------------------------------------------------------------
