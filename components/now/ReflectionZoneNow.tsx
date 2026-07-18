@@ -56,13 +56,16 @@ function dismissedStorageKey(date: string): string {
 }
 
 export interface ReflectionZoneNowProps {
-  /** Whether all evening medications for today are logged. The user
-   *  spec ties State A's surfacing to this gate. Computed by Now from
-   *  the day's care-plan instances. */
-  eveningMedsComplete: boolean;
+  /** Whether the whole day is DONE — nothing still open (overdue or upcoming).
+   *  Sourced from computeNowFocus(...).dayState === 'done'. The celebratory
+   *  State A surfaces ONLY when the day is genuinely done; an active day gets
+   *  the honest quiet line instead. (Was eveningMedsComplete, which claimed
+   *  completion when only evening meds — or nothing — was pending while the
+   *  rest of the day stayed open.) */
+  dayComplete: boolean;
 }
 
-export function ReflectionZoneNow({ eveningMedsComplete }: ReflectionZoneNowProps) {
+export function ReflectionZoneNow({ dayComplete }: ReflectionZoneNowProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -112,19 +115,19 @@ export function ReflectionZoneNow({ eveningMedsComplete }: ReflectionZoneNowProp
         Take a moment when you're ready.
       </Text>
     );
-  } else if (!eveningMedsComplete) {
-    // State B — quiet fabric line.
+  } else if (!dayComplete) {
+    // State B — day still active. Honest, warm, NEVER claims completion.
     body = (
       <Text style={styles.quietLine} testID="reflection-zone-state-b">
-        Your reflection will appear when the evening is done.
+        A few things still open — no rush, they'll keep.
       </Text>
     );
   } else {
-    // State A — ember card with CTA.
+    // State A — day genuinely done: ember card with the reflection CTA.
     body = (
       <View style={styles.emberCard} testID="reflection-zone-state-a">
         <Text style={styles.emberCopy}>
-          Evening meds done. Two minutes for yourself — how did today actually go?
+          The day's wrapped. Two minutes for yourself — how did today go?
         </Text>
         <View style={styles.emberActions}>
           <TouchableOpacity

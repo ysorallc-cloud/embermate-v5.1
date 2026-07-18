@@ -40,6 +40,7 @@ import { usePatient } from '../../contexts/PatientContext';
 // CarePlan System
 import { useCarePlan } from '../../hooks/useCarePlan';
 import { useCareTasks } from '../../hooks/useCareTasks';
+import { computeNowFocus } from '../../utils/nowFocus';
 import { useAppointments } from '../../hooks/useAppointments';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import { useTodayScope } from '../../hooks/useTodayScope';
@@ -476,6 +477,17 @@ export default function NowScreen() {
   const allPending = useMemo(() => {
     return [...todayTimeline.overdue, ...todayTimeline.upcoming];
   }, [todayTimeline.overdue, todayTimeline.upcoming]);
+
+  // Shared Now-tab state model — the ONE next action, dayState, and open/upcoming
+  // counts. The reflection-honesty gate (dayState) and the schedule re-tone read
+  // from this single source so neither can contradict the schedule.
+  const nowFocus = useMemo(
+    () => computeNowFocus(
+      (instancesState?.date === today ? instancesState?.instances : undefined) ?? [],
+      new Date(),
+    ),
+    [instancesState?.instances, instancesState?.date, today],
+  );
 
   // Structured outcomes for the End of Shift body composer (Phase 3c of the
   // template-driven content automation work). Names default to empty arrays
@@ -1330,12 +1342,11 @@ export default function NowScreen() {
             <>
               <View style={{ height: SECTION_GAP }} />
               <View style={styles.zonePanel}>
-              {(() => {
-                const pendingEveningMeds = allPending.filter(
-                  (i: any) => i.itemType === 'medication' && i.windowLabel === 'evening',
-                );
-                return <ReflectionZoneNow eveningMedsComplete={pendingEveningMeds.length === 0} />;
-              })()}
+              {/* Reflection honesty — gate the celebratory State A on the whole
+                  day being done (nowFocus.dayState), not just evening meds. An
+                  active day gets the honest quiet line; it never claims a
+                  completion that didn't happen. */}
+              <ReflectionZoneNow dayComplete={nowFocus.dayState === 'done'} />
               </View>
             </>
           )}
