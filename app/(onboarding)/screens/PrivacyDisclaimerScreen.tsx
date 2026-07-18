@@ -30,7 +30,7 @@ import {
   ScrollView,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Fonts, Spacing, BorderRadius } from '../../../theme/theme-tokens';
@@ -61,6 +61,7 @@ export const PrivacyDisclaimerScreen: React.FC<Props> = ({
   onContinue,
 }) => {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [accepted, setAccepted] = useState(false);
   // Phase 34 onboarding redesign C2 — Terms helper visibility flag.
@@ -105,8 +106,16 @@ export const PrivacyDisclaimerScreen: React.FC<Props> = ({
   return (
     <View style={styles.container}>
       <StaticAuroraBackground variant="welcome" />
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      {/* Bottom inset is handled by the ScrollView content's dynamic
+          paddingBottom (insets.bottom + gap) rather than the SafeAreaView, so
+          the Continue CTA at the end of the scroll always clears the home
+          indicator instead of relying on a flat 32px that a taller device
+          home-indicator can clip. */}
+      <SafeAreaView style={styles.safe} edges={['top']}>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.emoji}>{'\u{1F512}'}</Text>
         <Text style={styles.title}>
           Your family's health{'\n'}data is safe here.
@@ -210,7 +219,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexGrow: 1,
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingBottom: 32, // allow: C2 spec — 32px safe inset for CTA
+    // paddingBottom is applied inline as insets.bottom + 32 so the CTA clears
+    // the home-indicator safe area on notch devices (the flat 32px here could
+    // be clipped by a taller home indicator).
     paddingTop: Spacing.xl, // allow: layout pass — top breathes via safe area not hardcoded 80px
   },
   emoji: {

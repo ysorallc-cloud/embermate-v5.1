@@ -62,7 +62,10 @@ jest.mock('expo-linear-gradient', () => {
 });
 jest.mock('react-native-safe-area-context', () => {
   const React = require('react');
-  return { SafeAreaView: (props: any) => React.createElement('SafeAreaView', props, props.children) };
+  return {
+    SafeAreaView: (props: any) => React.createElement('SafeAreaView', props, props.children),
+    useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 34, left: 0 }),
+  };
 });
 
 // The in-app browser under test.
