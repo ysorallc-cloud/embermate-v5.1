@@ -81,6 +81,7 @@ import { RoutineSheet } from '../../components/now/RoutineSheet';
 import { NowHeader } from '../../components/now/NowHeader';
 import { NowTimeline } from '../../components/now/NowTimeline';
 import { AddMedicationsPrompt } from '../../components/now/AddMedicationsPrompt';
+import { ScheduleFocus } from '../../components/now/ScheduleFocus';
 import { NowFooter } from '../../components/now/NowFooter';
 import { UpcomingAppointmentCard } from '../../components/now/UpcomingAppointmentCard';
 import { StatRings } from '../../components/now/StatRings';
@@ -280,7 +281,11 @@ export default function NowScreen() {
   // still auto-collapse inside the expanded view (TimelineSection
   // collapsedWindows initializer), so "done items stay compressed"
   // without keeping the whole schedule shut.
-  const [timelineCollapsed, setTimelineCollapsed] = useState(false);
+  // Part 2 re-tone — the default schedule view is the calm ScheduleFocus
+  // (START HERE hero + folded line). scheduleExpanded flips to the full
+  // timeline when the caregiver taps the folded line; the timeline header's
+  // collapse returns to focus.
+  const [scheduleExpanded, setScheduleExpanded] = useState(false);
 
   // Phase 15.6 — `brief` state + setter retired. The Today's Journal
   // preview tile in NowFooter consumed it; the tile has been removed
@@ -1265,32 +1270,51 @@ export default function NowScreen() {
               hairline + modest radius) so the warm page bg reads as a
               gutter between this and the Health zone below. */}
           <View style={styles.zonePanel}>
-          <NowTimeline
-            timelineCollapsed={timelineCollapsed}
-            onToggleCollapse={() => setTimelineCollapsed(prev => !prev)}
-            windowSummary={windowSummary}
-            allPending={allPending}
-            completed={todayTimeline.completed}
-            hasRegimenInstances={!!hasRegimenInstances}
-            hasBucketCarePlan={!!hasBucketCarePlan}
-            hasCarePlan={!!carePlan}
-            selectedCategory={selectedCategory}
-            onClearCategory={handleClearCategory}
-            onItemPress={handleTimelineItemPress}
-            onBatchMedConfirm={handleBatchMedConfirm}
-            onQuickConfirm={handleQuickConfirm}
-            onQuickLog={handleQuickLog}
-            onQuickSkip={handleQuickSkip}
-            onUndoCompleted={handleUndoCompleted}
-            onAddCup={handleAddCup}
-            onWellnessTap={handleWellnessTap}
-            onStartRoutine={setActiveRoutineWindow}
-            todayStats={todayStats}
-            enabledBuckets={enabledBuckets}
-            waterGlasses={waterGlasses}
-            waterGoal={waterGoal}
-            onWaterUpdate={handleWaterUpdate}
-          />
+          {/* ScheduleFocus (the calm START HERE default) applies only when there
+              IS a schedule to focus. With no regimen instances, NowTimeline owns
+              the empty/setup state — "caught up" would be a lie when nothing is
+              set up. Expanding the folded line also routes to NowTimeline. */}
+          {(!hasRegimenInstances || scheduleExpanded) ? (
+            <NowTimeline
+              timelineCollapsed={false}
+              onToggleCollapse={() => setScheduleExpanded(false)}
+              windowSummary={windowSummary}
+              allPending={allPending}
+              completed={todayTimeline.completed}
+              hasRegimenInstances={!!hasRegimenInstances}
+              hasBucketCarePlan={!!hasBucketCarePlan}
+              hasCarePlan={!!carePlan}
+              selectedCategory={selectedCategory}
+              onClearCategory={handleClearCategory}
+              onItemPress={handleTimelineItemPress}
+              onBatchMedConfirm={handleBatchMedConfirm}
+              onQuickConfirm={handleQuickConfirm}
+              onQuickLog={handleQuickLog}
+              onQuickSkip={handleQuickSkip}
+              onUndoCompleted={handleUndoCompleted}
+              onAddCup={handleAddCup}
+              onWellnessTap={handleWellnessTap}
+              onStartRoutine={setActiveRoutineWindow}
+              todayStats={todayStats}
+              enabledBuckets={enabledBuckets}
+              waterGlasses={waterGlasses}
+              waterGoal={waterGoal}
+              onWaterUpdate={handleWaterUpdate}
+            />
+          ) : (
+            // Part 2 default — calm START HERE hero + folded line, reading the
+            // shared nowFocus state. No stacked orange overdue cards here.
+            <ScheduleFocus
+              topAction={nowFocus.topAction}
+              dayState={nowFocus.dayState}
+              openCount={nowFocus.openCount}
+              upcomingCount={nowFocus.upcomingCount}
+              onCompleteTop={handleQuickConfirm}
+              onOpenTop={handleTimelineItemPress}
+              onExpand={() => setScheduleExpanded(true)}
+              onCarePlan={() => navigate('/care-plan')}
+            />
+          )}
           </View>
 
           {/* Empty-meds discoverability — when the caregiver enabled
