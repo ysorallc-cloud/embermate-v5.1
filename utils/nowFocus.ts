@@ -8,11 +8,15 @@
 // the reflection-honesty gate read from this so they can never contradict each
 // other or the schedule.
 //
-// Overdue determination REUSES getCareItemStatus (the app's canonical resolver,
-// grace windows and all) so this matches the timeline's own overdue split.
-// Only status==='pending' items are "open" — 'missed'/'completed'/'skipped' are
-// resolved (this mirrors the Now timeline, where 'missed' lives in the
-// completed bucket, not the pending/overdue split).
+// A day is DONE only when every instance is POSITIVELY resolved — completed or
+// skipped (a deliberate skip counts as done). A 'missed' item is a failure, not
+// a resolution: it keeps the day not-done (so the reflection can't falsely say
+// "wrapped") and is eligible as the START HERE hero. "Open" = anything not
+// positively resolved (pending / missed / partial).
+//
+// Overdue determination REUSES getCareItemStatus (grace windows and all) —
+// which already maps 'missed' → 'overdue' — so a missed item ranks alongside
+// pending-overdue items by the same importance/oldest rules.
 // ============================================================================
 
 import type { DailyCareInstance, CarePlanItemType } from '../types/carePlan';
@@ -23,9 +27,11 @@ export type NowDayState = 'active' | 'done';
 export interface NowFocus {
   /** The ONE item to surface in the START HERE hero. Null when the day is done. */
   topAction: DailyCareInstance | null;
-  /** 'active' when anything is still open (overdue or upcoming); 'done' otherwise. */
+  /** 'active' when anything is unresolved (pending or missed); 'done' only when
+   *  every instance is completed or skipped. */
   dayState: NowDayState;
-  /** Overdue (open-now) pending items. */
+  /** Open-now items — overdue pending AND missed (both are unresolved failures
+   *  to act on). */
   openCount: number;
   /** Upcoming (later-today) pending items. */
   upcomingCount: number;
@@ -63,9 +69,15 @@ export function computeNowFocus(
   instances: DailyCareInstance[],
   now: Date = new Date(),
 ): NowFocus {
-  const pending = instances.filter((i) => i.status === 'pending');
-  const overdue = pending.filter((i) => getCareItemStatus(i, now) === 'overdue');
-  const upcoming = pending.filter((i) => getCareItemStatus(i, now) !== 'overdue');
+  // Unresolved = not positively resolved. Missed counts here (it's a failure,
+  // not a resolution), alongside pending / partial.
+  const unresolved = instances.filter(
+    (i) => i.status !== 'completed' && i.status !== 'skipped',
+  );
+  // getCareItemStatus maps 'missed' → 'overdue', so missed items land in the
+  // overdue set and rank with pending-overdue items by importance/oldest.
+  const overdue = unresolved.filter((i) => getCareItemStatus(i, now) === 'overdue');
+  const upcoming = unresolved.filter((i) => getCareItemStatus(i, now) !== 'overdue');
 
   let topAction: DailyCareInstance | null = null;
   if (overdue.length > 0) {
@@ -80,7 +92,8 @@ export function computeNowFocus(
     topAction = [...upcoming].sort((a, b) => scheduledMs(a) - scheduledMs(b))[0];
   }
 
-  const dayState: NowDayState = pending.length > 0 ? 'active' : 'done';
+  // Done ONLY when nothing is unresolved (every instance completed or skipped).
+  const dayState: NowDayState = unresolved.length > 0 ? 'active' : 'done';
 
   return {
     topAction,

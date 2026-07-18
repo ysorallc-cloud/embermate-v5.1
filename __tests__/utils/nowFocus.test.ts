@@ -81,7 +81,7 @@ describe('computeNowFocus — Now-tab shared state model', () => {
     expect(focus.upcomingCount).toBe(1);
   });
 
-  it('all complete → dayState done, topAction null', () => {
+  it('all positively resolved (completed OR skipped) → dayState done, topAction null', () => {
     const a = inst({ itemType: 'medication', scheduledTime: '2026-07-18T08:00:00', status: 'completed' });
     const b = inst({ itemType: 'vitals', scheduledTime: '2026-07-18T09:00:00', status: 'skipped' });
 
@@ -92,18 +92,48 @@ describe('computeNowFocus — Now-tab shared state model', () => {
     expect(focus.upcomingCount).toBe(0);
   });
 
+  it('all skipped (deliberate skip counts as done) → dayState done', () => {
+    const s1 = inst({ itemType: 'medication', status: 'skipped' });
+    const s2 = inst({ itemType: 'nutrition', status: 'skipped' });
+    expect(computeNowFocus([s1, s2], NOW).dayState).toBe('done');
+  });
+
   it('empty day → done, null', () => {
     const focus = computeNowFocus([], NOW);
     expect(focus.dayState).toBe('done');
     expect(focus.topAction).toBeNull();
   });
 
-  it('missed instances are resolved (not pending) → do not keep the day active', () => {
-    const missed = inst({ itemType: 'medication', scheduledTime: '2026-07-18T08:00:00', status: 'missed' });
+  // Contract CHANGED (was: "missed is resolved → day not active"). A missed item
+  // is a FAILURE, not a resolution — it must keep the day not-done so the
+  // reflection can't falsely say "wrapped" (matches End-of-shift's "not logged").
+  it('a MISSED item keeps the day NOT done and is hero-eligible (missed != resolved)', () => {
+    const missed = inst({ itemType: 'medication', itemName: 'Warfarin', scheduledTime: '2026-07-18T08:00:00', status: 'missed' });
     const done = inst({ itemType: 'vitals', scheduledTime: '2026-07-18T09:00:00', status: 'completed' });
 
     const focus = computeNowFocus([missed, done], NOW);
-    expect(focus.dayState).toBe('done');
-    expect(focus.topAction).toBeNull();
+    expect(focus.dayState).toBe('active');           // was 'done' — the bug
+    expect(focus.topAction?.itemName).toBe('Warfarin'); // missed item is the hero
+    expect(focus.openCount).toBe(1);                  // missed counts as open
+  });
+
+  // REPRO of the reported contradiction: an all-missed day read as "caught up"
+  // while End-of-shift showed "not logged". Must be not-done after the fix.
+  it('REPRO: an all-missed day is NOT done (was done) → reflection cannot say wrapped', () => {
+    const m1 = inst({ itemType: 'medication', itemName: 'Aspirin', windowLabel: 'morning', scheduledTime: '2026-07-18T07:00:00', status: 'missed' });
+    const m2 = inst({ itemType: 'nutrition', itemName: 'Breakfast', windowLabel: 'morning', scheduledTime: '2026-07-18T08:00:00', status: 'missed' });
+
+    const focus = computeNowFocus([m1, m2], NOW);
+    expect(focus.dayState).toBe('active');   // RED before fix (returned 'done')
+    expect(focus.topAction).not.toBeNull();  // a missed item leads the hero
+    expect(focus.openCount).toBe(2);
+  });
+
+  it('topAction ranks across pending AND missed — a missed med beats a pending-overdue meal', () => {
+    const missedMed = inst({ itemType: 'medication', itemName: 'Warfarin', windowLabel: 'evening', scheduledTime: '2026-07-18T18:00:00', status: 'missed' });
+    const overdueMeal = inst({ itemType: 'nutrition', itemName: 'Breakfast', windowLabel: 'morning', scheduledTime: '2026-07-18T08:00:00', status: 'pending' });
+
+    const focus = computeNowFocus([overdueMeal, missedMed], NOW);
+    expect(focus.topAction?.itemName).toBe('Warfarin');
   });
 });
