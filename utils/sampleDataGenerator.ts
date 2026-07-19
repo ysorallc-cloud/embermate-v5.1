@@ -97,7 +97,16 @@ const SAMPLE_DATA_INITIALIZED_KEY = StorageKeys.SAMPLE_DATA_INITIALIZED;
 //       with no carryover instances, ensureDailyInstances creates
 //       pending instances, historical loop logs them, listLogsInRange
 //       reads the new daily buckets, THE READ populates correctly.
-export const SAMPLE_SEED_SHAPE_VERSION = 5;
+//
+// v6 (2026-07-18): the sample-data TRIM (db77de06 — 3 meds / BP+glucose /
+//   coherent morning-done, evening-pending mixed day) shipped WITHOUT bumping
+//   this constant, so example accounts created before the trim stayed at v5 and
+//   still carry the stale pre-trim seed (the "all-missed 87-record" shape). Bump
+//   5 → 6 so those accounts re-migrate → clearSampleData + LOGS_V2/INSTANCES_V2
+//   wipe → initializeSampleData re-runs the trimmed generator (origin:'sample'
+//   tagging intact). The sample-mode gate (sampleSeeded === 'true') keeps this
+//   destructive re-seed off real accounts — verified in sampleSeedShapeV6.test.
+export const SAMPLE_SEED_SHAPE_VERSION = 6;
 
 export interface SampleSeedShapeMigrationResult {
   migrated: boolean;
