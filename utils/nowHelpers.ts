@@ -175,6 +175,23 @@ export function needsCaptureBeforeComplete(itemType: string): boolean {
   return itemType === 'vitals' || itemType === 'wellness';
 }
 
+// Derive the tapped meal's type (a MEAL_TYPES id) from its instance so /log-meal
+// pre-selects THAT meal instead of a clock-based guess (Bug 1). Prefer the meal
+// name (instances are named 'Breakfast' / 'Lunch' / 'Dinner'); fall back to the
+// window label for a renamed meal. Returns undefined when it can't map (e.g. an
+// evening snack) → the caller passes no mealType and log-meal keeps its default.
+// Centralized here (not inlined in the tap handler) so it's unit-testable — same
+// pattern as getRouteForWellnessInstance.
+const MEAL_NAME_TO_TYPE: Record<string, string> = { breakfast: 'breakfast', lunch: 'lunch', dinner: 'dinner' };
+const WINDOW_TO_MEAL_TYPE: Record<string, string> = { morning: 'breakfast', midday: 'lunch', afternoon: 'lunch', evening: 'dinner' };
+export function getMealTypeForInstance(instance: { itemName?: string | null; windowLabel?: string | null }): string | undefined {
+  const name = instance?.itemName?.trim().toLowerCase();
+  if (name && MEAL_NAME_TO_TYPE[name]) return MEAL_NAME_TO_TYPE[name];
+  const win = instance?.windowLabel?.trim().toLowerCase();
+  if (win && WINDOW_TO_MEAL_TYPE[win]) return WINDOW_TO_MEAL_TYPE[win];
+  return undefined;
+}
+
 // Helper to get route for instance item type (from regimen system)
 export function getRouteForInstanceType(itemType: string): string {
   switch (itemType) {

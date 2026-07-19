@@ -64,6 +64,7 @@ import {
   type TimeWindow,
   getRouteForInstanceType,
   getRouteForWellnessInstance,
+  getMealTypeForInstance,
   needsCaptureBeforeComplete,
   groupByTimeWindow,
   getCurrentTimeWindow,
@@ -628,12 +629,17 @@ export default function NowScreen() {
       return;
     }
     const route = getRouteForInstanceType(instance.itemType);
+    // Bug 1 — a meal tap must tell /log-meal WHICH meal, so it pre-selects the
+    // tapped meal instead of a clock-based default (tapping Breakfast pre-checked
+    // Lunch). Only for nutrition; undefined when it can't map → no param, default.
+    const mealType = instance.itemType === 'nutrition' ? getMealTypeForInstance(instance) : undefined;
     navigate({
       pathname: route,
       params: {
         instanceId: instance.id,
         carePlanItemId: instance.carePlanItemId || '',
         itemName: instance.itemName || '',
+        ...(mealType ? { mealType } : {}),
       },
     });
   }, []);
