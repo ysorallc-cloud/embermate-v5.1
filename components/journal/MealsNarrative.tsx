@@ -66,6 +66,7 @@ export function MealsNarrative({ meals, fluidTarget, swallowingIssues, hydration
     const details = completed.map(m => {
       let desc = m.name;
       if (m.appetite) desc += ` (${m.appetite})`;
+      if (m.description) desc += `: ${m.description}`;
       return desc;
     }).join(', ');
     parts.push(
@@ -101,7 +102,7 @@ export function MealsNarrative({ meals, fluidTarget, swallowingIssues, hydration
       text += '.';
       parts.push(
         <Text key={`c-${m.name}`} style={styles.narrative}>
-          <Text style={styles.bold}>{m.name}</Text> logged{m.appetite ? ` (${m.appetite})` : ''}.
+          <Text style={styles.bold}>{m.name}</Text> logged{m.appetite ? ` (${m.appetite})` : ''}{m.description ? ` — ${m.description}` : ''}.
         </Text>
       );
     }

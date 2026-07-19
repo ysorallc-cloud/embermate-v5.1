@@ -272,6 +272,8 @@ export interface MealsDetail {
     name: string;
     status: 'completed' | 'pending' | 'skipped' | 'missed';
     appetite?: string;
+    /** The caregiver's meal note ("ate half the eggs") from the meals log. */
+    description?: string;
     scheduledTime?: string;
   }[];
 }
@@ -388,8 +390,14 @@ export async function buildShiftReport(): Promise<ShiftReport> {
   const meals: MealsDetail = {
     total: mealInstances.length,
     meals: mealInstances.map(inst => {
+      // Join the meals log to this instance. log-meal writes the meal name(s)
+      // into `meals: string[]` (e.g. ['Breakfast']) and NOT `mealType`, so match
+      // on that array first; keep the legacy `mealType` scalar as a fallback for
+      // any other writer. (Pre-fix this only checked mealType → never matched →
+      // appetite AND description were both silently dropped.)
       const matchedMeal = todayMeals.find((m: any) =>
-        m.mealType?.toLowerCase() === inst.itemName.toLowerCase()
+        (Array.isArray(m.meals) && m.meals.some((x: string) => x?.toLowerCase() === inst.itemName.toLowerCase()))
+        || m.mealType?.toLowerCase() === inst.itemName.toLowerCase()
       );
       // SEAM 4 — missed-vs-pending derives from the SHARED helper, not raw
       // persisted status: a pending meal reads 'missed' only once past its
@@ -406,6 +414,7 @@ export async function buildShiftReport(): Promise<ShiftReport> {
         appetite: matchedMeal?.appetite
           ? APPETITE_LABELS[matchedMeal.appetite] ?? matchedMeal.appetite
           : undefined,
+        description: matchedMeal?.description?.trim() || undefined,
         scheduledTime: inst.scheduledTime,
       };
     }),
@@ -767,8 +776,14 @@ export async function buildCareBrief(targetDate?: string): Promise<CareBrief> {
   const meals: MealsDetail = {
     total: mealInstances.length,
     meals: mealInstances.map(inst => {
+      // Join the meals log to this instance. log-meal writes the meal name(s)
+      // into `meals: string[]` (e.g. ['Breakfast']) and NOT `mealType`, so match
+      // on that array first; keep the legacy `mealType` scalar as a fallback for
+      // any other writer. (Pre-fix this only checked mealType → never matched →
+      // appetite AND description were both silently dropped.)
       const matchedMeal = todayMeals.find((m: any) =>
-        m.mealType?.toLowerCase() === inst.itemName.toLowerCase()
+        (Array.isArray(m.meals) && m.meals.some((x: string) => x?.toLowerCase() === inst.itemName.toLowerCase()))
+        || m.mealType?.toLowerCase() === inst.itemName.toLowerCase()
       );
       // SEAM 4 — missed-vs-pending derives from the SHARED helper, not raw
       // persisted status: a pending meal reads 'missed' only once past its
@@ -785,6 +800,7 @@ export async function buildCareBrief(targetDate?: string): Promise<CareBrief> {
         appetite: matchedMeal?.appetite
           ? APPETITE_LABELS[matchedMeal.appetite] ?? matchedMeal.appetite
           : undefined,
+        description: matchedMeal?.description?.trim() || undefined,
         scheduledTime: inst.scheduledTime,
       };
     }),

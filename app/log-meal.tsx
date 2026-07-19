@@ -266,7 +266,10 @@ export default function LogMeal() {
             instanceId,
             'completed',
             { type: 'nutrition', mealType: selectedMeals.join(', ') },
-            { source: 'record' },
+            // Route the meal note into LogEntry.notes so the Journal's
+            // Observations section (which reads LogEntry.notes) surfaces it too —
+            // the meal narrative reads it separately via mealsLog.description.
+            { notes: fullDescription || undefined, source: 'record' },
           );
           emitDataUpdate(EVENT.DAILY_INSTANCES);
         } catch (err) {
