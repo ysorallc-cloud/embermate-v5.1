@@ -73,6 +73,16 @@ describe('MedicationsScreen — onboarding med-step', () => {
     expect(byId(tree.root, 'onboarding-med-dose-10mg')).toBeDefined();
   });
 
+  it('AUTOCOMPLETE via BRAND: typing a brand surfaces the clinical entry + its doses', () => {
+    const tree = render({ patientName: 'Dad', onContinue: jest.fn(), onSkip: jest.fn() });
+    type(tree, 'onboarding-med-name', 'Tylenol');
+    // The brand surfaces the clinical med.
+    expect(byId(tree.root, 'onboarding-med-suggestion-Acetaminophen')).toBeDefined();
+    // Tapping fills the clinical name; its dose chips appear.
+    press(tree, 'onboarding-med-suggestion-Acetaminophen');
+    expect(byId(tree.root, 'onboarding-med-dose-500mg')).toBeDefined();
+  });
+
   it('FREE-TEXT: an unknown med (Eliquis) has no suggestion but still adds', () => {
     const tree = render({ patientName: 'Dad', onContinue: jest.fn(), onSkip: jest.fn() });
     type(tree, 'onboarding-med-name', 'Eliquis');

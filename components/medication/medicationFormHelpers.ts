@@ -28,26 +28,51 @@ export type TimeSlot = 'morning' | 'afternoon' | 'evening' | 'bedtime';
 // CONSTANTS
 // ============================================================================
 
-export const COMMON_MEDICATIONS = [
-  { name: 'Amlodipine', commonDosages: ['2.5mg', '5mg', '10mg'] },
+// Each entry carries optional common BRAND aliases so a caregiver typing a brand
+// ("Tylenol") surfaces the clinical entry ("Acetaminophen"). Brands cover only
+// the meds already in this list — this is a convenience layer, not a drug DB.
+export interface CommonMedication {
+  name: string;
+  commonDosages: string[];
+  brands?: string[];
+}
+
+export const COMMON_MEDICATIONS: CommonMedication[] = [
+  { name: 'Amlodipine', commonDosages: ['2.5mg', '5mg', '10mg'], brands: ['Norvasc'] },
   { name: 'Aspirin', commonDosages: ['81mg', '325mg'] },
-  { name: 'Atorvastatin', commonDosages: ['10mg', '20mg', '40mg', '80mg'] },
-  { name: 'Acetaminophen', commonDosages: ['325mg', '500mg', '650mg'] },
-  { name: 'Clopidogrel', commonDosages: ['75mg'] },
-  { name: 'Furosemide', commonDosages: ['20mg', '40mg', '80mg'] },
-  { name: 'Gabapentin', commonDosages: ['100mg', '300mg', '600mg'] },
-  { name: 'Hydrochlorothiazide', commonDosages: ['12.5mg', '25mg', '50mg'] },
-  { name: 'Ibuprofen', commonDosages: ['200mg', '400mg', '600mg', '800mg'] },
+  { name: 'Atorvastatin', commonDosages: ['10mg', '20mg', '40mg', '80mg'], brands: ['Lipitor'] },
+  { name: 'Acetaminophen', commonDosages: ['325mg', '500mg', '650mg'], brands: ['Tylenol'] },
+  { name: 'Clopidogrel', commonDosages: ['75mg'], brands: ['Plavix'] },
+  { name: 'Furosemide', commonDosages: ['20mg', '40mg', '80mg'], brands: ['Lasix'] },
+  { name: 'Gabapentin', commonDosages: ['100mg', '300mg', '600mg'], brands: ['Neurontin'] },
+  { name: 'Hydrochlorothiazide', commonDosages: ['12.5mg', '25mg', '50mg'], brands: ['Microzide'] },
+  { name: 'Ibuprofen', commonDosages: ['200mg', '400mg', '600mg', '800mg'], brands: ['Advil', 'Motrin'] },
   { name: 'Insulin', commonDosages: ['10 units', '15 units', '20 units'] },
-  { name: 'Levothyroxine', commonDosages: ['25mcg', '50mcg', '75mcg', '100mcg', '125mcg'] },
-  { name: 'Lisinopril', commonDosages: ['5mg', '10mg', '20mg', '40mg'] },
-  { name: 'Losartan', commonDosages: ['25mg', '50mg', '100mg'] },
-  { name: 'Metformin', commonDosages: ['500mg', '850mg', '1000mg'] },
-  { name: 'Metoprolol', commonDosages: ['25mg', '50mg', '100mg'] },
-  { name: 'Omeprazole', commonDosages: ['20mg', '40mg'] },
-  { name: 'Prednisone', commonDosages: ['5mg', '10mg', '20mg', '50mg'] },
-  { name: 'Warfarin', commonDosages: ['1mg', '2mg', '2.5mg', '5mg', '10mg'] },
+  { name: 'Levothyroxine', commonDosages: ['25mcg', '50mcg', '75mcg', '100mcg', '125mcg'], brands: ['Synthroid'] },
+  { name: 'Lisinopril', commonDosages: ['5mg', '10mg', '20mg', '40mg'], brands: ['Zestril', 'Prinivil'] },
+  { name: 'Losartan', commonDosages: ['25mg', '50mg', '100mg'], brands: ['Cozaar'] },
+  { name: 'Metformin', commonDosages: ['500mg', '850mg', '1000mg'], brands: ['Glucophage'] },
+  { name: 'Metoprolol', commonDosages: ['25mg', '50mg', '100mg'], brands: ['Lopressor', 'Toprol'] },
+  { name: 'Omeprazole', commonDosages: ['20mg', '40mg'], brands: ['Prilosec'] },
+  { name: 'Prednisone', commonDosages: ['5mg', '10mg', '20mg', '50mg'], brands: ['Deltasone'] },
+  { name: 'Warfarin', commonDosages: ['1mg', '2mg', '2.5mg', '5mg', '10mg'], brands: ['Coumadin'] },
 ].sort((a, b) => a.name.localeCompare(b.name));
+
+/**
+ * Autocomplete match: query hits the clinical name OR any brand alias
+ * (case-insensitive, substring). Returns the matching clinical entries — so
+ * typing a brand surfaces the clinical med + its dose options. Empty query or
+ * no match → [] (the caller keeps the free-text the caregiver typed).
+ */
+export function matchMedications(query: string): CommonMedication[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return COMMON_MEDICATIONS.filter(
+    (m) =>
+      m.name.toLowerCase().includes(q) ||
+      (m.brands ?? []).some((b) => b.toLowerCase().includes(q)),
+  );
+}
 
 export const TIME_SLOTS: {
   key: TimeSlot;

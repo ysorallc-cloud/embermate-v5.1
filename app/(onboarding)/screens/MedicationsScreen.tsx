@@ -20,7 +20,7 @@ import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Fonts, Spacing } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { ONBOARDING_CTA_GRADIENT } from '../../../constants/onboardingTokens';
-import { COMMON_MEDICATIONS, TIME_SLOTS, type TimeSlot } from '../../../components/medication/medicationFormHelpers';
+import { COMMON_MEDICATIONS, matchMedications, TIME_SLOTS, type TimeSlot } from '../../../components/medication/medicationFormHelpers';
 import type { OnboardingMedEntry } from '../../../utils/onboardingMedsWriter';
 
 export interface MedicationsScreenProps {
@@ -55,14 +55,15 @@ export const MedicationsScreen: React.FC<MedicationsScreenProps> = ({
 
   const name = nameQuery.trim();
 
-  // Autocomplete (convenience only) — name suggestions while typing, hidden once
-  // the query already exactly matches a listed med.
+  // Autocomplete (convenience only) — matches the clinical name OR a brand alias
+  // (Tylenol → Acetaminophen). Hidden once the query already exactly matches a
+  // listed clinical name (they picked it). Free-text always works regardless.
   const nameSuggestions = useMemo(() => {
     const q = name.toLowerCase();
     if (!q) return [];
     const exact = COMMON_MEDICATIONS.some((m) => m.name.toLowerCase() === q);
     if (exact) return [];
-    return COMMON_MEDICATIONS.filter((m) => m.name.toLowerCase().includes(q)).slice(0, 5);
+    return matchMedications(name).slice(0, 5);
   }, [name]);
 
   // Dose chips — the matched med's common doses (still free-text otherwise).
@@ -152,18 +153,27 @@ export const MedicationsScreen: React.FC<MedicationsScreenProps> = ({
             />
             {nameSuggestions.length > 0 && (
               <View style={styles.suggestions}>
-                {nameSuggestions.map((m) => (
-                  <Pressable
-                    key={m.name}
-                    onPress={() => setNameQuery(m.name)}
-                    style={styles.suggestionRow}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Use ${m.name}`}
-                    testID={`onboarding-med-suggestion-${m.name}`}
-                  >
-                    <Text style={styles.suggestionText}>{m.name}</Text>
-                  </Pressable>
-                ))}
+                {nameSuggestions.map((m) => {
+                  // If a BRAND matched (not the clinical name), show it so the
+                  // caregiver recognizes "Acetaminophen · Tylenol".
+                  const q = name.trim().toLowerCase();
+                  const brand = (m.brands ?? []).find((b) => b.toLowerCase().includes(q));
+                  const showBrand = brand && !m.name.toLowerCase().includes(q);
+                  return (
+                    <Pressable
+                      key={m.name}
+                      onPress={() => setNameQuery(m.name)}
+                      style={styles.suggestionRow}
+                      accessibilityRole="button"
+                      accessibilityLabel={showBrand ? `Use ${m.name} (${brand})` : `Use ${m.name}`}
+                      testID={`onboarding-med-suggestion-${m.name}`}
+                    >
+                      <Text style={styles.suggestionText}>
+                        {showBrand ? `${m.name} · ${brand}` : m.name}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </View>
             )}
           </View>
