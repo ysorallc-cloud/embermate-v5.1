@@ -107,9 +107,10 @@ describe('MedicationsScreen — onboarding med-step', () => {
 
     expect(onContinue).toHaveBeenCalledTimes(1);
     const meds = onContinue.mock.calls[0][0];
+    // Aliased meds are stored with BOTH names (clinical + brand).
     expect(meds).toEqual([
-      { name: 'Lisinopril', dose: '10mg', timeSlot: 'morning' },
-      { name: 'Warfarin', dose: '', timeSlot: 'evening' },
+      { name: 'Lisinopril (Zestril)', dose: '10mg', timeSlot: 'morning' },
+      { name: 'Warfarin (Coumadin)', dose: '', timeSlot: 'evening' },
     ]);
   });
 
@@ -119,7 +120,19 @@ describe('MedicationsScreen — onboarding med-step', () => {
     type(tree, 'onboarding-med-name', 'Metformin');
     type(tree, 'onboarding-med-dose', '500mg');
     press(tree, 'onboarding-med-continue');
-    expect(onContinue.mock.calls[0][0]).toEqual([{ name: 'Metformin', dose: '500mg', timeSlot: 'morning' }]);
+    expect(onContinue.mock.calls[0][0]).toEqual([{ name: 'Metformin (Glucophage)', dose: '500mg', timeSlot: 'morning' }]);
+  });
+
+  it('typing a BRAND stores BOTH names so it reads consistently everywhere', () => {
+    const onContinue = jest.fn();
+    const tree = render({ patientName: 'Dad', onContinue, onSkip: jest.fn() });
+    type(tree, 'onboarding-med-name', 'Tylenol'); // typed as a brand
+    press(tree, 'onboarding-med-add');
+    // The added-list row shows the combined name...
+    expect(byId(tree.root, 'onboarding-med-added-Acetaminophen (Tylenol)')).toBeDefined();
+    // ...and that's what's handed up to be written.
+    press(tree, 'onboarding-med-continue');
+    expect(onContinue.mock.calls[0][0]).toEqual([{ name: 'Acetaminophen (Tylenol)', dose: '', timeSlot: 'morning' }]);
   });
 
   it('Skip hands up nothing', () => {

@@ -20,7 +20,7 @@ import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Fonts, Spacing } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { ONBOARDING_CTA_GRADIENT } from '../../../constants/onboardingTokens';
-import { COMMON_MEDICATIONS, matchMedications, TIME_SLOTS, type TimeSlot } from '../../../components/medication/medicationFormHelpers';
+import { COMMON_MEDICATIONS, matchMedications, resolveMedDisplayName, TIME_SLOTS, type TimeSlot } from '../../../components/medication/medicationFormHelpers';
 import type { OnboardingMedEntry } from '../../../utils/onboardingMedsWriter';
 
 export interface MedicationsScreenProps {
@@ -67,8 +67,11 @@ export const MedicationsScreen: React.FC<MedicationsScreenProps> = ({
   }, [name]);
 
   // Dose chips — the matched med's common doses (still free-text otherwise).
+  // Strip a trailing "(Brand)" so a combined name ("Acetaminophen (Tylenol)")
+  // still matches its clinical entry for the dose options.
   const doseChips = useMemo(() => {
-    const matched = COMMON_MEDICATIONS.find((m) => m.name.toLowerCase() === name.toLowerCase());
+    const clinical = name.replace(/\s*\(.*\)\s*$/, '').trim().toLowerCase();
+    const matched = COMMON_MEDICATIONS.find((m) => m.name.toLowerCase() === clinical);
     return matched?.commonDosages ?? [];
   }, [name]);
 
@@ -80,7 +83,9 @@ export const MedicationsScreen: React.FC<MedicationsScreenProps> = ({
 
   const handleAdd = useCallback(() => {
     if (!name) return;
-    setMeds((prev) => [...prev, { name, dose: dose.trim(), timeSlot }]);
+    // Store BOTH names for aliased meds ("Acetaminophen (Tylenol)") so the med
+    // reads consistently on every surface, not just the suggestion.
+    setMeds((prev) => [...prev, { name: resolveMedDisplayName(name), dose: dose.trim(), timeSlot }]);
     resetEntry();
     // Drop the keyboard so the just-added list + the Continue CTA are visible
     // (otherwise the keyboard hides the bottom of the scroll right after adding).
@@ -93,7 +98,9 @@ export const MedicationsScreen: React.FC<MedicationsScreenProps> = ({
 
   const handleContinue = useCallback(() => {
     // Fold in a typed-but-not-yet-added entry so it isn't silently lost.
-    const pending: OnboardingMedEntry[] = name ? [{ name, dose: dose.trim(), timeSlot }] : [];
+    const pending: OnboardingMedEntry[] = name
+      ? [{ name: resolveMedDisplayName(name), dose: dose.trim(), timeSlot }]
+      : [];
     onContinue?.([...meds, ...pending]);
   }, [meds, name, dose, timeSlot, onContinue]);
 
@@ -162,7 +169,7 @@ export const MedicationsScreen: React.FC<MedicationsScreenProps> = ({
                   return (
                     <Pressable
                       key={m.name}
-                      onPress={() => setNameQuery(m.name)}
+                      onPress={() => setNameQuery(resolveMedDisplayName(m.name))}
                       style={styles.suggestionRow}
                       accessibilityRole="button"
                       accessibilityLabel={showBrand ? `Use ${m.name} (${brand})` : `Use ${m.name}`}

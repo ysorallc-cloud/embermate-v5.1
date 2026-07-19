@@ -74,6 +74,30 @@ export function matchMedications(query: string): CommonMedication[] {
   );
 }
 
+/**
+ * The canonical DISPLAY name for a med, storing BOTH names so it reads
+ * consistently everywhere (schedule, timeline, handoff, report) — not just in
+ * the autocomplete suggestion. If the entered name exactly matches a listed med
+ * (by clinical name OR brand) that has a brand alias, returns "Clinical (Brand)"
+ * (clinical for accuracy, brand for recognition). Unlisted / brand-less / already
+ * combined names are returned unchanged. Callers resolve the entered name to
+ * this before storing, so downstream surfaces just render the stored name.
+ */
+export function resolveMedDisplayName(name: string): string {
+  const q = name.trim();
+  if (!q) return q;
+  const lower = q.toLowerCase();
+  const entry = COMMON_MEDICATIONS.find(
+    (m) =>
+      m.name.toLowerCase() === lower ||
+      (m.brands ?? []).some((b) => b.toLowerCase() === lower),
+  );
+  if (entry && entry.brands && entry.brands.length > 0) {
+    return `${entry.name} (${entry.brands[0]})`;
+  }
+  return q;
+}
+
 export const TIME_SLOTS: {
   key: TimeSlot;
   label: string;
