@@ -32,6 +32,7 @@ import {
 } from '../../storage/caregiverProfileRepo';
 import { logError } from '../../utils/devLog';
 import { hapticSuccess } from '../../utils/hapticFeedback';
+import { navigateBack } from '../../lib/navigate';
 
 export default function ProfileScreen() {
   const { colors } = useTheme();
@@ -83,7 +84,12 @@ export default function ProfileScreen() {
         });
       }
       void hapticSuccess();
-      Alert.alert('Saved', 'Profile updated.');
+      // Fix C — auto-return to the previous screen on success instead of leaving
+      // the caregiver to hit Back. The write emits EVENT.PATIENT, so the
+      // ProfileNamePrompt nudge auto-hides on the screen they land back on — that
+      // (plus the haptic) is the confirmation; a blocking "Saved" modal would just
+      // add the very friction this fixes.
+      navigateBack();
     } catch (err) {
       logError('SettingsProfile.save', err);
       Alert.alert('Error', 'Could not save profile.');
