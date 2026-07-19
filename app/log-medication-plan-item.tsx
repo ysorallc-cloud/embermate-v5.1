@@ -170,8 +170,15 @@ export default function LogMedicationPlanItemScreen() {
         await completeInstance(
           instanceId,
           'taken',
+          // Canonical MedicationLogData shape (types/carePlan.ts) — the `type`
+          // discriminant + `sideEffects: string[]` are exactly what
+          // careSummaryBuilder reads (medData.type === 'medication' →
+          // medData.sideEffects). The prior { sideEffect: "a, b" } (singular,
+          // string, no type) failed that guard, so entered symptoms never
+          // reached the Journal/handoff.
           {
-            sideEffect: sideEffects.length > 0 ? sideEffects.join(', ') : undefined,
+            type: 'medication',
+            sideEffects: sideEffects.length > 0 ? sideEffects : undefined,
           },
           notes.trim() || undefined,
         );
