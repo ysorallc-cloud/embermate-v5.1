@@ -316,3 +316,34 @@ describe('Phase 9.4 — silent-vitals instance completion (contract 13)', () => 
     expect(mockUpsertDailyReflection).toHaveBeenCalled();
   });
 });
+
+// BUG 2 — a value-bearing capture screen must complete the instance ONLY on a
+// real save-with-data. Backing out (opening it, then leaving without saving)
+// must leave the wellness item PENDING — never blind-completed.
+describe('Bug 2 — silent-vitals completes only on save-with-data (back-out stays pending)', () => {
+  it('mounting + backing out WITHOUT entering any value → NO completion (stays pending)', async () => {
+    mockUseLocalSearchParams.mockReturnValue({ instanceId: 'abc-123' });
+    const tree = await renderScreen();
+    // No slider filled → the CTA is disabled; the caregiver just leaves.
+    const cta = findAll(tree.root, (n) => n.props?.testID === 'log-screen-primary-cta')[0];
+    expect(cta.props.disabled).toBe(true);
+    // Even if onPress fires with nothing entered, the save handler must no-op.
+    await act(async () => { cta.props.onPress?.(); });
+    await act(async () => {});
+    expect(mockLogInstanceCompletion).not.toHaveBeenCalled();
+    // And no reflection is written either — nothing was captured.
+    expect(mockUpsertDailyReflection).not.toHaveBeenCalled();
+  });
+
+  it('entering a value then saving → completion fires (the honest path)', async () => {
+    mockUseLocalSearchParams.mockReturnValue({ instanceId: 'abc-123' });
+    const tree = await renderScreen();
+    const sleep4 = findAll(tree.root, (n) => n.props?.testID === 'silent-vitals-sleep-4')[0];
+    await act(async () => { sleep4.props.onPress(); });
+    const cta = findAll(tree.root, (n) => n.props?.testID === 'log-screen-primary-cta')[0];
+    await act(async () => { cta.props.onPress(); });
+    await act(async () => {});
+    expect(mockLogInstanceCompletion).toHaveBeenCalled();
+    expect(mockLogInstanceCompletion.mock.calls[0][3]).toBe('completed');
+  });
+});

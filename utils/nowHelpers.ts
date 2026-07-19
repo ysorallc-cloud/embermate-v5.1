@@ -161,6 +161,20 @@ export function parseTimeForDisplay(scheduledTime: string): string | null {
   return formatted === 'Time not set' ? null : formatted;
 }
 
+// A one-tap "done" completes BINARY items honestly — a med is taken/not-taken. But
+// a VALUE-BEARING item must NOT be blind-completed: marking it done without
+// capturing its data records false/empty content (an integrity bug):
+//   • vitals   — carries a reading (BP / HR / etc.)
+//   • wellness — captures sleep / mood / energy
+// These must instead OPEN their capture screen; completion may fire ONLY on a real
+// save-with-data. This predicate is the SINGLE source of that distinction, used by
+// EVERY blind-complete path: quick-confirm (START HERE + timeline check-circle) AND
+// the RoutineSheet "Complete all" batch. Any new complete-in-place affordance must
+// consult it too.
+export function needsCaptureBeforeComplete(itemType: string): boolean {
+  return itemType === 'vitals' || itemType === 'wellness';
+}
+
 // Helper to get route for instance item type (from regimen system)
 export function getRouteForInstanceType(itemType: string): string {
   switch (itemType) {

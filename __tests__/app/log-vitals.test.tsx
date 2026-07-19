@@ -79,8 +79,9 @@ jest.mock('react-native-safe-area-context', () => ({
     require('react').createElement('SafeAreaView', { style }, children),
 }));
 
+let mockVitalsParams: any = {};
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({}),
+  useLocalSearchParams: () => mockVitalsParams,
   useRouter: () => ({ back: jest.fn(), push: jest.fn(), replace: jest.fn(), canGoBack: () => true }),
   usePathname: () => '/log-vitals',
 }));
@@ -92,9 +93,10 @@ jest.mock('../../lib/navigate', () => ({
 }));
 
 const mockListDailyInstances: jest.Mock = jest.fn(async () => [] as any[]);
+const mockLogInstanceCompletion: jest.Mock = jest.fn(async () => null);
 jest.mock('../../storage/carePlanRepo', () => ({
   listDailyInstances: (...args: any[]) => (mockListDailyInstances as any).apply(null, args),
-  logInstanceCompletion: jest.fn(async () => null),
+  logInstanceCompletion: (...args: any[]) => (mockLogInstanceCompletion as any).apply(null, args),
   DEFAULT_PATIENT_ID: 'default',
 }));
 
@@ -379,6 +381,38 @@ describe('Phase 9.2 — log-vitals primary CTA', () => {
       (n) => n.props?.testID === 'log-screen-primary-cta-text',
     )[0];
     expect(ctaText.props.children).toMatch(/Save reading/i);
+  });
+});
+
+// BUG 2 — a value-bearing capture screen must complete the instance ONLY on a
+// real save-with-data. Fix B routes vitals here, so backing out WITHOUT entering
+// a reading must leave the vitals item PENDING — never blind-completed.
+describe('Bug 2 — log-vitals completes only on save-with-data (back-out stays pending)', () => {
+  beforeEach(() => { mockLogInstanceCompletion.mockClear(); });
+  afterEach(() => { mockVitalsParams = {}; });
+
+  it('mounting + backing out WITHOUT entering a reading → NO completion (stays pending)', async () => {
+    mockVitalsParams = { instanceId: 'v-abc' };
+    const tree = await renderScreen();
+    const cta = findAll(tree.root, (n) => n.props?.testID === 'log-screen-primary-cta')[0];
+    expect(cta.props.disabled).toBe(true); // no field filled
+    await act(async () => { cta.props.onPress?.(); }); // even if fired, save must no-op
+    await act(async () => {});
+    expect(mockLogInstanceCompletion).not.toHaveBeenCalled();
+  });
+
+  it('entering a reading then saving → completion fires with "completed"', async () => {
+    mockVitalsParams = { instanceId: 'v-abc' };
+    const tree = await renderScreen();
+    const systolic = findAll(tree.root, (n) => n.props?.testID === 'log-vitals-input-systolic')[0];
+    const diastolic = findAll(tree.root, (n) => n.props?.testID === 'log-vitals-input-diastolic')[0];
+    await act(async () => { systolic.props.onChangeText('120'); });
+    await act(async () => { diastolic.props.onChangeText('80'); });
+    const cta = findAll(tree.root, (n) => n.props?.testID === 'log-screen-primary-cta')[0];
+    await act(async () => { cta.props.onPress(); });
+    await act(async () => {});
+    expect(mockLogInstanceCompletion).toHaveBeenCalled();
+    expect(mockLogInstanceCompletion.mock.calls[0][3]).toBe('completed');
   });
 });
 

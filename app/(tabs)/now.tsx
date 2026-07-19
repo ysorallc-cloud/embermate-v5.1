@@ -64,6 +64,7 @@ import {
   type TimeWindow,
   getRouteForInstanceType,
   getRouteForWellnessInstance,
+  needsCaptureBeforeComplete,
   groupByTimeWindow,
   getCurrentTimeWindow,
   TIME_WINDOW_HOURS,
@@ -656,7 +657,15 @@ export default function NowScreen() {
   // Phase 2B — batch-complete every pending item in a routine window
   const handleBatchWindowComplete = useCallback(async (instanceIds: string[]) => {
     try {
+      // Same integrity rule as quick-confirm — a value-bearing item (vitals /
+      // wellness) must NEVER be blind-completed by a batch "Complete all"; it
+      // carries data that only its capture screen can record. RoutineSheet
+      // already excludes them from the batch ids, but this guard is the safety
+      // net so no future caller can re-open the trap.
+      const byId = new Map((instancesState?.instances ?? []).map((i) => [i.id, i]));
       for (const id of instanceIds) {
+        const inst = byId.get(id);
+        if (inst && needsCaptureBeforeComplete(inst.itemType)) continue;
         await completeInstance(id, 'taken');
       }
       emitDataUpdate(EVENT.DAILY_INSTANCES);
@@ -664,7 +673,7 @@ export default function NowScreen() {
     } catch (err) {
       logError('handleBatchWindowComplete', err);
     }
-  }, [completeInstance]);
+  }, [completeInstance, instancesState?.instances]);
 
   // Phase 1C — inline one-tap confirm for routine items.
   // Completes a medication (or other quick-confirmable item) without
@@ -691,6 +700,15 @@ export default function NowScreen() {
   }, []);
 
   const handleQuickConfirm = useCallback(async (instance: any) => {
+    // FIX B — a value-bearing item (vitals reading; wellness sleep/mood/energy)
+    // must NOT be blind-completed by quick-confirm (START HERE card + timeline
+    // check-circle) — that records empty/false data. Route to its capture screen
+    // instead (same destination the timeline row uses; completion fires only on a
+    // real save there). Binary items (meds/meals/etc.) still complete in place.
+    if (needsCaptureBeforeComplete(instance.itemType)) {
+      handleTimelineItemPress(instance);
+      return;
+    }
     try {
       const confirmedAt = new Date().toISOString();
       if (instance.itemType === 'medication') {
@@ -737,7 +755,7 @@ export default function NowScreen() {
       logError('handleQuickConfirm', err);
       Alert.alert('Error', 'Could not confirm. Try again.');
     }
-  }, [completeInstance, today, dismissLogToast]);
+  }, [completeInstance, today, dismissLogToast, handleTimelineItemPress]);
 
   // Phase 35 Slice 3-D commit 3 — long-press done-row → immediate undo.
   // The done-row's short-tap is reserved for the View Note affordance

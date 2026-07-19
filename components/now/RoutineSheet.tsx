@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
-import { parseTimeForDisplay, type TimeWindow } from '../../utils/nowHelpers';
+import { parseTimeForDisplay, needsCaptureBeforeComplete, type TimeWindow } from '../../utils/nowHelpers';
 
 const TIME_WINDOW_LABELS: Record<TimeWindow, string> = {
   morning: 'Morning',
@@ -60,6 +60,11 @@ export function RoutineSheet({
   const doneItems = items.filter(i =>
     i.status === 'completed' || i.status === 'skipped' || i.status === 'missed'
   );
+  // "Complete all" is a one-tap done — so it may only batch BINARY items. A
+  // value-bearing item (vitals reading, wellness sleep/mood/energy) can't be
+  // completed without its data, so it's excluded from the batch and must be
+  // tapped individually (→ its capture screen). Same predicate as quick-confirm.
+  const batchableItems = pendingItems.filter(i => !needsCaptureBeforeComplete(i.itemType));
 
   const handleItemPress = useCallback((instance: any) => {
     onDismiss();
@@ -103,20 +108,21 @@ export function RoutineSheet({
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Phase 2A — batch complete the entire window */}
-          {pendingItems.length > 1 && onBatchComplete && (
+          {/* Phase 2A — batch complete the BINARY items in this window (value-
+              bearing items are excluded — they need their capture screen). */}
+          {batchableItems.length > 1 && onBatchComplete && (
             <TouchableOpacity
               style={styles.batchButton}
               onPress={async () => {
-                const ids = pendingItems.map(i => i.id);
+                const ids = batchableItems.map(i => i.id);
                 await onBatchComplete(ids);
                 onDismiss();
               }}
-              accessibilityLabel={`Complete all ${pendingItems.length} items`}
+              accessibilityLabel={`Complete all ${batchableItems.length} items`}
               accessibilityRole="button"
             >
               <Text style={styles.batchButtonText}>
-                Complete all {pendingItems.length} items
+                Complete all {batchableItems.length} items
               </Text>
               <Text style={styles.batchButtonHint}>
                 You can undo individual items after
