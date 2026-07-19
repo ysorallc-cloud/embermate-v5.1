@@ -41,6 +41,8 @@ import { usePatient } from '../../contexts/PatientContext';
 import { useCarePlan } from '../../hooks/useCarePlan';
 import { useCareTasks } from '../../hooks/useCareTasks';
 import { computeNowFocus } from '../../utils/nowFocus';
+import { getStartingTomorrow } from '../../utils/startingTomorrow';
+import { StartingTomorrowPreview } from '../../components/now/StartingTomorrowPreview';
 import { useAppointments } from '../../hooks/useAppointments';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import { useTodayScope } from '../../hooks/useTodayScope';
@@ -498,6 +500,21 @@ export default function NowScreen() {
       new Date(),
     ),
     [instancesState?.instances, instancesState?.date, today],
+  );
+
+  // Born-past refinement — a MED or VITALS item the caregiver added AFTER its
+  // time today gets no instance today (the generator skips the passed slot so it
+  // never reads overdue/missed). Surface it as a neutral "first dose/reading
+  // tomorrow" line so it confirms it saved instead of vanishing. Derived at the
+  // read layer (no phantom instance), so it never touches dayState / the START
+  // HERE pointer. (Wellness/meals render-anyway → never previewed here.)
+  const startingTomorrow = useMemo(
+    () => getStartingTomorrow(
+      carePlanConfig,
+      (instancesState?.date === today ? instancesState?.instances : undefined) ?? [],
+      new Date(),
+    ),
+    [carePlanConfig, instancesState?.instances, instancesState?.date, today],
   );
 
   // Structured outcomes for the End of Shift body composer (Phase 3c of the

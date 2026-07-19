@@ -232,7 +232,12 @@ function createCarePlanItemFromConfigMed(
     },
     notification: buildMedicationNotificationConfig(configMed),
     emoji: '💊',
-    createdAt: now,
+    // Inherit the med's real ADD time (config med createdAt) rather than stamping
+    // "now" — the born-overdue guard below reads item.createdAt to tell a
+    // just-added med from an existing one. Sample meds are backdated, so they
+    // keep generating today; a med added mid-day this afternoon does not become a
+    // born-overdue morning dose.
+    createdAt: configMed.createdAt || now,
     updatedAt: now,
   };
 }
@@ -1319,6 +1324,32 @@ async function _ensureDailyInstancesCore(
       } else {
         // Create new instance
         const scheduledTime = computeScheduledTime(timeWindow, date);
+        // Born-overdue guard (MEDS + VITALS, today only): don't create a TODAY
+        // instance for a scheduled time that had already passed when the item was
+        // ADDED. A med added this afternoon didn't "miss" its 8am dose — it didn't
+        // exist yet; likewise a vitals check whose time passed at account setup
+        // wasn't missed. Its schedule starts at the next occurrence (surfaced on
+        // Now as a neutral "first dose/reading tomorrow" line via
+        // getStartingTomorrow).
+        //
+        // BUCKET RULES DIFFER DELIBERATELY:
+        //   • meds + vitals → SKIP-AND-PREVIEW (this guard). Both carry a discrete
+        //     value/action; a born-past one reads falsely overdue in START HERE.
+        //   • wellness → RENDER-ANYWAY (NOT guarded). Onboarding wellness created
+        //     midday must still show today's earlier windows
+        //     (onboardingWellnessTimesGuardF5_3); skipping dropped the morning
+        //     window. Meals likewise keep render-anyway.
+        // Scoped to today (date === today) so historical/sample backfill on past
+        // dates is untouched; item.createdAt is the real add-time (inherited from
+        // the config med for meds), so backdated sample items still generate.
+        const isToday = date === getTodayDateString();
+        if ((item.type === 'medication' || item.type === 'vitals') && isToday && item.createdAt) {
+          const createdMs = new Date(item.createdAt).getTime();
+          const scheduledMs = new Date(scheduledTime).getTime();
+          if (!Number.isNaN(createdMs) && !Number.isNaN(scheduledMs) && createdMs > scheduledMs) {
+            continue; // skip this born-past slot for a just-added item
+          }
+        }
         const instance = createInstance(item, carePlan, timeWindow, date, scheduledTime);
         newInstances.push(instance);
       }
