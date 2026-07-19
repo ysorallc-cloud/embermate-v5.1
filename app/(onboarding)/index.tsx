@@ -41,6 +41,7 @@ import { WelcomeScreen } from './screens/WelcomeScreen';
 import { PrivacyDisclaimerScreen } from './screens/PrivacyDisclaimerScreen';
 import { NameScreen } from './screens/NameScreen';
 import { WatchingForScreen } from './screens/WatchingForScreen';
+import { MedicationsScreen } from './screens/MedicationsScreen';
 import { LandingScreen } from './screens/LandingScreen';
 
 import { PaginationDots } from './components/PaginationDots';
@@ -55,6 +56,7 @@ import {
   CareRelationship,
 } from '../../utils/onboardingToPlan';
 import { saveCarePlanConfig } from '../../storage/carePlanConfigRepo';
+import { writeOnboardingMedications, type OnboardingMedEntry } from '../../utils/onboardingMedsWriter';
 import { writePatientName } from '../../utils/patientNameWriter';
 import { updatePatient } from '../../storage/patientRegistry';
 import { DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
@@ -89,7 +91,8 @@ const ONBOARDING_SCREENS = [
   { id: '2', title: 'Privacy' },
   { id: '3', title: 'Name' },        // name + "who are they to you?" (relationship)
   { id: '4', title: 'WatchingFor' }, // Q2 — what are you keeping an eye on?
-  { id: '5', title: 'Landing' },
+  { id: '5', title: 'Medications' }, // enrichment Piece 2 — real meds → real schedule
+  { id: '6', title: 'Landing' },
 ];
 
 export default function OnboardingFlow() {
@@ -113,6 +116,10 @@ export default function OnboardingFlow() {
   // unset relationship leaves registry.relationship undefined (never 'self').
   const [relationship, setRelationship] = useState<CareRelationship | undefined>(undefined);
   const [careAreas, setCareAreas] = useState<CareArea[]>([]);
+  // Enrichment Piece 2 — meds entered in the onboarding med-step. Written into
+  // config.meds.medications at completion via the canonical addMedicationToPlan
+  // path. Empty when the caregiver skips the step.
+  const [medications, setMedications] = useState<OnboardingMedEntry[]>([]);
   // Phase 16.3 — careMode hardcoded to 'caregiver' (primary EmberMate
   // use case). Retained as a literal for the generateCarePlanFromOnboarding
   // answers shape below.
@@ -183,6 +190,15 @@ export default function OnboardingFlow() {
         };
         const carePlanConfig = generateCarePlanFromOnboarding(answers);
         await saveCarePlanConfig(carePlanConfig);
+
+        // Enrichment Piece 2 — write the meds entered in the onboarding
+        // med-step via the canonical addMedicationToPlan path, so they
+        // generate real daily instances identically to a Care Plan add. Runs
+        // AFTER the config is saved (the writer appends to config.meds and
+        // auto-enables the bucket). Skipping leaves `medications` empty → no
+        // writes; the Now tab's add-medications affordance catches the
+        // caregiver later.
+        await writeOnboardingMedications(medications);
       } catch (cpError) {
         logError('OnboardingFlow.generateCarePlan', cpError);
         // Non-blocking — app works without initial care plan; user
@@ -276,6 +292,23 @@ export default function OnboardingFlow() {
         />
       );
     } else if (index === 4) {
+      // Enrichment Piece 2 — collect a few real meds so the account arrives
+      // with a real schedule. Both Continue (with entered meds) and Skip (none)
+      // advance; the write happens in completeOnboarding.
+      screen = (
+        <MedicationsScreen
+          patientName={patientName}
+          onContinue={(meds) => {
+            setMedications(meds);
+            advanceToNext();
+          }}
+          onSkip={() => {
+            setMedications([]);
+            advanceToNext();
+          }}
+        />
+      );
+    } else if (index === 5) {
       screen = (
         <LandingScreen
           patientName={patientName}
@@ -348,7 +381,7 @@ export default function OnboardingFlow() {
           intentionally has no back button. pointerEvents="box-none"
           on the SafeAreaView lets the back button receive taps while
           letting everything else pass through to the slides below. */}
-      {currentIndex >= 1 && currentIndex <= 3 && (
+      {currentIndex >= 1 && currentIndex <= 4 && (
         <SafeAreaView
           style={styles.backOverlay}
           edges={['top']}

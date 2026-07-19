@@ -94,12 +94,12 @@ describe('Onboarding redesign C4 — Landing screen', () => {
 });
 
 describe('Onboarding redesign C4 — orchestrator restructure', () => {
-  it('contract 7 (FIVE-SCREEN FLOW): ONBOARDING_SCREENS is Welcome / Privacy / Name / WatchingFor / Landing (onboarding-personalize added Q2)', () => {
+  it('contract 7 (SIX-SCREEN FLOW): ONBOARDING_SCREENS is Welcome / Privacy / Name / WatchingFor / Medications / Landing (enrichment Piece 2 added the med-step)', () => {
     const titles: string[] = [];
     const re = /title:\s*['"]([^'"]+)['"]/g;
     let m: RegExpExecArray | null;
     while ((m = re.exec(ORCH))) titles.push(m[1]);
-    expect(titles).toEqual(['Welcome', 'Privacy', 'Name', 'WatchingFor', 'Landing']);
+    expect(titles).toEqual(['Welcome', 'Privacy', 'Name', 'WatchingFor', 'Medications', 'Landing']);
   });
 
   it('contract 8 (CUT IMPORTS): AsYouUseScreen + GetStartedScreen + MeetSampleScreen no longer imported; NameScreen + LandingScreen are', () => {

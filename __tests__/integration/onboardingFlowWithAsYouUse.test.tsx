@@ -32,16 +32,17 @@ describe('Onboarding redesign C4 — AsYouUseScreen retired from main flow', () 
     expect(onboardingSrc).not.toMatch(/<AsYouUseScreen/);
   });
 
-  it('declares the 5-screen flow (Welcome → Privacy → Name → WatchingFor → Landing)', () => {
+  it('declares the 6-screen flow (Welcome → Privacy → Name → WatchingFor → Medications → Landing)', () => {
     const block = onboardingSrc.match(/ONBOARDING_SCREENS\s*=\s*\[([\s\S]*?)\]/);
     expect(block).not.toBeNull();
     expect(block![1]).toContain("'Welcome'");
     expect(block![1]).toContain("'Privacy'");
     expect(block![1]).toContain("'Name'");
     expect(block![1]).toContain("'WatchingFor'"); // onboarding-personalize Q2
+    expect(block![1]).toContain("'Medications'"); // enrichment Piece 2 — med-step
     expect(block![1]).toContain("'Landing'");
     expect(block![1]).not.toContain("'As You Use'");
     const idMatches = block![1].match(/id:\s*['"`]\d+['"`]/g) ?? [];
-    expect(idMatches.length).toBe(5);
+    expect(idMatches.length).toBe(6);
   });
 });
