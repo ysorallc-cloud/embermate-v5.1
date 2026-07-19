@@ -1,41 +1,31 @@
 // ============================================================================
-// ScheduleFocus — the calm, re-toned default view of TODAY'S SCHEDULE (Part 2).
+// ScheduleFocus — the conditional START HERE pointer (Direction C).
 //
-// Replaces the wall of orange "N overdue" cards with:
-//   • ONE "START HERE" hero showing the single next action (topAction from
-//     computeNowFocus) — calm sage framing ("here's where to pick up"), never
-//     alarm-orange, never "you're behind".
-//   • A single quiet folded line for the rest — "N more open · M coming up →" —
-//     tappable to expand the full timeline.
-// When the day is done, the hero becomes a calm wrapped-day state instead.
+// Was the default schedule view (Part 2). Now DEMOTED to a compact pointer that
+// the Now tab renders ONLY when there's a genuinely OVERDUE item
+// (nowFocus.topActionOverdue). It sits ABOVE the full timeline (which is the
+// default view) and points to the single most-important lapse — meds > vitals >
+// meals/mood, oldest first (reused from computeNowFocus.topAction). On an
+// on-track day the Now tab doesn't render it at all → just the calm timeline.
 //
-// This is presentational: it reads the shared nowFocus state and calls back to
-// the Now tab's existing handlers (complete / open / expand). The completion
-// logic itself is untouched.
+// Presentational: reuses the Now tab's existing complete/open handlers. The
+// completion logic is untouched.
 // ============================================================================
 
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Colors, Fonts, Spacing, BorderRadius, Sizing } from '../../theme/theme-tokens';
+import { Colors, Fonts, BorderRadius, Sizing } from '../../theme/theme-tokens';
 import type { DailyCareInstance } from '../../types/carePlan';
-import type { NowDayState } from '../../utils/nowFocus';
 
 export interface ScheduleFocusProps {
-  topAction: DailyCareInstance | null;
-  dayState: NowDayState;
-  /** Overdue (open-now) count from computeNowFocus. */
-  openCount: number;
-  /** Upcoming (later-today) count from computeNowFocus. */
-  upcomingCount: number;
-  /** Mark the hero's topAction done (the check affordance). */
-  onCompleteTop: (instance: DailyCareInstance) => void;
-  /** Open the hero's topAction detail/log. */
-  onOpenTop: (instance: DailyCareInstance) => void;
-  /** Expand to the full timeline (the folded-line tap). */
-  onExpand: () => void;
-  /** Header "Care Plan →" affordance. */
-  onCarePlan: () => void;
+  /** The overdue item to point at. The Now tab only mounts this when overdue. */
+  topAction: DailyCareInstance;
+  /** Complete the item directly — ONE tap = mark taken, exactly like the
+   *  timeline's check-circle (handleQuickConfirm → completeInstance). This is
+   *  the card's PRIMARY action; it does NOT route to the detailed confirm/skip/
+   *  side-effects page (which stays reachable from the timeline row below). */
+  onComplete: (instance: DailyCareInstance) => void;
 }
 
 function timeLabel(scheduledTime: string): string | null {
@@ -52,190 +42,97 @@ function timeLabel(scheduledTime: string): string | null {
   return `${h}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
-export function ScheduleFocus({
-  topAction,
-  dayState,
-  openCount,
-  upcomingCount,
-  onCompleteTop,
-  onOpenTop,
-  onExpand,
-  onCarePlan,
-}: ScheduleFocusProps) {
+export function ScheduleFocus({ topAction, onComplete }: ScheduleFocusProps) {
   const { colors } = useTheme();
   const s = useMemo(() => createStyles(colors), [colors]);
 
-  // The hero shows one item. When there's an overdue item it's the hero (so the
-  // "rest" of open = openCount - 1); otherwise the hero is the first upcoming.
-  const heroIsOverdue = openCount > 0;
-  const restOpen = heroIsOverdue ? Math.max(0, openCount - 1) : openCount;
-  const restUpcoming = heroIsOverdue ? upcomingCount : Math.max(0, upcomingCount - 1);
-
-  const foldedParts: string[] = [];
-  if (restOpen > 0) foldedParts.push(`${restOpen} more open`);
-  if (restUpcoming > 0) foldedParts.push(`${restUpcoming} coming up`);
-  const foldedLabel = foldedParts.join(' · ');
+  const detail = topAction.itemDosage || timeLabel(topAction.scheduledTime);
 
   return (
-    <View testID="schedule-focus">
-      {/* Header — caps eyebrow (gold: scheduled/due lane) + Care Plan link,
-          mirroring the TODAY'S SCHEDULE header the full timeline uses. */}
-      <View style={s.headerRow}>
-        <Text style={s.headerEyebrow}>TODAY'S SCHEDULE</Text>
+    // Primary action = complete the item directly (one tap = mark taken), like
+    // the timeline check-circle — NOT navigate to the detailed log page.
+    <TouchableOpacity
+      style={s.pointer}
+      onPress={() => onComplete(topAction)}
+      activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityLabel={`Start here — mark ${topAction.itemName} done`}
+      testID="schedule-focus-pointer"
+    >
+      <Text style={s.eyebrow}>START HERE</Text>
+      <View style={s.row}>
+        <Text style={s.emoji}>{topAction.itemEmoji ?? '•'}</Text>
+        <View style={s.textBlock}>
+          <Text style={s.name} numberOfLines={1}>{topAction.itemName}</Text>
+          {detail ? <Text style={s.detail}>{detail}</Text> : null}
+        </View>
         <TouchableOpacity
-          onPress={onCarePlan}
+          style={s.check}
+          onPress={() => onComplete(topAction)}
           accessibilityRole="button"
-          accessibilityLabel="Open Care Plan"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityLabel={`Mark ${topAction.itemName} done`}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          testID="schedule-focus-pointer-check"
         >
-          <Text style={s.headerAction}>Care Plan →</Text>
+          <Text style={s.checkGlyph}>{'○'}</Text>
         </TouchableOpacity>
       </View>
-
-      {dayState === 'done' || !topAction ? (
-        // Wrapped-day state — calm, not celebratory-loud. The reflection zone
-        // owns the celebration; this is just "nothing left on the schedule".
-        <View style={s.doneCard} testID="schedule-focus-done">
-          <Text style={s.doneCopy}>You're all caught up for today.</Text>
-        </View>
-      ) : (
-        <>
-          {/* START HERE hero — calm sage, framed as "pick up here", not alarm. */}
-          <TouchableOpacity
-            style={s.heroCard}
-            onPress={() => onOpenTop(topAction)}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel={`Start here: ${topAction.itemName}`}
-            testID="schedule-focus-hero"
-          >
-            <Text style={s.heroEyebrow}>START HERE</Text>
-            <View style={s.heroRow}>
-              <Text style={s.heroEmoji}>{topAction.itemEmoji ?? '•'}</Text>
-              <View style={s.heroTextBlock}>
-                <Text style={s.heroName} numberOfLines={1}>{topAction.itemName}</Text>
-                {(() => {
-                  const detail = topAction.itemDosage || timeLabel(topAction.scheduledTime);
-                  return detail ? <Text style={s.heroDetail}>{detail}</Text> : null;
-                })()}
-              </View>
-              <TouchableOpacity
-                style={s.heroCheck}
-                onPress={() => onCompleteTop(topAction)}
-                accessibilityRole="button"
-                accessibilityLabel={`Mark ${topAction.itemName} done`}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                testID="schedule-focus-hero-check"
-              >
-                <Text style={s.heroCheckGlyph}>{'○'}</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-
-          {/* Folded line — the rest, quiet. Tap to expand the full timeline. */}
-          {foldedLabel.length > 0 && (
-            <TouchableOpacity
-              onPress={onExpand}
-              accessibilityRole="button"
-              accessibilityLabel={`Show the rest of today's schedule: ${foldedLabel}`}
-              hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
-              testID="schedule-focus-folded"
-            >
-              <Text style={s.foldedLine}>{`${foldedLabel} →`}</Text>
-            </TouchableOpacity>
-          )}
-        </>
-      )}
-    </View>
+    </TouchableOpacity>
   );
 }
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14, // allow: eyebrow-to-content rhythm matches the timeline header
-  },
-  headerEyebrow: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 1.2,
-    // Gold = scheduled/due lane (matches the full timeline's TODAY'S SCHEDULE).
-    color: c.amber,
-  },
-  headerAction: {
-    fontSize: 12,
-    color: c.textTertiary,
-  },
-  doneCard: {
-    borderWidth: 1,
-    borderColor: c.glassBorder,
-    borderRadius: BorderRadius.lg,
-    padding: Sizing.cardInternalPadding,
-    backgroundColor: c.glass,
-  },
-  doneCopy: {
-    fontFamily: Fonts.serif,
-    fontSize: 14,
-    color: c.textSecondary,
-  },
-  heroCard: {
-    // Calm sage framing — soft accent border + faint accent fill, NOT the
-    // alarm-orange overdue card. "Here's where to pick up", not "you're behind".
+  pointer: {
+    // Calm sage framing — soft accent border + faint accent fill, NOT alarm
+    // orange. "Here's where to pick up", not "you're behind". Sits above the
+    // timeline with a small bottom gap.
     borderWidth: 1,
     borderColor: c.accentBorder,
     backgroundColor: c.accentFaint,
     borderRadius: BorderRadius.lg,
     padding: Sizing.cardInternalPadding,
+    marginBottom: 14, // allow: gap between the pointer and the timeline below
   },
-  heroEyebrow: {
+  eyebrow: {
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 1.4,
     color: c.accent,
     marginBottom: 8,
   },
-  heroRow: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  heroEmoji: {
+  emoji: {
     fontSize: 22,
     marginRight: 12,
   },
-  heroTextBlock: {
+  textBlock: {
     flex: 1,
   },
-  heroName: {
+  name: {
     fontFamily: Fonts.serif,
     fontSize: 16,
     fontWeight: '600',
     color: c.textPrimary,
   },
-  heroDetail: {
+  detail: {
     fontFamily: Fonts.serif,
     fontSize: 13,
     color: c.textSecondary,
     marginTop: 2,
   },
-  heroCheck: {
+  check: {
     marginLeft: 12,
     width: 32,
     height: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heroCheckGlyph: {
+  checkGlyph: {
     fontSize: 24,
     color: c.accent,
-  },
-  foldedLine: {
-    fontFamily: Fonts.serif,
-    fontSize: 13,
-    color: c.textTertiary,
-    marginTop: 12,
-    paddingLeft: 2,
   },
 });
 

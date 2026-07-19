@@ -25,8 +25,12 @@ import { getCareItemStatus } from './careItemStatus';
 export type NowDayState = 'active' | 'done';
 
 export interface NowFocus {
-  /** The ONE item to surface in the START HERE hero. Null when the day is done. */
+  /** The ONE item to surface in the START HERE pointer. Null when the day is done. */
   topAction: DailyCareInstance | null;
+  /** (Direction C) True only when topAction is a genuinely OVERDUE item (not
+   *  merely the next-upcoming). The Now tab shows the START HERE pointer ONLY
+   *  when this is true — on-track days get no pointer, just the calm timeline. */
+  topActionOverdue: boolean;
   /** 'active' when anything is unresolved (pending or missed); 'done' only when
    *  every instance is completed or skipped. */
   dayState: NowDayState;
@@ -97,6 +101,7 @@ export function computeNowFocus(
 
   return {
     topAction,
+    topActionOverdue: overdue.length > 0,
     dayState,
     openCount: overdue.length,
     upcomingCount: upcoming.length,

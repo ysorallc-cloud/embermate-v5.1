@@ -88,7 +88,6 @@ import { ScheduleFocus } from '../../components/now/ScheduleFocus';
 import { NowFooter } from '../../components/now/NowFooter';
 import { UpcomingAppointmentCard } from '../../components/now/UpcomingAppointmentCard';
 import { StatRings } from '../../components/now/StatRings';
-import { MorningMedsBanner } from '../../components/now/MorningMedsBanner';
 // F7 — Now zone restructure components.
 import { HealthZoneNow } from '../../components/now/HealthZoneNow';
 import { ReflectionZoneNow } from '../../components/now/ReflectionZoneNow';
@@ -284,11 +283,10 @@ export default function NowScreen() {
   // still auto-collapse inside the expanded view (TimelineSection
   // collapsedWindows initializer), so "done items stay compressed"
   // without keeping the whole schedule shut.
-  // Part 2 re-tone — the default schedule view is the calm ScheduleFocus
-  // (START HERE hero + folded line). scheduleExpanded flips to the full
-  // timeline when the caregiver taps the folded line; the timeline header's
-  // collapse returns to focus.
-  const [scheduleExpanded, setScheduleExpanded] = useState(false);
+  // Direction C — the timeline is the DEFAULT view again; the START HERE
+  // pointer is conditional (only when something's overdue). timelineCollapsed
+  // drives the timeline's own ScheduleCard collapse (header chevron).
+  const [timelineCollapsed, setTimelineCollapsed] = useState(false);
 
   // Part 3 disclosure — Reflection + End of shift collapse to a single header
   // row by default; per-section expand state persists for the session only
@@ -1271,24 +1269,10 @@ export default function NowScreen() {
 
         <View style={styles.content}>
 
-          {/* ═══ MORNING MEDS BANNER (Phase 15.3) ═══
-              Lifted from inside NowTimeline so the "X meds due now ·
-              Confirm All" affordance sits above the StatRings rather
-              than nested inside the schedule card. The banner self-
-              suppresses internally when pendingCount === 0, so we
-              can render it unconditionally and let the component
-              decide. Medication-filter derivation moved here from
-              NowTimeline. */}
-          {(() => {
-            const pendingMeds = allPending.filter((i: any) => i.itemType === 'medication');
-            return (
-              <MorningMedsBanner
-                pendingCount={pendingMeds.length}
-                pendingInstanceIds={pendingMeds.map((i: any) => i.id)}
-                onConfirmAll={handleBatchMedConfirm}
-              />
-            );
-          })()}
+          {/* Direction C (2026-07-18) — the persistent top "X medications ready ·
+              Confirm all" MorningMedsBanner is retired. Batch-confirm stays in
+              context inside the timeline (TimelineSection's MedsBatchPanel +
+              per-window Start), not up top. */}
 
           {/* Phase 33b extension pre-Lock-3 Item A — StatRings orb row
               hidden for launch. The 7-into-6 cap conflict
@@ -1311,51 +1295,49 @@ export default function NowScreen() {
               hairline + modest radius) so the warm page bg reads as a
               gutter between this and the Health zone below. */}
           <View style={styles.zonePanel}>
-          {/* ScheduleFocus (the calm START HERE default) applies only when there
-              IS a schedule to focus. With no regimen instances, NowTimeline owns
-              the empty/setup state — "caught up" would be a lie when nothing is
-              set up. Expanding the folded line also routes to NowTimeline. */}
-          {(!hasRegimenInstances || scheduleExpanded) ? (
-            <NowTimeline
-              timelineCollapsed={false}
-              onToggleCollapse={() => setScheduleExpanded(false)}
-              windowSummary={windowSummary}
-              allPending={allPending}
-              completed={todayTimeline.completed}
-              hasRegimenInstances={!!hasRegimenInstances}
-              hasBucketCarePlan={!!hasBucketCarePlan}
-              hasCarePlan={!!carePlan}
-              selectedCategory={selectedCategory}
-              onClearCategory={handleClearCategory}
-              onItemPress={handleTimelineItemPress}
-              onBatchMedConfirm={handleBatchMedConfirm}
-              onQuickConfirm={handleQuickConfirm}
-              onQuickLog={handleQuickLog}
-              onQuickSkip={handleQuickSkip}
-              onUndoCompleted={handleUndoCompleted}
-              onAddCup={handleAddCup}
-              onWellnessTap={handleWellnessTap}
-              onStartRoutine={setActiveRoutineWindow}
-              todayStats={todayStats}
-              enabledBuckets={enabledBuckets}
-              waterGlasses={waterGlasses}
-              waterGoal={waterGoal}
-              onWaterUpdate={handleWaterUpdate}
-            />
-          ) : (
-            // Part 2 default — calm START HERE hero + folded line, reading the
-            // shared nowFocus state. No stacked orange overdue cards here.
+          {/* Direction C — START HERE is a CONDITIONAL pointer, shown ONLY when
+              something is genuinely overdue (nowFocus.topActionOverdue). It sits
+              above the timeline and points to the single most-important lapse.
+              On an on-track day there's no pointer — just the calm timeline. */}
+          {nowFocus.topActionOverdue && nowFocus.topAction && (
             <ScheduleFocus
               topAction={nowFocus.topAction}
-              dayState={nowFocus.dayState}
-              openCount={nowFocus.openCount}
-              upcomingCount={nowFocus.upcomingCount}
-              onCompleteTop={handleQuickConfirm}
-              onOpenTop={handleTimelineItemPress}
-              onExpand={() => setScheduleExpanded(true)}
-              onCarePlan={() => navigate('/care-plan')}
+              onComplete={handleQuickConfirm}
             />
           )}
+          {/* The timeline is the DEFAULT view — full time-blocks, all items
+              visible + checkable, completed windows auto-collapse (honoring
+              missed=not-done), batch-confirm in context. */}
+          <NowTimeline
+            timelineCollapsed={timelineCollapsed}
+            onToggleCollapse={() => setTimelineCollapsed((v) => !v)}
+            windowSummary={windowSummary}
+            allPending={allPending}
+            completed={todayTimeline.completed}
+            hasRegimenInstances={!!hasRegimenInstances}
+            hasBucketCarePlan={!!hasBucketCarePlan}
+            hasCarePlan={!!carePlan}
+            selectedCategory={selectedCategory}
+            onClearCategory={handleClearCategory}
+            onItemPress={handleTimelineItemPress}
+            onBatchMedConfirm={handleBatchMedConfirm}
+            onQuickConfirm={handleQuickConfirm}
+            onQuickLog={handleQuickLog}
+            onQuickSkip={handleQuickSkip}
+            onUndoCompleted={handleUndoCompleted}
+            onAddCup={handleAddCup}
+            onWellnessTap={handleWellnessTap}
+            onStartRoutine={setActiveRoutineWindow}
+            todayStats={todayStats}
+            enabledBuckets={enabledBuckets}
+            waterGlasses={waterGlasses}
+            waterGoal={waterGoal}
+            onWaterUpdate={handleWaterUpdate}
+          />
+          {/* Born-past refinement — a med/vitals item added after its time today
+              shows here as a calm "first dose/reading tomorrow" line (never
+              overdue/missed). Renders null when there are none. */}
+          <StartingTomorrowPreview items={startingTomorrow} />
           </View>
 
           {/* Empty-meds discoverability — when the caregiver enabled

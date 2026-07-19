@@ -137,3 +137,26 @@ describe('computeNowFocus — Now-tab shared state model', () => {
     expect(focus.topAction?.itemName).toBe('Warfarin');
   });
 });
+
+// Direction C — the START HERE pointer shows ONLY when topAction is genuinely
+// overdue (not merely the next-upcoming item). On-track = no pointer.
+describe('computeNowFocus — topActionOverdue gate (Direction C)', () => {
+  it('overdue present → topActionOverdue is true', () => {
+    const overdueMed = inst({ itemType: 'medication', itemName: 'Warfarin', windowLabel: 'evening', scheduledTime: '2026-07-18T18:00:00', status: 'missed' });
+    const upcomingVital = inst({ itemType: 'vitals', windowLabel: 'night', scheduledTime: '2026-07-18T22:00:00', status: 'pending' });
+    expect(computeNowFocus([upcomingVital, overdueMed], NOW).topActionOverdue).toBe(true);
+  });
+
+  it('ON-TRACK (nothing overdue, only upcoming) → topActionOverdue is false (no pointer)', () => {
+    const up1 = inst({ itemType: 'medication', itemName: 'Night meds', windowLabel: 'night', scheduledTime: '2026-07-18T22:00:00', status: 'pending' });
+    const up2 = inst({ itemType: 'nutrition', itemName: 'Dinner', windowLabel: 'evening', scheduledTime: '2026-07-18T21:00:00', status: 'pending' });
+    const focus = computeNowFocus([up1, up2], NOW);
+    expect(focus.topAction).not.toBeNull();      // there IS a next item
+    expect(focus.topActionOverdue).toBe(false);  // but nothing overdue → no pointer
+  });
+
+  it('day done → topActionOverdue is false', () => {
+    const done = inst({ itemType: 'medication', status: 'completed' });
+    expect(computeNowFocus([done], NOW).topActionOverdue).toBe(false);
+  });
+});
