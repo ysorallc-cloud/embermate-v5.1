@@ -93,6 +93,7 @@ function heavyPayload() {
           temperature: 98.6, oxygen: 97, weight: 194,
         },
       },
+      meals: { total: 0, meals: [] },
       worthFlagging: [
         { id: '1', type: 'red_flag' as const, text: 'BP ran high this morning.', timestamp: now },
         { id: '2', type: 'behavioral' as const, text: 'Seemed more fatigued than usual after lunch.', timestamp: now },

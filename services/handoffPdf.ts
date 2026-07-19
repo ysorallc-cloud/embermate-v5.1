@@ -26,6 +26,7 @@ import type { HandoffDayPayload } from '../utils/handoffDayBuilder';
 import type {
   MedicationDetail,
   VitalsDetail,
+  MealsDetail,
 } from '../utils/careSummaryBuilder';
 import type { NotableMoment } from '../utils/notableMomentsBuilder';
 import { logError } from '../utils/devLog';
@@ -78,6 +79,10 @@ function renderSummary(gestalt: string): string {
   `;
 }
 
+function titleCase(s: string): string {
+  return s.length ? s[0].toUpperCase() + s.slice(1) : s;
+}
+
 function renderMedications(meds: MedicationDetail[]): string {
   if (meds.length === 0) return '';
   const rows = meds.map((m) => {
@@ -86,9 +91,14 @@ function renderMedications(meds: MedicationDetail[]): string {
     const statusCell = m.status === 'completed' && taken
       ? `${escapeHtml(STATUS_LABEL[m.status])} at ${escapeHtml(taken)}`
       : escapeHtml(STATUS_LABEL[m.status]);
+    // Selected symptoms — the doctor-facing substance. Surfaced under the name
+    // (coral) so a flagged side-effect isn't lost in the status column.
+    const sideEffects = (m.sideEffects && m.sideEffects.length > 0)
+      ? `<div style="font-size:10px; color:#9a3a3a; margin-top:2px;">Side effects: ${escapeHtml(m.sideEffects.map(titleCase).join(', '))}</div>`
+      : '';
     return `
     <tr>
-      <td>${escapeHtml(m.name)}</td>
+      <td>${escapeHtml(m.name)}${sideEffects}</td>
       <td>${escapeHtml(m.dosage ?? '')}</td>
       <td>${escapeHtml(scheduled)}</td>
       <td>${statusCell}</td>
@@ -132,14 +142,39 @@ function renderVitals(v: VitalsDetail | null): string {
   `;
 }
 
+function renderMeals(meals: MealsDetail): string {
+  // Non-pending meals carry caregiver substance (appetite + note) or a clinically
+  // relevant miss/skip; pending meals are chrome, so drop them.
+  const logged = meals.meals.filter((m) => m.status !== 'pending');
+  if (logged.length === 0) return '';
+  const items = logged.map((m) => {
+    let line = `<strong>${escapeHtml(m.name)}</strong>`;
+    if (m.status === 'completed') {
+      const extras: string[] = [];
+      if (m.appetite) extras.push(escapeHtml(m.appetite));
+      if (m.description) extras.push(escapeHtml(m.description));
+      if (extras.length) line += ` — ${extras.join(' · ')}`;
+    } else {
+      line += ` — ${escapeHtml(m.status === 'missed' ? 'Missed' : 'Skipped')}`;
+    }
+    return `<li>${line}</li>`;
+  }).join('');
+  return `
+  <h3 style="font-size:11px; font-weight:600; color:#7a7a8a; margin:8px 0 4px;">Meals</h3>
+  <ul style="margin:0 0 4px; padding-left:16px;">${items}</ul>
+  `;
+}
+
 function renderLogged(payload: HandoffDayPayload): string {
   const medsHtml = renderMedications(payload.medications);
   const vitalsHtml = renderVitals(payload.vitals);
-  if (!medsHtml && !vitalsHtml) return '';
+  const mealsHtml = renderMeals(payload.meals);
+  if (!medsHtml && !vitalsHtml && !mealsHtml) return '';
   return `
   <h2>What was logged</h2>
   ${medsHtml}
   ${vitalsHtml}
+  ${mealsHtml}
   `;
 }
 

@@ -17,6 +17,7 @@ import { listDailyInstances, listLogsByDate, logInstanceCompletion, DEFAULT_PATI
 import { ensureDailyInstances, getTodayDateString } from '../../services/carePlanGenerator';
 import { buildCareBrief } from '../../utils/careSummaryBuilder';
 import { buildJournalLoggedRows } from '../../utils/journalLoggedRows';
+import { buildHandoffDay } from '../../utils/handoffDayBuilder';
 
 async function clearAll(): Promise<void> {
   const keys = await AsyncStorage.getAllKeys();
@@ -85,6 +86,27 @@ describe('med side-effect round-trip — entered symptom reaches the Journal/han
     expect(medRow!.detail).toBeDefined();
     expect(medRow!.detail).toContain('Nausea');
     expect(medRow!.detail).toContain('Tired');
+  });
+
+  it('the HANDOFF payload carries the side-effect into medications[] (the doctor-facing artifact)', async () => {
+    await addMedicationToPlan(DEFAULT_PATIENT_ID, {
+      name: 'Atorvastatin', dosage: '10mg', timesOfDay: ['morning'],
+      customTimes: [FUTURE], scheduledTimeHHmm: FUTURE, active: true,
+    } as any);
+    await ensureDailyInstances(DEFAULT_PATIENT_ID, TODAY);
+    const med = (await listDailyInstances(DEFAULT_PATIENT_ID, TODAY)).find(i => i.itemType === 'medication');
+    await logInstanceCompletion(
+      DEFAULT_PATIENT_ID, TODAY, med!.id, 'taken',
+      { type: 'medication', sideEffects: ['nausea'] } as any,
+      { source: 'record' },
+    );
+
+    const payload = await buildHandoffDay(TODAY);
+    expect(payload).not.toBeNull();
+    const pdfMed = payload!.medications.find(m => m.name.includes('Atorvastatin'));
+    expect(pdfMed!.sideEffects).toEqual(['nausea']);
+    // meals scaffold is present on the payload (widened surface), even if empty here.
+    expect(payload!.meals).toBeDefined();
   });
 
   it('a malformed { sideEffect } write does NOT surface (guards the regression)', async () => {

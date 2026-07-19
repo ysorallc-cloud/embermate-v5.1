@@ -23,6 +23,7 @@ import {
   type CareBrief,
   type MedicationDetail,
   type VitalsDetail,
+  type MealsDetail,
 } from './careSummaryBuilder';
 import { buildShapeOfDay } from './buildShapeOfDay';
 import {
@@ -58,6 +59,12 @@ export interface HandoffDayPayload {
    *  /weight). Null when the day has no vitals scheduled AND no
    *  reading recorded; consumers skip the vitals block in that case. */
   vitals: VitalsDetail | null;
+  /** Section 2 — logged meals with their caregiver-entered substance
+   *  (appetite + note/description). Widened into the PDF so the doctor sees
+   *  what the caregiver recorded; the PDF renderer surfaces non-pending meals
+   *  only. (Meals still do NOT count toward hasLoggedContent — the shareability
+   *  gate stays as the Q-C scope lock; this carries CONTENT, not the gate.) */
+  meals: MealsDetail;
   /** Section 3 — worth-flagging moments. Empty array when no moment
    *  fires for the date. */
   worthFlagging: NotableMoment[];
@@ -145,6 +152,7 @@ export async function buildHandoffDay(
       gestalt: shape.hasData ? shape.summary : '',
       medications: meds,
       vitals: vitalsHasContent ? brief.vitals : null,
+      meals: brief.meals ?? { total: 0, meals: [] },
       worthFlagging: flaggedMoments,
       notes: notes ? { text: notes.text, savedAt: notes.savedAt } : null,
       nextAppointment: brief.nextAppointment ?? null,

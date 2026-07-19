@@ -299,6 +299,7 @@ const SAMPLE_PAYLOAD = {
   gestalt: 'Steady day.',
   medications: [],
   vitals: null,
+  meals: { total: 0, meals: [] },
   worthFlagging: [],
   notes: null,
   nextAppointment: null,

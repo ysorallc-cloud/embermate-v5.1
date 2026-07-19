@@ -81,6 +81,7 @@ function emptyPayload(): HandoffDayPayload {
     gestalt: '',
     medications: [],
     vitals: null,
+    meals: { total: 0, meals: [] },
     worthFlagging: [],
     notes: null,
     nextAppointment: null,
@@ -127,6 +128,7 @@ function fullPayload(): HandoffDayPayload {
         oxygen: 96,
       },
     },
+    meals: { total: 0, meals: [] },
     worthFlagging: [
       { text: 'BP 158/95 — 12 points above week\'s avg.', category: 'bp' },
     ],
