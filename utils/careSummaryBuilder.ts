@@ -278,6 +278,27 @@ export interface MealsDetail {
   }[];
 }
 
+// Appetite labels that are worth flagging to a clinician ("hasn't eaten well").
+// good / fair read as routine; poor / refused are the concern signal.
+const FLAGGABLE_APPETITE = new Set(['poor', 'refused']);
+
+/**
+ * Is this meal worth surfacing on the doctor-facing handoff? True when it carries
+ * caregiver substance or a deviation — a note, a flaggable appetite (poor/refused),
+ * or it wasn't eaten (missed/skipped). A routine completed meal (normal appetite,
+ * no note) is NOT notable → kept off the handoff and out of the shareability gate,
+ * so the PDF isn't cluttered with "Breakfast Good · Lunch Good · Dinner Good".
+ *
+ * SINGLE source for both the handoff PDF renderer (what shows) AND the
+ * hasLoggedContent share gate (what counts) — so content and gate can't diverge.
+ */
+export function isNotableMeal(m: MealsDetail['meals'][number]): boolean {
+  if (m.status === 'missed' || m.status === 'skipped') return true;
+  if (m.description && m.description.trim().length > 0) return true;
+  if (m.appetite && FLAGGABLE_APPETITE.has(m.appetite.trim().toLowerCase())) return true;
+  return false;
+}
+
 export interface AttentionItem {
   text: string;
   detail?: string;

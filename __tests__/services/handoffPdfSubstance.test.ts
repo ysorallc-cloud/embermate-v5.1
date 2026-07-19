@@ -84,4 +84,29 @@ describe('handoff PDF — meals with appetite + note', () => {
     // The meals block should not appear for a pending-only day.
     expect(html).not.toContain('Dinner');
   });
+
+  it('OMITS routine meals (completed, normal appetite, no note) — no clutter', () => {
+    const html = wrap(payload({
+      meals: {
+        total: 3,
+        meals: [
+          { name: 'Breakfast', status: 'completed', appetite: 'Good' },
+          { name: 'Lunch', status: 'completed' },
+          { name: 'Dinner', status: 'completed', appetite: 'Fair' },
+        ],
+      },
+    }));
+    // Nothing notable → the whole Meals block is suppressed.
+    expect(html).not.toContain('Breakfast');
+    expect(html).not.toContain('Lunch');
+    expect(html).not.toContain('Dinner');
+  });
+
+  it('surfaces a POOR-appetite meal even without a note (worth flagging)', () => {
+    const html = wrap(payload({
+      meals: { total: 1, meals: [{ name: 'Lunch', status: 'completed', appetite: 'Poor' }] },
+    }));
+    expect(html).toContain('Lunch');
+    expect(html).toContain('Poor');
+  });
 });

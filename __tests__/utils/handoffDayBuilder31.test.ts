@@ -48,6 +48,8 @@ const fakeMomentsByDate: Record<string, any> = {};
 const fakeNotesByDate: Record<string, any> = {};
 
 jest.mock('../../utils/careSummaryBuilder', () => ({
+  // Keep the real pure helpers (isNotableMeal) — only buildCareBrief is faked.
+  ...(jest.requireActual('../../utils/careSummaryBuilder') as any),
   buildCareBrief: jest.fn(async (date?: string) => {
     const key = date ?? '__TODAY__';
     return fakeCareBriefByDate[key] ?? null;
@@ -477,12 +479,12 @@ describe('Phase 35 Slice 3-C — payload.hasLoggedContent (P2 PDF-content predic
     expect(payload!.hasLoggedContent).toBe(true);
   });
 
-  it('p2-10 (SCOPE LOCK — Q-C): mood / meals / hydration / sleep do NOT count toward hasLoggedContent (PDF is intentionally narrower than Journal page)', async () => {
+  it('p2-10 (SCOPE — updated): ROUTINE meals + mood/hydration/sleep do NOT count toward hasLoggedContent', async () => {
+    // Meals were widened onto the PDF, but only NOTABLE ones (note / flaggable
+    // appetite / miss-skip). A day of routine "all meals completed, no note" +
+    // mood/hydration/sleep (still PDF-excluded) has nothing recipient-facing →
+    // refusing share is truthful.
     seedBriefForEmptyDay();
-    // Populate every Journal-page category that the PDF does NOT render.
-    // The Journal page would show this day as non-empty; the PDF still
-    // has nothing recipient-facing to show. Refusing share is the
-    // truthful outcome.
     fakeCareBriefByDate[PAST_DATE].mood = {
       entries: [{ id: 'm1', mood: 'calm', timestamp: '2026-05-15T09:00:00Z' }],
       morningWellness: 4,
@@ -500,6 +502,28 @@ describe('Phase 35 Slice 3-C — payload.hasLoggedContent (P2 PDF-content predic
     fakeCareBriefByDate[PAST_DATE].sleep = { logged: true, hours: 7 };
     const payload = await buildHandoffDay(PAST_DATE);
     expect(payload!.hasLoggedContent).toBe(false);
+  });
+
+  it('p2-10b (NOTABLE MEAL COUNTS): a meal-only day with a NOTE is shareable', async () => {
+    // The reversal: caregiver-entered meal substance now unblocks share, since it
+    // renders on the PDF. A single completed meal with a note → shareable.
+    seedBriefForEmptyDay();
+    fakeCareBriefByDate[PAST_DATE].meals = {
+      total: 1,
+      meals: [{ name: 'Breakfast', status: 'completed', description: 'only ate a few bites' }],
+    };
+    const payload = await buildHandoffDay(PAST_DATE);
+    expect(payload!.hasLoggedContent).toBe(true);
+  });
+
+  it('p2-10c (MISSED MEAL COUNTS): a meal-only day with a missed meal is shareable', async () => {
+    seedBriefForEmptyDay();
+    fakeCareBriefByDate[PAST_DATE].meals = {
+      total: 1,
+      meals: [{ name: 'Lunch', status: 'missed' }],
+    };
+    const payload = await buildHandoffDay(PAST_DATE);
+    expect(payload!.hasLoggedContent).toBe(true);
   });
 
   it('p2-11 (FULL DAY): rich day from contract 1 seeding → hasLoggedContent TRUE (sanity)', async () => {

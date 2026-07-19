@@ -23,10 +23,11 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { LIGHT_PDF_CSS, escapeHtml } from '../utils/lightPdfTemplate';
 import type { HandoffDayPayload } from '../utils/handoffDayBuilder';
-import type {
-  MedicationDetail,
-  VitalsDetail,
-  MealsDetail,
+import {
+  isNotableMeal,
+  type MedicationDetail,
+  type VitalsDetail,
+  type MealsDetail,
 } from '../utils/careSummaryBuilder';
 import type { NotableMoment } from '../utils/notableMomentsBuilder';
 import { logError } from '../utils/devLog';
@@ -143,9 +144,11 @@ function renderVitals(v: VitalsDetail | null): string {
 }
 
 function renderMeals(meals: MealsDetail): string {
-  // Non-pending meals carry caregiver substance (appetite + note) or a clinically
-  // relevant miss/skip; pending meals are chrome, so drop them.
-  const logged = meals.meals.filter((m) => m.status !== 'pending');
+  // Only NOTABLE meals reach the doctor — a note, a flaggable appetite, or a
+  // miss/skip. Routine "completed, normal appetite, no note" meals are omitted so
+  // the handoff isn't cluttered with "Breakfast Good · Lunch Good · Dinner Good".
+  // Same predicate as the shareability gate (isNotableMeal) — content ⟺ gate.
+  const logged = meals.meals.filter(isNotableMeal);
   if (logged.length === 0) return '';
   const items = logged.map((m) => {
     let line = `<strong>${escapeHtml(m.name)}</strong>`;
