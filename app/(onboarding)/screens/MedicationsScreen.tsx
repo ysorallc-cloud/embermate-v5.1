@@ -13,7 +13,7 @@
 // ============================================================================
 
 import React, { useMemo, useState, useCallback } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Keyboard } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
@@ -81,6 +81,9 @@ export const MedicationsScreen: React.FC<MedicationsScreenProps> = ({
     if (!name) return;
     setMeds((prev) => [...prev, { name, dose: dose.trim(), timeSlot }]);
     resetEntry();
+    // Drop the keyboard so the just-added list + the Continue CTA are visible
+    // (otherwise the keyboard hides the bottom of the scroll right after adding).
+    Keyboard.dismiss();
   }, [name, dose, timeSlot, resetEntry]);
 
   const handleRemove = useCallback((index: number) => {
@@ -103,6 +106,10 @@ export const MedicationsScreen: React.FC<MedicationsScreenProps> = ({
       <StaticAuroraBackground variant="welcome" />
       <SafeAreaView style={styles.safe} edges={['top']}>
         <ScrollView
+          // BUG 1a — flex:1 bounds the ScrollView to the screen so overflowing
+          // content (a growing med list) SCROLLS to the Continue CTA instead of
+          // expanding the ScrollView to content height and clipping the CTA.
+          style={styles.scroll}
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -259,6 +266,7 @@ export const MedicationsScreen: React.FC<MedicationsScreenProps> = ({
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   root: { flex: 1, backgroundColor: c.background },
   safe: { flex: 1 },
+  scroll: { flex: 1 },
   content: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.xl,
