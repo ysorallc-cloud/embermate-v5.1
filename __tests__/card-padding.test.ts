@@ -127,7 +127,9 @@ describe('Phase 2 — card padding contract', () => {
   it('discovers card style blocks across the four tabs', () => {
     // Sanity check — there should be a meaningful number of card blocks
     // across the tab tree. If the regex breaks and finds zero, fail loud.
-    expect(cards.length).toBeGreaterThan(15);
+    // (Floor lowered from 15 after the dead journal-narrative components — which
+    // carried card-surface blocks — were deleted in the S2-rebuild cleanup.)
+    expect(cards.length).toBeGreaterThan(10);
   });
 
   it('every card style sets padding (no missing padding allowed)', () => {

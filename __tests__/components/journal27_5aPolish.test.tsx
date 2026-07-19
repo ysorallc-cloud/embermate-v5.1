@@ -140,36 +140,3 @@ describe('Phase 27.5a Bug 2 — JournalNotesCard placeholder debris', () => {
     expect(stripped).toMatch(/['"]Notes from this day['"]/);
   });
 });
-
-describe('Phase 27.5a Bug 3 — MealsNarrative noneCompleted shape (regression pin for de72928c)', () => {
-  const src = readFileSync(
-    join(ROOT, 'components/journal/MealsNarrative.tsx'),
-    'utf8',
-  );
-  // Strip comments — the de72928c fix's explanatory comment quotes the
-  // pre-fix buggy string as documentation. Source-level regex over the
-  // raw file would false-positive on that comment.
-  const stripped = src
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/(^|[^:])\/\/.*$/gm, '$1');
-
-  it('contract 4: noneCompleted branch carries the names.length > 0 ternary with empty-name fallback "No meals logged yet."', () => {
-    // The de72928c fix replaced a single JSX template with a
-    // conditional ternary:
-    //   names.length > 0
-    //     ? `No meals logged yet. ${names} scheduled.`
-    //     : 'No meals logged yet.'
-    // Defend the conditional shape. If a future refactor flattens
-    // the ternary back to a single template, this pin breaks.
-    expect(stripped).toMatch(/names\.length\s*>\s*0/);
-    expect(stripped).toMatch(/['"]No meals logged yet\.['"]/);
-    // No quoted/template-literal string in the production source (post-
-    // comment-strip) should match the pre-fix buggy shape with the
-    // orphan trailing " scheduled.".
-    const allStringLiterals = stripped.match(/['"`]No meals logged yet\.[^'"`]*['"`]/g) ?? [];
-    expect(allStringLiterals.length).toBeGreaterThan(0);
-    for (const lit of allStringLiterals) {
-      expect(lit).not.toMatch(/No meals logged yet\.\s\s+scheduled\./);
-    }
-  });
-});
