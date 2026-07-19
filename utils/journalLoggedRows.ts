@@ -15,9 +15,15 @@
 // silently dropped.
 // ============================================================================
 
-import type { DailyCareInstance } from '../types/carePlan';
+import type { DailyCareInstance, LogEntry } from '../types/carePlan';
 import { getCareItemStatus } from './careItemStatus';
 import { formatMedDisplay } from './medDisplay';
+
+// Selected med symptoms are stored as lowercase ids ('nausea'); title-case them
+// for the row so they read as the caregiver picked them ("Nausea, Tired").
+function titleCase(s: string): string {
+  return s.length ? s[0].toUpperCase() + s.slice(1) : s;
+}
 
 export type LogRowStatus = 'done' | 'skipped' | 'due' | 'missed' | 'pending';
 
@@ -105,8 +111,10 @@ function stampRowStatus(inst: DailyCareInstance, now: Date): LogRowStatus {
  */
 export function buildJournalLoggedRows(
   instances: DailyCareInstance[],
+  logs: LogEntry[] = [],
   now: Date = new Date(),
 ): JournalLogRow[] {
+  const logById = new Map(logs.map((l) => [l.id, l]));
   return instances
     .map((inst) => {
       const d = parseDate(inst.scheduledTime);
@@ -122,10 +130,22 @@ export function buildJournalLoggedRows(
         inst.itemType === 'medication'
           ? formatMedDisplay(displayName(inst), inst.itemDosage)
           : displayName(inst);
+      // Bug 3 follow-up — the selected symptoms live on the completion LogEntry
+      // (canonical MedicationLogData.sideEffects). Surface them on the med row so
+      // the Journal shows what the caregiver picked (previously only the free-text
+      // note reached the Journal, via Observations).
+      let detail: string | undefined;
+      if (inst.itemType === 'medication' && inst.logId) {
+        const data: any = logById.get(inst.logId)?.data;
+        if (data?.type === 'medication' && Array.isArray(data.sideEffects) && data.sideEffects.length > 0) {
+          detail = `· ${data.sideEffects.map((e: string) => titleCase(e)).join(', ')}`;
+        }
+      }
       return {
         id: inst.id,
         type: typeLabel(inst.itemType),
         name,
+        detail,
         time,
         status,
         _sort: d ? d.getTime() : Number.MAX_SAFE_INTEGER,

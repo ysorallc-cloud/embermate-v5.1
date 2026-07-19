@@ -139,8 +139,8 @@ import { getDailyOutcomes } from '../../utils/dailyOutcomes';
 import type { DailyOutcomes } from '../../utils/text/types';
 import { isDayComplete, markDayComplete } from '../../utils/dayComplete';
 import { shouldRenderJournalEmptyDay, getOutstandingItemNames } from '../../utils/journalEmptyDayCheck';
-import { listDailyInstances, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
-import type { DailyCareInstance } from '../../types/carePlan';
+import { listDailyInstances, listLogsByDate, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
+import type { DailyCareInstance, LogEntry } from '../../types/carePlan';
 
 // ============================================================================
 // MAIN COMPONENT
@@ -194,6 +194,7 @@ export default function JournalTab() {
   // derived from these via getCareItemStatus so Journal names what's
   // outstanding rather than falsely reading the day as empty.
   const [dayInstances, setDayInstances] = useState<DailyCareInstance[]>([]);
+  const [dayLogs, setDayLogs] = useState<LogEntry[]>([]);
   // Phase 31 F3 — handoffSheetVisible state retired alongside the
   // HandoffSheet modal. Share CTA now fires generateAndShareHandoff
   // directly; no modal-open state to track.
@@ -381,6 +382,8 @@ export default function JournalTab() {
   const refreshOutcomes = useCallback(() => {
     getDailyOutcomes(selectedDate).then(setOutcomes).catch(() => {});
     listDailyInstances(DEFAULT_PATIENT_ID, selectedDate).then(setDayInstances).catch(() => {});
+    // Logs carry the completion detail (selected med symptoms) the logged rows show.
+    listLogsByDate(DEFAULT_PATIENT_ID, selectedDate).then(setDayLogs).catch(() => {});
   }, [selectedDate]);
 
   // Option A floor — names of the day's OVERDUE (missed) items, via the
@@ -395,7 +398,7 @@ export default function JournalTab() {
   // chronological log rows (journal-aligned), status stamped once via
   // getCareItemStatus. Missed items surface here as coral 'missed' rows — the
   // Option-A floor + meals-§2 missed-surfacing reconciled into the rebuild.
-  const loggedRows = useMemo(() => buildJournalLoggedRows(dayInstances), [dayInstances]);
+  const loggedRows = useMemo(() => buildJournalLoggedRows(dayInstances, dayLogs), [dayInstances, dayLogs]);
 
   // Load outcomes + day-complete flag for the selected date.
   useEffect(() => {
