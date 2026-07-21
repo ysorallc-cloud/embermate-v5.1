@@ -15,8 +15,7 @@
 // Sorted by magnitude of change so the most-meaningful entries land first.
 // ============================================================================
 
-import { getEventsByDateRange } from '../storage/eventRepo';
-import type { CareEvent } from '../types/event';
+import { getSymptoms } from '../utils/symptomStorage';
 import { logError } from '../utils/devLog';
 
 export type SymptomChangeKind = 'new' | 'worse' | 'better' | 'resolved';
@@ -37,11 +36,17 @@ export interface DateRange {
 const MAX_RESULTS = 5;
 const MIN_DAYS_FOR_DETECTION = 7;
 
-function symptomNameFromEvent(event: CareEvent): string | null {
-  const meta = event.metadata as any;
-  if (!meta) return null;
-  const name = meta.symptomName || meta.name || meta.symptom;
+// A symptom occurrence's canonical name — lowercased so "Headache" and "headache"
+// count as one. Reads the LIVE symptomStorage record's `symptom` field.
+function symptomName(log: { symptom?: string }): string | null {
+  const name = log?.symptom;
   return typeof name === 'string' && name.trim() ? name.trim().toLowerCase() : null;
+}
+
+// The occurrence day (YYYY-MM-DD). symptomStorage writes both `date` and
+// `timestamp`; prefer the explicit `date`, fall back to the timestamp's date part.
+function symptomDay(log: { date?: string; timestamp?: string }): string {
+  return (log?.date || log?.timestamp || '').slice(0, 10);
 }
 
 function daysBetween(start: string, end: string): number {
@@ -96,24 +101,34 @@ export async function detectSymptomChanges(
     return [];
   }
 
-  let events: CareEvent[];
+  // Repointed (was the never-written eventRepo `symptom_reported` stream): read
+  // the LIVE symptom store (symptomStorage / SYMPTOMS key) that log-symptom and
+  // log-pain actually write via saveSymptom. Each record is one occurrence
+  // ({ symptom, severity, date, timestamp }); the detection is unchanged —
+  // frequency of each symptom name across the first vs. recent half of the window.
+  let logs: Array<{ symptom?: string; date?: string; timestamp?: string }>;
   try {
-    events = await getEventsByDateRange(range.start, range.end, patientId);
+    logs = await getSymptoms(patientId);
   } catch (err) {
     logError('symptomChangeDetection.read', err);
     return [];
   }
 
-  const symptomEvents = events.filter((e) => e.type === 'symptom_reported');
-  if (symptomEvents.length === 0) return [];
+  // Honor the multi-day window (Visit Prep is 14-day) — count only occurrences
+  // whose day falls inside [range.start, range.end].
+  const inRange = logs.filter((l) => {
+    const day = symptomDay(l);
+    return day >= range.start && day <= range.end;
+  });
+  if (inRange.length === 0) return [];
 
   const mid = midpointDate(range.start, range.end);
   const counts = new Map<string, { first: number; second: number }>();
 
-  for (const e of symptomEvents) {
-    const name = symptomNameFromEvent(e);
+  for (const l of inRange) {
+    const name = symptomName(l);
     if (!name) continue;
-    const day = e.timestamp.slice(0, 10);
+    const day = symptomDay(l);
     const slot = day < mid ? 'first' : 'second';
     const entry = counts.get(name) || { first: 0, second: 0 };
     entry[slot] += 1;

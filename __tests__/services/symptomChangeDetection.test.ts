@@ -1,12 +1,20 @@
 // ============================================================================
 // symptomChangeDetection — first-half vs second-half comparison of symptom
 // frequency. Powers the "Symptoms that changed" Visit Prep PDF section.
+//
+// Retargeted: this used to mock the eventRepo `symptom_reported` stream — the
+// store the live app NEVER writes, which is exactly why the empty-source bug hid
+// (the test passed against the dead source). It now mocks the LIVE symptom store
+// (symptomStorage.getSymptoms) with real SymptomLog shapes. The write→read path
+// over the real store is covered by the integration round-trip
+// (__tests__/integration/symptomProgressionRoundTrip.test.ts); this is the fast
+// unit test of the classify logic against the live INPUT shape.
 // ============================================================================
 
-const mockGetEventsByDateRange = jest.fn();
+const mockGetSymptoms = jest.fn();
 
-jest.mock('../../storage/eventRepo', () => ({
-  getEventsByDateRange: (...args: any[]) => mockGetEventsByDateRange(...args),
+jest.mock('../../utils/symptomStorage', () => ({
+  getSymptoms: (...args: any[]) => mockGetSymptoms(...args),
 }));
 
 jest.mock('../../utils/devLog', () => ({ logError: jest.fn() }));
@@ -15,23 +23,23 @@ import { detectSymptomChanges } from '../../services/symptomChangeDetection';
 
 const PATIENT = 'mom';
 
-const symptomEvent = (date: string, name: string, severity?: string) => ({
-  id: `evt-${date}-${name}`,
-  type: 'symptom_reported',
+// A live symptomStorage record (one occurrence per record).
+const symptomLog = (date: string, name: string, severity = 5) => ({
+  id: `sym-${date}-${name}`,
+  symptom: name,
+  severity,
+  description: '',
   timestamp: `${date}T10:00:00`,
-  patientId: PATIENT,
-  metadata: { symptomName: name, severity },
-  source: 'quick_log',
-  createdAt: `${date}T10:00:00`,
+  date,
 });
 
 beforeEach(() => {
-  mockGetEventsByDateRange.mockReset();
+  mockGetSymptoms.mockReset();
 });
 
 describe('detectSymptomChanges — empty + edge cases', () => {
-  it('returns an empty array when there are no symptom events', async () => {
-    mockGetEventsByDateRange.mockResolvedValue([]);
+  it('returns an empty array when there are no symptoms', async () => {
+    mockGetSymptoms.mockResolvedValue([]);
     const result = await detectSymptomChanges(PATIENT, {
       start: '2026-04-01',
       end: '2026-04-14',
@@ -40,7 +48,7 @@ describe('detectSymptomChanges — empty + edge cases', () => {
   });
 
   it('flags insufficient-data when range spans less than 7 days', async () => {
-    mockGetEventsByDateRange.mockResolvedValue([]);
+    mockGetSymptoms.mockResolvedValue([]);
     const result = await detectSymptomChanges(PATIENT, {
       start: '2026-04-01',
       end: '2026-04-04',
@@ -51,10 +59,10 @@ describe('detectSymptomChanges — empty + edge cases', () => {
 
 describe('detectSymptomChanges — change classification', () => {
   it('classifies a symptom as "new" when absent in first half but present in second', async () => {
-    mockGetEventsByDateRange.mockResolvedValue([
-      symptomEvent('2026-04-08', 'dizziness'),
-      symptomEvent('2026-04-09', 'dizziness'),
-      symptomEvent('2026-04-10', 'dizziness'),
+    mockGetSymptoms.mockResolvedValue([
+      symptomLog('2026-04-08', 'dizziness'),
+      symptomLog('2026-04-09', 'dizziness'),
+      symptomLog('2026-04-10', 'dizziness'),
     ]);
     const result = await detectSymptomChanges(PATIENT, {
       start: '2026-04-01',
@@ -68,10 +76,10 @@ describe('detectSymptomChanges — change classification', () => {
   });
 
   it('classifies a symptom as "resolved" when present in first half but absent in second', async () => {
-    mockGetEventsByDateRange.mockResolvedValue([
-      symptomEvent('2026-04-01', 'headache'),
-      symptomEvent('2026-04-03', 'headache'),
-      symptomEvent('2026-04-05', 'headache'),
+    mockGetSymptoms.mockResolvedValue([
+      symptomLog('2026-04-01', 'headache'),
+      symptomLog('2026-04-03', 'headache'),
+      symptomLog('2026-04-05', 'headache'),
     ]);
     const result = await detectSymptomChanges(PATIENT, {
       start: '2026-04-01',
@@ -85,12 +93,12 @@ describe('detectSymptomChanges — change classification', () => {
   });
 
   it('classifies as "worse" when frequency at least doubles in the second half', async () => {
-    mockGetEventsByDateRange.mockResolvedValue([
-      symptomEvent('2026-04-02', 'fatigue'),
-      symptomEvent('2026-04-08', 'fatigue'),
-      symptomEvent('2026-04-09', 'fatigue'),
-      symptomEvent('2026-04-10', 'fatigue'),
-      symptomEvent('2026-04-11', 'fatigue'),
+    mockGetSymptoms.mockResolvedValue([
+      symptomLog('2026-04-02', 'fatigue'),
+      symptomLog('2026-04-08', 'fatigue'),
+      symptomLog('2026-04-09', 'fatigue'),
+      symptomLog('2026-04-10', 'fatigue'),
+      symptomLog('2026-04-11', 'fatigue'),
     ]);
     const result = await detectSymptomChanges(PATIENT, {
       start: '2026-04-01',
@@ -104,12 +112,12 @@ describe('detectSymptomChanges — change classification', () => {
   });
 
   it('classifies as "better" when frequency at least halves in the second half', async () => {
-    mockGetEventsByDateRange.mockResolvedValue([
-      symptomEvent('2026-04-01', 'pain'),
-      symptomEvent('2026-04-02', 'pain'),
-      symptomEvent('2026-04-03', 'pain'),
-      symptomEvent('2026-04-04', 'pain'),
-      symptomEvent('2026-04-12', 'pain'),
+    mockGetSymptoms.mockResolvedValue([
+      symptomLog('2026-04-01', 'pain'),
+      symptomLog('2026-04-02', 'pain'),
+      symptomLog('2026-04-03', 'pain'),
+      symptomLog('2026-04-04', 'pain'),
+      symptomLog('2026-04-12', 'pain'),
     ]);
     const result = await detectSymptomChanges(PATIENT, {
       start: '2026-04-01',
@@ -121,11 +129,11 @@ describe('detectSymptomChanges — change classification', () => {
   });
 
   it('omits symptoms with negligible change (within ±50% of frequency)', async () => {
-    mockGetEventsByDateRange.mockResolvedValue([
-      symptomEvent('2026-04-02', 'sniffle'),
-      symptomEvent('2026-04-04', 'sniffle'),
-      symptomEvent('2026-04-09', 'sniffle'),
-      symptomEvent('2026-04-11', 'sniffle'),
+    mockGetSymptoms.mockResolvedValue([
+      symptomLog('2026-04-02', 'sniffle'),
+      symptomLog('2026-04-04', 'sniffle'),
+      symptomLog('2026-04-09', 'sniffle'),
+      symptomLog('2026-04-11', 'sniffle'),
     ]);
     const result = await detectSymptomChanges(PATIENT, {
       start: '2026-04-01',
@@ -137,8 +145,8 @@ describe('detectSymptomChanges — change classification', () => {
 
 describe('detectSymptomChanges — output shape', () => {
   it('returns at most 5 entries, ordered by magnitude of change', async () => {
-    const evts: any[] = [];
-    // Six "new" symptoms with descending second-half counts to verify ranking
+    const logs: any[] = [];
+    // Six "new" symptoms with descending second-half counts to verify ranking.
     const inputs = [
       { name: 'dizziness', count: 6 },
       { name: 'nausea', count: 5 },
@@ -149,10 +157,10 @@ describe('detectSymptomChanges — output shape', () => {
     ];
     for (const { name, count } of inputs) {
       for (let i = 0; i < count; i++) {
-        evts.push(symptomEvent(`2026-04-${10 + i}`, name));
+        logs.push(symptomLog(`2026-04-${10 + i}`, name));
       }
     }
-    mockGetEventsByDateRange.mockResolvedValue(evts);
+    mockGetSymptoms.mockResolvedValue(logs);
     const result = await detectSymptomChanges(PATIENT, {
       start: '2026-04-01',
       end: '2026-04-14',
@@ -163,9 +171,9 @@ describe('detectSymptomChanges — output shape', () => {
   });
 
   it('briefDescription is a plain-language string', async () => {
-    mockGetEventsByDateRange.mockResolvedValue([
-      symptomEvent('2026-04-09', 'dizziness'),
-      symptomEvent('2026-04-10', 'dizziness'),
+    mockGetSymptoms.mockResolvedValue([
+      symptomLog('2026-04-09', 'dizziness'),
+      symptomLog('2026-04-10', 'dizziness'),
     ]);
     const result = await detectSymptomChanges(PATIENT, {
       start: '2026-04-01',

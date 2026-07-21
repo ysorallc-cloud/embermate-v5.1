@@ -124,10 +124,11 @@ const EVENT_ONLY_READERS_DOCUMENTED = [
   // completed instances.
   'services/hydrationNutrition.ts',
 
-  // Visit Prep symptom progression — reads symptom_reported events.
-  // Symptoms are stored as events (via saveSymptom + emit), so
-  // this is event-pipeline-correct. Listed for completeness.
-  'services/symptomChangeDetection.ts',
+  // (services/symptomChangeDetection.ts REMOVED: it was documented here as an
+  //  event reader on the false premise that "symptoms are stored as events via
+  //  saveSymptom + emit" — saveSymptom writes symptomStorage (SYMPTOMS key), NOT
+  //  events, so the event stream was always empty and symptom progression never
+  //  fired. Repointed to symptomStorage; it's no longer an event-pipeline reader.)
 
   // Visit Prep functional issues — reads multiple event types for
   // accessibility/mobility cues. Most of those event types do not
