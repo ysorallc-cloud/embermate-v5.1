@@ -129,13 +129,18 @@ describe('Caregiver-name dead-key fix — handoff author (care-report)', () => {
     expect((profile?.name ?? '').trim().length).toBeGreaterThan(0);
   });
 
-  it('contract 2b (CARE-REPORT READS THE LIVE PROFILE, NOT THE DEAD KEY): care-report.tsx resolves the author via getCaregiverProfile and no longer reads StorageKeys.CAREGIVER_NAME', () => {
-    // Strip comments so a historical mention of the dead key doesn't
-    // false-trip the pin — we assert on CODE, not prose.
-    const code = readFileSync(join(ROOT, 'app/care-report.tsx'), 'utf8')
-      .replace(/\/\*[\s\S]*?\*\//g, '')
-      .replace(/\/\/[^\n]*/g, '');
-    expect(code).toMatch(/getCaregiverProfile\s*\(/);
+  it('contract 2b (SURVIVING REPORT READS THE LIVE PROFILE, NOT THE DEAD KEY): visit-prep resolves the "Prepared by" author via requireProfileFields and no longer reads StorageKeys.CAREGIVER_NAME', () => {
+    // Retargeted from care-report (retired) to the surviving report that shows a
+    // caregiver author — Visit Prep. It resolves the name via requireProfileFields
+    // (which reads getCaregiverProfile, guarded by contract 2a) and must NOT read
+    // the dead key. Strip comments so a historical mention can't false-trip.
+    const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    const code = strip(readFileSync(join(ROOT, 'app/visit-prep.tsx'), 'utf8'));
+    expect(code).toMatch(/requireProfileFields\s*\(/);
     expect(code).not.toMatch(/StorageKeys\.CAREGIVER_NAME/);
+    // The resolver itself reads the live profile store, not the dead key.
+    const resolver = strip(readFileSync(join(ROOT, 'utils/requireProfileFields.ts'), 'utf8'));
+    expect(resolver).toMatch(/getCaregiverProfile\s*\(/);
+    expect(resolver).not.toMatch(/StorageKeys\.CAREGIVER_NAME/);
   });
 });

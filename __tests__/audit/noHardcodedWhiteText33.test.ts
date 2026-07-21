@@ -65,7 +65,7 @@ const SOURCE_FILES = [...APP_FILES, ...COMP_FILES];
 const WHITELIST: Array<{ path: string; line: number; rationale: string }> = [
   {
     path: 'app/_layout.tsx',
-    line: 427,
+    line: 426,
     rationale: 'lockscreen — Q-33.9 (pure white on lockscreen UI is intentional)',
   },
   {

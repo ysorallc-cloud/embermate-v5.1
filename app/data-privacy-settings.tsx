@@ -418,28 +418,12 @@ export default function DataPrivacySettingsScreen() {
             </Text>
 
             <View style={styles.settingCard}>
-              {/* Export Data */}
-              <TouchableOpacity
-                style={styles.settingRow}
-                onPress={() => router.push('/care-report?scope=today')}
-                activeOpacity={0.7}
-                accessibilityLabel="Export daily report, share a summary with your care team"
-                accessibilityRole="link"
-              >
-                <View style={styles.settingInfo}>
-                  <View style={styles.settingTitleRow}>
-                    <Text style={styles.settingIcon}>📤</Text>
-                    <Text style={styles.settingLabel}>Export daily report</Text>
-                  </View>
-                  <Text style={styles.settingHint}>Share a summary with your care team</Text>
-                </View>
-                <Text style={styles.settingChevron}>›</Text>
-              </TouchableOpacity>
-
+              {/* Care Report "Export daily report" retired — the single-day report
+                  is the Journal Share (Handoff). Data portability lives in
+                  Settings → Backup and restore. */}
               {/* Reset Banner - only show if sample data exists */}
               {sampleDataStatus?.hasSampleData && (
                 <>
-                  <View style={styles.settingDivider} />
                   <TouchableOpacity
                     style={styles.settingRow}
                     onPress={async () => {

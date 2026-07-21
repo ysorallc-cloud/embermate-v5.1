@@ -342,7 +342,6 @@ function RootLayout() {
           <Stack.Screen name="log-evening-wellness" />
           <Stack.Screen name="log-symptom" />
           <Stack.Screen name="log-pain" />
-          <Stack.Screen name="care-report" />
           <Stack.Screen name="provider-prep" />
           <Stack.Screen name="family-sharing" />
           <Stack.Screen name="family-activity" />

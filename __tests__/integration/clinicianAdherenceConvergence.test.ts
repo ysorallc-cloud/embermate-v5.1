@@ -27,7 +27,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { CarePlanItem } from '../../types/carePlan';
 import { seedDeviceState } from './_helpers/seedDeviceState';
-import { generateComprehensiveReport } from '../../utils/reportGenerator';
 import { assembleVisitPrepData, type VisitPrepConfig } from '../../services/visitPrepPdf';
 import { createMedication } from '../../utils/medicationStorage';
 
@@ -84,34 +83,10 @@ describe('Clinician adherence convergence (Fix #1) — canonical source, skipped
     await clearAll();
   });
 
-  describe('care-report Comprehensive Report (generateComprehensiveReport)', () => {
-    // PAST_REF window (2026-06-13..2026-06-20): 6 completed, 2 skipped, 2 missed
-    // = 10 med instances → canonical 6/10 = 60% (skipped + missed count against).
-    // TODAY window (2026-06-21..2026-06-28): 4 completed = 100%.
-    async function seedBothWindows(): Promise<void> {
-      await seedMedDay('2026-06-14', 'completed', 'completed');
-      await seedMedDay('2026-06-15', 'completed', 'completed');
-      await seedMedDay('2026-06-16', 'completed', 'completed'); // 6 completed
-      await seedMedDay('2026-06-17', 'skipped', 'skipped');     // 2 skipped
-      await seedMedDay('2026-06-18', 'missed', 'missed');       // 2 missed
-      await seedMedDay('2026-06-27', 'completed', 'completed');
-      await seedMedDay('2026-06-28', 'completed', 'completed'); // today-block: 4 completed
-    }
-
-    it('overallAdherence equals the canonical instance number for the PAST referenceDate (skipped-against → 60%)', async () => {
-      await seedBothWindows();
-      const report = await generateComprehensiveReport(new Date('2026-06-20T12:00:00'));
-      // RED today: reads m.taken snapshot, ignores instances + the date → not 60.
-      expect(report.medicationAdherence.overallAdherence).toBe(60);
-    });
-
-    it('the SAME data yields a DIFFERENT number for today (100%) — proving it honors the passed date, not "now"', async () => {
-      await seedBothWindows();
-      const report = await generateComprehensiveReport(new Date('2026-06-28T12:00:00'));
-      expect(report.medicationAdherence.overallAdherence).toBe(100);
-    });
-  });
-
+  // NOTE: the Care Report (generateComprehensiveReport) was RETIRED — its
+  // adherence-convergence block was deleted with it. The two surviving clinician
+  // reports are the Handoff (buildCareBrief) and Visit Prep. Adherence
+  // skipped-against + date-honoring are retargeted onto Visit Prep below.
   describe('Visit Prep PDF (assembleVisitPrepData)', () => {
     const CONFIG: VisitPrepConfig = {
       dateRange: { start: '2026-06-10', end: '2026-06-11' },
@@ -137,6 +112,24 @@ describe('Clinician adherence convergence (Fix #1) — canonical source, skipped
       expect(warfarin).toBeDefined();
       // RED today: credits skipped → (2+2)/4 = 100. GREEN: completed-only → 50.
       expect(warfarin!.rate).toBe(50);
+    });
+
+    it('honors the passed dateRange, not "now" — the SAME data yields a different rate for a later all-completed window', async () => {
+      await createMedication({ name: 'Warfarin', dosage: '5mg', time: '08:00', taken: false, active: true } as any);
+      // Two windows on ONE dataset: 06-10/06-11 = 2 completed + 2 skipped;
+      // 06-27/06-28 = 4 completed.
+      await seedMedDay('2026-06-10', 'completed', 'completed');
+      await seedMedDay('2026-06-11', 'skipped', 'skipped');
+      await seedMedDay('2026-06-27', 'completed', 'completed');
+      await seedMedDay('2026-06-28', 'completed', 'completed');
+
+      // The default CONFIG range (06-10..06-11) → 50% (skipped against).
+      const early = await assembleVisitPrepData(CONFIG);
+      expect(early.adherence.find((e) => e.name === 'Warfarin')!.rate).toBe(50);
+
+      // A later range over the same data → 100%, proving the range is honored.
+      const late = await assembleVisitPrepData({ ...CONFIG, dateRange: { start: '2026-06-27', end: '2026-06-28' } });
+      expect(late.adherence.find((e) => e.name === 'Warfarin')!.rate).toBe(100);
     });
   });
 });

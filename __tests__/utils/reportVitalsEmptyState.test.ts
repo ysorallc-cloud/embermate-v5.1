@@ -47,12 +47,8 @@ describe('reportVitals empty-state (fix #2)', () => {
     });
   });
 
-  describe('both report paths use the single shared string', () => {
-    it('care-report.tsx Full export routes vitals through buildVitalsDetails', () => {
-      const src = read('app/care-report.tsx');
-      expect(src).toMatch(/buildVitalsDetails/);
-    });
-
+  describe('the surviving report path uses the single shared string', () => {
+    // (care-report.tsx retired — its Full-export buildVitalsDetails pin removed.)
     it('visitPrepPdf.ts uses NO_VITALS_IN_WINDOW and drops the old per-path string', () => {
       const src = read('services/visitPrepPdf.ts');
       expect(src).toMatch(/NO_VITALS_IN_WINDOW/);

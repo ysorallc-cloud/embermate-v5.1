@@ -175,9 +175,6 @@ jest.mock('../../utils/understandInsights', () => ({
 }));
 
 // ── Storage / utils ────────────────────────────────────────────────────────
-jest.mock('../../utils/providerPrepBuilder', () => ({
-  buildProviderPrep: jest.fn().mockResolvedValue(null),
-}));
 jest.mock('../../utils/vitalsStorage', () => ({
   getVitalsInRange: jest.fn().mockResolvedValue([]),
 }));

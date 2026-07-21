@@ -167,18 +167,9 @@ export default function ReportsHub() {
             </View>
           ))}
 
-          {/* Export All */}
-          <TouchableOpacity style={styles.exportAllButton} onPress={() => navigate('/care-report?scope=full')} accessibilityLabel="Export all reports as PDF package" accessibilityRole="button">
-            <GlassCard style={styles.exportAllCard}>
-              <View style={styles.exportAllContent}>
-                <Text style={styles.exportAllIcon}>📦</Text>
-                <View style={styles.exportAllText}>
-                  <Text style={styles.exportAllTitle}>Export All Reports</Text>
-                  <Text style={styles.exportAllSubtitle}>PDF package for appointments</Text>
-                </View>
-              </View>
-            </GlassCard>
-          </TouchableOpacity>
+          {/* "Export All Reports" (Care Report full-scope PDF) retired — the
+              single-day report is the Journal Share (Handoff); data portability
+              is Settings → Backup and restore. */}
 
           <View style={{ height: 40 }} />
         </ScrollView>

@@ -41,11 +41,10 @@ const SUMMARY_FILES = [
   // EXPORTED PDF is the artifact the provider actually receives, so a threshold
   // verdict in its static HTML template is the same leak as one on a screen.
   'services/visitPrepPdf.ts',
-  // Second report engine: generateComprehensiveReport() feeds the exported
-  // "Care Handoff Report" PDF (app/care-report.tsx handoff scope → summary +
-  // Primary Concerns). It computed its OWN fixed vital cutoffs and emitted
-  // "N vitals out of range" / "Elevated" / "Abnormal". Stripped to fact-only.
-  'utils/reportGenerator.ts',
+  // Retarget (Care Report retired): the Care Report / reportGenerator.ts is gone.
+  // The now-PRIMARY provider-facing artifact is the Handoff PDF (Journal Share).
+  // Guard its exported HTML renderer so a threshold verdict can't leak there.
+  'services/handoffPdf.ts',
 ];
 
 // Verdict tokens AND the tell-tale style/flag names that drive verdict UI.

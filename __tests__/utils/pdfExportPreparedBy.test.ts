@@ -60,17 +60,6 @@ describe('pdfExport — Prepared by line', () => {
   });
 });
 
-describe('care-report — wires caregiverName into the on-screen line + all scope PDFs', () => {
-  const code = readFileSync(join(ROOT, 'app/care-report.tsx'), 'utf8')
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/\/\/[^\n]*/g, '');
-
-  it('contract 5 (ON-SCREEN LINE): renders <ReportPreparedBy caregiverName={caregiverName} />', () => {
-    expect(code).toMatch(/<ReportPreparedBy[^>]*caregiverName=\{caregiverName\}/);
-  });
-
-  it('contract 6 (ALL FOUR SCOPE PDFs): every scope reportData build sets preparedBy: caregiverName (Today/Handoff/VisitPrep/Full)', () => {
-    const matches = code.match(/preparedBy:\s*caregiverName/g) ?? [];
-    expect(matches.length).toBeGreaterThanOrEqual(4);
-  });
-});
+// The care-report scope-PDF source-pins (contracts 5-6) were retired with the
+// Care Report. The pdfExport "Prepared by" mechanism itself stays guarded above;
+// Visit Prep's own "Prepared by {caregiverName}" header is exercised by its suite.

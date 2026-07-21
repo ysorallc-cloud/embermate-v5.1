@@ -1186,12 +1186,10 @@ function capitalize(str: string): string {
 const VALID_ROUTES = new Set([
   '/vitals',
   '/vitals',
-  '/care-report',
   '/(tabs)/now',
   '/(tabs)/journal',
   '/(tabs)/understand',
   '/care-plan',
-  '/care-report',
   '/notification-settings',
   '/medications',
   '/log-note',
