@@ -12,6 +12,7 @@
 // ============================================================================
 
 import { getEventsByDateRange } from '../storage/eventRepo';
+import { getSymptomEventsInRange } from './symptomEvents';
 import { getActivePatientId } from '../storage/patientRegistry';
 import { getReflection } from '../storage/reflectionStorage';
 import { listDailyInstances } from '../storage/carePlanRepo';
@@ -192,12 +193,16 @@ export async function buildDayNarrative(
       x.setDate(x.getDate() - n);
       return x.toISOString().split('T')[0];
     };
-    const [events, instances, reflection, bpBaselineReadings] = await Promise.all([
+    const [dayEvents, instances, reflection, bpBaselineReadings, symptomEvents] = await Promise.all([
       getEventsByDateRange(dateKey, dateKey, patientId),
       listDailyInstances(patientId, dateKey),
       getReflection(dateKey),
       getVitalsInRange(dayOffset(60), dayOffset(1), patientId),
+      // symptom_reported is never in eventRepo — merge the live symptom store so
+      // the symptom count / pill / notable-moments reflect real logged symptoms.
+      getSymptomEventsInRange(patientId, dateKey, dateKey),
     ]);
+    const events = [...dayEvents, ...symptomEvents];
     const bpBaseline = {
       systolic: bpBaselineReadings.filter((r) => r.type === 'systolic').map((r) => r.value),
       diastolic: bpBaselineReadings.filter((r) => r.type === 'diastolic').map((r) => r.value),

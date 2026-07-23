@@ -19,6 +19,7 @@
 
 import { getRangeWithMissingDays, type DailyReflectionPoint } from '../storage/dailyReflectionRepo';
 import { getEventsByDateRange } from '../storage/eventRepo';
+import { getSymptomEventsInRange } from '../utils/symptomEvents';
 import type { CareEvent } from '../types/event';
 import { logError } from '../utils/devLog';
 
@@ -144,6 +145,17 @@ export async function extractFunctionalIssues(
     events = await getEventsByDateRange(range.start, range.end, patientId);
   } catch (err) {
     logError('functionalIssueExtraction.events', err);
+  }
+
+  // symptom_reported is NEVER written to eventRepo (symptoms live in
+  // symptomStorage) — merge the live symptom store in so mobilityIssue sees real
+  // data. (appetiteIssue still reads meal_logged.appetite, which is dormant — no
+  // writer captures appetite; left as-is per the appetite-capture bank.)
+  try {
+    const symptomEvents = await getSymptomEventsInRange(patientId, range.start, range.end);
+    events = [...events, ...symptomEvents];
+  } catch (err) {
+    logError('functionalIssueExtraction.symptoms', err);
   }
 
   const issues: FunctionalIssue[] = [];

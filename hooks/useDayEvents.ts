@@ -10,6 +10,7 @@
 
 import { useEffect, useState } from 'react';
 import { getEventsByDate } from '../storage/eventRepo';
+import { getSymptomEventsInRange } from '../utils/symptomEvents';
 import { getActivePatientId } from '../storage/patientRegistry';
 import { logError } from '../utils/devLog';
 import type { CareEvent } from '../types/event';
@@ -29,9 +30,15 @@ export function useDayEvents(dateKey: string): UseDayEventsValue {
     (async () => {
       try {
         const patientId = await getActivePatientId();
-        const list = await getEventsByDate(dateKey, patientId);
+        // symptom_reported is never written to eventRepo (symptoms live in
+        // symptomStorage) — merge the live symptom store in so the timeline shows
+        // logged symptoms alongside the event-backed rows.
+        const [list, symptomEvents] = await Promise.all([
+          getEventsByDate(dateKey, patientId),
+          getSymptomEventsInRange(patientId, dateKey, dateKey),
+        ]);
         if (cancelled) return;
-        setEvents(list);
+        setEvents([...list, ...symptomEvents]);
       } catch (err) {
         logError('useDayEvents', err);
         if (cancelled) return;

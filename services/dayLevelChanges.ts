@@ -21,6 +21,7 @@ import {
   BASELINE_REQUIREMENTS,
 } from './changeDetectionThresholds';
 import { getEventsByDateRange } from '../storage/eventRepo';
+import { getSymptomEventsInRange } from '../utils/symptomEvents';
 import { getActivePatientId } from '../storage/patientRegistry';
 import { logError } from '../utils/devLog';
 
@@ -324,7 +325,13 @@ export async function detectDayLevelChanges(
   try {
     const patientId = await getActivePatientId();
     const start = addDays(dateKey, -14);
-    const events = await getEventsByDateRange(start, dateKey, patientId);
+    // symptom_reported is never in eventRepo — merge the live symptom store so
+    // detectSymptomsChange (new-symptom detection) sees real logged symptoms.
+    const [eventLog, symptomEvents] = await Promise.all([
+      getEventsByDateRange(start, dateKey, patientId),
+      getSymptomEventsInRange(patientId, start, dateKey),
+    ]);
+    const events = [...eventLog, ...symptomEvents];
 
     const detectors: (DayLevelChange | null)[] = [
       detectVitalsChange(events, dateKey),
