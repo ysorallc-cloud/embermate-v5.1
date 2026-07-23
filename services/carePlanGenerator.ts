@@ -1285,7 +1285,7 @@ async function _ensureDailyInstancesCore(
         // Instance exists - check if we need to mark it as missed
         if (existing.status === 'pending' && !existing.logId) {
           const instanceTime = parseScheduledTime(existing.scheduledTime, date);
-          const endTime = getWindowEndTime(timeWindow, date);
+          const endTime = getWindowEndTime(timeWindow, date, item.type);
 
           // Check if past grace period
           const graceEnd = new Date(endTime.getTime() + MISSED_GRACE_PERIOD_MINUTES * 60 * 1000);
@@ -1469,11 +1469,29 @@ function computeScheduledTime(window: TimeWindow, date: string): string {
 }
 
 /**
- * Get the end time for a window
+ * Get the end time for a window — the boundary the missed-marking grace period
+ * is measured from. This is the WRITER half of the missed-vs-pending authority;
+ * it must agree with the READER (getCareItemStatus.overdueCutoff), or an item
+ * gets persisted 'missed' at a different instant than the screen would derive.
+ *
+ * Medication: due at an exact clock time — its "window end" IS the scheduled
+ *   instant (`at`), matching getCareItemStatus's medication cutoff (scheduled+30
+ *   is measured from the same `at`). Unchanged.
+ * Every other type (vitals/wellness/meals/…): WINDOWED — the boundary is the
+ *   window's end (explicit `window.end`, else the label default), matching
+ *   getCareItemStatus's non-medication cutoff (getDefaultWindowEnd(windowLabel)).
+ *   Pre-fix this branch collapsed exact-kind vitals/wellness/meals to their `at`
+ *   time, so the writer marked an 08:00 morning vitals 'missed' at 10:00
+ *   (at+120) while the reader said due until 12:00 (windowEnd+120) — the
+ *   persisted 'missed' then short-circuited the reader. Now both use windowEnd.
  */
-function getWindowEndTime(window: TimeWindow, date: string): Date {
-  if (window.kind === 'exact' && window.at) {
-    // For exact times, end is same as start
+function getWindowEndTime(
+  window: TimeWindow,
+  date: string,
+  itemType?: CarePlanItem['type'],
+): Date {
+  if (itemType === 'medication' && window.kind === 'exact' && window.at) {
+    // For exact-time medications, end is the scheduled instant itself.
     return new Date(`${date}T${window.at}:00`);
   }
 
