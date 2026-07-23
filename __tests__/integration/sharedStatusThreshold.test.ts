@@ -1,15 +1,17 @@
 // ============================================================================
 // SEAM 4 — shared Now↔Journal status threshold (utils/careItemStatus).
 //
-// One missed-vs-pending rule. DECISION (locked): WINDOWED for meals
-// (windowEnd+120min, Journal's existing boundary); meds/vitals keep +30min
-// (Now's existing boundary, UNCHANGED). Both screens derive row state from
-// getCareItemStatus — no parallel threshold.
+// One missed-vs-pending rule. DECISION (locked, updated by Stage 1 / Option C):
+// WINDOWED for EVERY non-medication type (windowEnd+120min — meals PLUS
+// vitals/wellness); medications alone keep +30min. Both screens derive row
+// state from getCareItemStatus — no parallel threshold.
 //
 // The RED→GREEN is baked into assertions by comparing to the OLD isOverdue(+30)
 // rule: a meal at 1:30pm is 'due' via the helper but WAS 'overdue' under +30
-// (the fix); a med at the same offset matches +30 (meds unchanged = regression
-// check). The Journal-agrees case runs buildCareBrief under a fixed clock.
+// (the fix); a MED at the same offset matches +30 (meds unchanged = regression
+// check). Stage 1 moved vitals off +30 onto the window rule — the vitals block
+// below is retargeted accordingly. The Journal-agrees case runs buildCareBrief
+// under a fixed clock.
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -70,27 +72,38 @@ describe('getCareItemStatus — meals windowed (windowEnd+120min)', () => {
   });
 });
 
-describe('getCareItemStatus — meds/vitals keep +30min (UNCHANGED vs old isOverdue)', () => {
+describe('getCareItemStatus — medications keep +30min; vitals moved onto the window (Stage 1)', () => {
   const med = inst({ itemType: 'medication', itemName: 'Warfarin', scheduledTime: `${DATE}T08:00:00`, windowLabel: 'morning' });
   const vit = inst({ itemType: 'vitals', itemName: 'BP', scheduledTime: `${DATE}T08:00:00`, windowLabel: 'morning' });
 
-  it.each([['medication', med], ['vitals', vit]] as const)('%s: within +30 → due; past +30 → overdue (NOT windowed)', (_t, item) => {
-    // 08:15 = within the 30min grace → due.
-    expect(getCareItemStatus(item, at('08:15'))).toBe('due');
-    // 08:45 = past the 30min grace → overdue. Decisive: morning windowEnd+120
-    // is 12:00, so a WINDOWED item would still be 'due' at 08:45. 'overdue'
-    // here proves meds/vitals use +30min, unchanged from Now's old rule.
-    expect(getCareItemStatus(item, at('08:45'))).toBe('overdue');
+  it('MEDICATION: within +30 → due; past +30 → overdue (UNCHANGED, NOT windowed)', () => {
+    // 08:15 within the 30min grace → due.
+    expect(getCareItemStatus(med, at('08:15'))).toBe('due');
+    // 08:45 past the 30min grace → overdue. Decisive: morning windowEnd+120 is
+    // 12:00, so a WINDOWED item would still be 'due' at 08:45 — 'overdue' here
+    // proves meds keep +30min, unchanged from Now's old rule.
+    expect(getCareItemStatus(med, at('08:45'))).toBe('overdue');
+  });
+
+  it('VITALS: retargeted by Stage 1 — 08:45 (past +30) is now DUE; overdue only past windowEnd+120 (12:00)', () => {
+    // The old rule flipped vitals overdue at 08:30; Stage 1 windows it.
+    expect(getCareItemStatus(vit, at('08:45'))).toBe('due');      // was 'overdue' pre-Stage-1
+    expect(getCareItemStatus(vit, at('11:00'))).toBe('due');      // inside windowEnd+grace
+    expect(getCareItemStatus(vit, at('12:30'))).toBe('overdue');  // past 12:00 cutoff
   });
 });
 
 describe('overdue COUNT predicate — shared by ProgressRings / FlatTimelineFeed / now.tsx', () => {
-  it('at 2:35p: un-logged lunch (due, window→16:00) + un-logged vitals (overdue, 14:00+30) → overdue count = 1 (vitals only)', () => {
-    const lunch = inst({ itemType: 'nutrition', itemName: 'Lunch', scheduledTime: `${DATE}T12:00:00`, windowLabel: 'afternoon', status: 'pending' });
+  it('at 2:35p: un-taken MED (overdue, 14:00+30) + windowed vitals (due, window→16:00) → overdue count = 1 (med only)', () => {
+    // Retargeted for Stage 1: vitals is now windowed, so at 14:35 it is DUE (its
+    // afternoon cutoff is 16:00) — the overdue one has to be the med, which keeps
+    // +30 (14:30 cutoff passed). Confirms the shared predicate still separates a
+    // +30 med from a windowed non-med at the same instant.
+    const med = inst({ itemType: 'medication', itemName: 'Warfarin', scheduledTime: `${DATE}T14:00:00`, windowLabel: 'afternoon', status: 'pending' });
     const vitals = inst({ itemType: 'vitals', itemName: 'BP', scheduledTime: `${DATE}T14:00:00`, windowLabel: 'afternoon', status: 'pending' });
     // The exact predicate the count surfaces use: getCareItemStatus(i) === 'overdue'.
-    const overdueCount = [lunch, vitals].filter(i => getCareItemStatus(i, at('14:35')) === 'overdue').length;
-    expect(overdueCount).toBe(1); // vitals (14:30 cutoff passed); lunch still due until 16:00 — NOT 2
+    const overdueCount = [med, vitals].filter(i => getCareItemStatus(i, at('14:35')) === 'overdue').length;
+    expect(overdueCount).toBe(1); // med (14:30 cutoff passed); vitals still due until 16:00 — NOT 2, NOT 0
   });
 });
 

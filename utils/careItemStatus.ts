@@ -7,12 +7,15 @@
 //   • Journal (instance.status, persisted by carePlanGenerator): windowEnd +
 //     120min — so a meal read OVERDUE on Now while still SCHEDULED on Journal.
 //
-// DECISION (locked with Amber): WINDOWED for meals; meds/vitals keep +30min.
-// Both screens now derive row state from THIS helper — one source of truth.
-//   • nutrition (meals): DUE→OVERDUE boundary = windowEnd + MISSED_GRACE_PERIOD
-//     (Journal's existing window, single-sourced from carePlanGenerator).
-//   • everything else (meds/vitals/etc): scheduledTime + OVERDUE_GRACE_MINUTES
-//     (Now's existing +30min — UNCHANGED, so meds/vitals are a no-op regression).
+// DECISION (locked with Amber): WINDOWED for every non-medication type;
+// medications alone keep +30min. Both screens derive row state from THIS helper
+// — one source of truth.
+//   • non-medication (meals/vitals/wellness/etc): DUE→OVERDUE boundary =
+//     windowEnd(windowLabel) + MISSED_GRACE_PERIOD. A windowed item stays 'due'
+//     until its window ends + grace, not overdue at scheduledTime+30. Meals were
+//     already here; Stage 1 (Option C) extends the SAME rule to vitals/wellness.
+//   • medication: scheduledTime + OVERDUE_GRACE_MINUTES (Now's +30min) — a pill
+//     is due at a specific clock time, not across a window. UNCHANGED.
 //
 // Status DERIVATION only — no store/schema change, no writes. A persisted
 // 'missed' (from carePlanGenerator) maps to 'overdue' so an already-missed
@@ -28,7 +31,9 @@ export type CareItemStatus = 'upcoming' | 'due' | 'overdue' | 'done' | 'skipped'
 // Structural input — accepts a full DailyCareInstance OR any trimmed row type
 // (e.g. MedsBatchPanel's MedInstance, which carries only scheduledTime). Only
 // scheduledTime is required; missing status → treat as pending (compute live),
-// missing itemType → non-nutrition (+30min), windowLabel only read for meals.
+// missing itemType → non-medication (windowed; windowLabel ?? 'afternoon').
+// NOTE: the sole trimmed med caller (MedsBatchPanel) always passes real meds
+// carrying itemType==='medication', so no live +30 input reaches the window path.
 export type CareItemStatusInput =
   Pick<DailyCareInstance, 'scheduledTime'> & {
     status?: DailyInstanceStatus;
@@ -51,14 +56,16 @@ function parseScheduled(instance: { scheduledTime: string; date?: string }): Dat
 
 /**
  * The DUE→OVERDUE cutoff for a pending instance, per the locked per-type rule.
- * Meals: windowEnd(windowLabel) + MISSED_GRACE_PERIOD_MINUTES (Journal's window).
- * Everything else: scheduledTime + OVERDUE_GRACE_MINUTES (Now's +30min).
+ * Non-medication (meals/vitals/wellness/etc): windowEnd(windowLabel) +
+ *   MISSED_GRACE_PERIOD_MINUTES (the window boundary — Stage 1 extends the meal
+ *   rule to every non-med type).
+ * Medication: scheduledTime + OVERDUE_GRACE_MINUTES (Now's +30min).
  */
 function overdueCutoff(instance: CareItemStatusInput, scheduled: Date): Date {
-  if (instance.itemType === 'nutrition') {
+  if (instance.itemType !== 'medication') {
     const endStr = getDefaultWindowEnd(instance.windowLabel ?? 'afternoon'); // 'HH:mm'
     // SEAM 4 hardening (was the banked PART B item): derive windowEnd from the
-    // already-parsed `scheduled` Date — the meal's own calendar day — NOT from a
+    // already-parsed `scheduled` Date — the item's own calendar day — NOT from a
     // separate instance.date field. The prior `new Date(\`${instance.date}T...\`)`
     // silently fell back to scheduledTime+120 (noon lunch → overdue at 14:00)
     // whenever `date` was absent/malformed. `scheduled` is always valid here
