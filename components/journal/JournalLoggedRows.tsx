@@ -49,9 +49,24 @@ export function JournalLoggedRows({ rows }: JournalLoggedRowsProps) {
           >
             <View style={styles.left}>
               <Text style={styles.type}>{r.type}</Text>
+              {/* Med name keeps a clean single line (long bare names still clip
+                  at 1 — correct for names). The appended detail (e.g. med
+                  side-effects "· Nausea, Tired") moved to its OWN dimmer line so
+                  it wraps instead of being swallowed by the name's 1-line clip.
+                  The builder still produces the "· "-prefixed detail; strip the
+                  glyph for the standalone line. */}
               <Text style={styles.name} numberOfLines={1}>
-                {r.detail ? `${r.name} ${r.detail}` : r.name}
+                {r.name}
               </Text>
+              {r.detail ? (
+                <Text
+                  style={styles.detail}
+                  numberOfLines={2}
+                  testID={`journal-log-detail-${r.id}`}
+                >
+                  {r.detail.replace(/^·\s*/, '')}
+                </Text>
+              ) : null}
             </View>
             <Text
               style={[styles.time, { color: rowTimeColor(r.status, colors) }]}
@@ -93,6 +108,14 @@ const createStyles = (c: typeof Colors) =>
     name: {
       fontSize: 15,
       color: c.textPrimary,
+    },
+    // Secondary line for the appended detail (med side-effects). Dimmer than
+    // the name, above the TYPE eyebrow in emphasis — readable clinical context,
+    // not a faint hint.
+    detail: {
+      fontSize: 13,
+      color: c.textSecondary,
+      marginTop: 2,
     },
     time: {
       fontSize: 13,
