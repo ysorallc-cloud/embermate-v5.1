@@ -99,7 +99,7 @@ jest.mock('../../storage/patientRegistry', () => ({
   getActivePatientId: async () => 'default',
 }));
 
-import { initializeSampleData } from '../../utils/sampleDataGenerator';
+import { initializeSampleData, resetSampleData } from '../../utils/sampleDataGenerator';
 import { clearSampleData } from '../../utils/sampleDataManager';
 import {
   getNotesLogs,
@@ -110,7 +110,9 @@ import {
 } from '../../utils/centralStorage';
 import { getSymptoms, saveSymptom } from '../../utils/symptomStorage';
 import { getMedicationLogs } from '../../utils/medicationStorage';
-import { scopedKey, StorageKeys } from '../../utils/storageKeys';
+import { scopedKey, StorageKeys, StorageKeyPrefixes } from '../../utils/storageKeys';
+import { listDailyInstances } from '../../storage/carePlanRepo';
+import { getTodayDateString } from '../../services/carePlanGenerator';
 
 const PID = 'default';
 
@@ -208,5 +210,127 @@ describe('Sample-data residue must not survive clearSampleData() (Cause #1)', ()
     expect(notes.some((n) => n.content === 'MY REAL NOTE — keep this')).toBe(true);
     expect(vitals.some((v) => v.systolic === 118 && v.diastolic === 74)).toBe(true);
     expect(symptoms.some((s) => s.symptom === 'MY REAL SYMPTOM')).toBe(true);
+  });
+});
+
+// ============================================================================
+// SAMPLE-DATA LEAK (Cause #2: DailyCareInstance residue) — "Reload Sample
+// Data" reads as a merge, not a delete.
+//
+// Repro: user taps "Reload Sample Data" (resetSampleData → clearSampleData
+// + re-seed). clearSampleData's instance-clearing step filtered by an
+// id-prefix ('sample-') that DailyCareInstance ids never carry (auto-
+// generated as 'inst-{date}-{itemId}-{windowId}') — so it removed zero
+// instances, ever, for any item type. A stale instance from BEFORE the
+// reset (e.g. a morning vitals check marked 'missed' hours earlier) survives
+// the "clear" and gets reused as-is by ensureDailyInstances' existing-
+// instance match (keyed by itemId:windowId) instead of being regenerated
+// fresh — so a freshly-reset device can still show an item as overdue/missed
+// that a brand-new seed would have written as 'pending'.
+//
+// Fixed by tagging origin:'sample' on DailyCareInstance at creation
+// (instanceOrigin() in carePlanGenerator.ts) — per-item id prefix for
+// medications, the SAMPLE_DATA_INITIALIZED flag for config-driven singleton
+// items (vitals/wellness/meals) that share one 'sync-*' id between sample
+// and real mode. clearSampleData's existing origin-first filter then
+// actually matches, and now also clears SAMPLE_DATA_INITIALIZED itself so
+// every "Start Fresh" surface (not just resetSampleData) exits sample mode.
+// ============================================================================
+
+describe('Sample-data instance residue must not survive resetSampleData() (Cause #2)', () => {
+  const PID = 'default';
+
+  it('a stale pre-reset instance status does not survive "Reload Sample Data" — reset regenerates fresh, it does not merge over it', async () => {
+    await initializeSampleData();
+    const today = getTodayDateString();
+
+    const seeded = await listDailyInstances(PID, today);
+    expect(seeded.length).toBeGreaterThan(0);
+    // Sanity: config-driven singleton items (vitals/wellness/meals) are
+    // correctly origin-tagged even though their CarePlanItem id has no
+    // 'sample-' prefix (they share the 'sync-*' id with real mode).
+    // Wellness (not vitals) — wellness is the one bucket explicitly
+    // "render-anyway", not gated by the born-overdue skip-and-preview
+    // guard (carePlanGenerator.ts ~L1335), so this instance's presence
+    // isn't dependent on what time-of-day the test happens to run.
+    const wellnessInstance = seeded.find((i) => i.itemType === 'wellness');
+    expect(wellnessInstance).toBeDefined();
+    expect(wellnessInstance!.origin).toBe('sample');
+    // Deterministic seed shape (the "naturally mixed day" — see
+    // initializeSampleData's DONE-cluster logic): captured, not assumed,
+    // so this test doesn't hardcode a status the seed generator owns.
+    const deterministicSeedStatus = wellnessInstance!.status;
+
+    // Simulate the real-world staleness: this check went overdue and got
+    // marked 'missed' sometime before the caregiver reset.
+    const instanceKey = `${StorageKeyPrefixes.INSTANCES_V2}${PID}:${today}`;
+    const raw = JSON.parse(store.get(instanceKey)!) as any[];
+    const staleId = wellnessInstance!.id;
+    const corrupted = raw.map((i) => (i.id === staleId ? { ...i, status: 'missed' } : i));
+    store.set(instanceKey, JSON.stringify(corrupted));
+    expect((JSON.parse(store.get(instanceKey)!) as any[]).find((i) => i.id === staleId).status).toBe('missed');
+
+    await resetSampleData();
+
+    const afterReset = await listDailyInstances(PID, today);
+    // Not merged: the pre-reset instance count is what a single fresh
+    // seed produces, not seeded.length + afterReset.length worth of
+    // accumulated duplicates.
+    expect(afterReset.length).toBe(seeded.length);
+
+    const freshWellness = afterReset.find((i) => i.itemType === 'wellness');
+    expect(freshWellness).toBeDefined();
+    // The stale 'missed' status must NOT survive — the instance was
+    // regenerated from the fresh seed shape, not merged over.
+    expect(freshWellness!.status).not.toBe('missed');
+    expect(freshWellness!.status).toBe(deterministicSeedStatus);
+    expect(freshWellness!.origin).toBe('sample');
+  });
+
+  it('clearSampleData alone (not just resetSampleData) removes seeded instances', async () => {
+    await initializeSampleData();
+    const today = getTodayDateString();
+
+    const seeded = await listDailyInstances(PID, today);
+    expect(seeded.length).toBeGreaterThan(0);
+    expect(seeded.some((i) => i.origin === 'sample')).toBe(true);
+
+    await clearSampleData();
+
+    const afterClear = await listDailyInstances(PID, today);
+    expect(afterClear.length).toBe(0);
+  });
+
+  it('preserves a real instance added while nominally in sample mode (per-item origin, not a blanket wipe)', async () => {
+    await initializeSampleData();
+    const today = getTodayDateString();
+
+    // Caregiver logs a real medication of their own — untagged origin,
+    // same shape a real CarePlanItem/instance would take.
+    const instanceKey = `${StorageKeyPrefixes.INSTANCES_V2}${PID}:${today}`;
+    const raw = JSON.parse(store.get(instanceKey)!) as any[];
+    raw.push({
+      id: 'inst-real-med-001',
+      carePlanId: raw[0]?.carePlanId ?? 'plan-1',
+      carePlanItemId: 'my-real-med',
+      patientId: PID,
+      date: today,
+      scheduledTime: new Date().toISOString(),
+      windowLabel: 'morning',
+      windowId: 'my-real-med-window',
+      status: 'pending',
+      itemName: 'MY REAL MEDICATION',
+      itemType: 'medication',
+      priority: 'medium',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    store.set(instanceKey, JSON.stringify(raw));
+
+    await clearSampleData();
+
+    const afterClear = await listDailyInstances(PID, today);
+    expect(afterClear.some((i) => i.id === 'inst-real-med-001')).toBe(true);
+    expect(afterClear.some((i) => i.origin === 'sample')).toBe(false);
   });
 });

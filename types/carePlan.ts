@@ -164,6 +164,11 @@ export interface DailyCareInstance {
   status: DailyInstanceStatus;
   /** Why this instance was skipped — set only when status === 'skipped'. */
   skipReason?: 'refused' | 'too-soon' | 'other';
+  /** Set to 'sample' when generated from a sample-seeded CarePlanItem
+   *  (id prefix 'sample-'), so clearSampleData's origin filter can
+   *  identify and remove it. Undefined for real caregiver items —
+   *  filterSampleFromArray treats missing origin as user data. */
+  origin?: 'sample' | 'user';
   logId?: string;                 // Reference to LogEntry.id when logged
   /** Phase 34 F5.1.1 — soft-delete (hide-not-delete) tombstone for
    *  instances whose windowId is no longer in their item's current

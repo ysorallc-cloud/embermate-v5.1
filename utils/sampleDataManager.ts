@@ -280,7 +280,15 @@ export async function clearSampleData(): Promise<{
       clearedCount += removed;
     }
 
-    // 10. Clear sample daily instances (generated from sample CarePlan items)
+    // 10. Clear sample daily instances (generated from sample CarePlan items).
+    // DailyCareInstance ids are auto-generated ('inst-...'), never
+    // 'sample-' prefixed, so the id-prefix arg below never matched — this
+    // step silently removed zero instances on every clear. Fixed by
+    // tagging origin:'sample' on the instance itself at creation time
+    // (createInstance / instanceOrigin in carePlanGenerator.ts); this loop
+    // now works via filterSampleFromArray's origin check, which runs
+    // before the id-prefix fallback. The 'sample-' arg stays as a
+    // defensive no-op fallback for pre-fix instances that predate the tag.
     const instanceKeys = allKeys.filter(k => k.startsWith(SAMPLE_DATA_KEYS.prefixes.carePlanInstances));
     for (const key of instanceKeys) {
       const removed = await filterSampleFromArray(key, 'sample-');
@@ -349,6 +357,17 @@ export async function clearSampleData(): Promise<{
 
     // 13. Clear correlation cache (will be regenerated)
     await AsyncStorage.removeItem('@correlation_cache');
+
+    // 13b. Exit sample mode — clears the flag ensureDailyInstances reads
+    // (via SAMPLE_DATA_INITIALIZED) to decide whether newly-generated
+    // config-driven instances (vitals/wellness/meals) get origin:'sample'.
+    // Previously only resetSampleData() removed this key; the other five
+    // "Start Fresh" surfaces call clearSampleData() directly and left it
+    // set, so a real instance created afterward would have been
+    // mis-tagged sample. initializeSampleData's own init-guard also reads
+    // this key, so clearing it here additionally lets a subsequent
+    // "Reload Sample Data" re-seed instead of no-op'ing.
+    await AsyncStorage.removeItem(StorageKeys.SAMPLE_DATA_INITIALIZED);
 
     // 13. Mark sample data as cleared
     await safeSetItem(SAMPLE_DATA_KEYS.sampleDataCleared, 'true');

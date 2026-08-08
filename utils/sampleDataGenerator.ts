@@ -806,7 +806,7 @@ export const initializeSampleData = async (): Promise<boolean> => {
     // empty and always shows more than one state.
     try {
       const today = getTodayDateString();
-      const instances = await ensureDailyInstances(DEFAULT_PATIENT_ID, today);
+      const instances = await ensureDailyInstances(DEFAULT_PATIENT_ID, today, { sampleSeeded: true });
 
       let completed = 0;
       for (const inst of instances) {
@@ -848,7 +848,7 @@ export const initializeSampleData = async (): Promise<boolean> => {
         pastDate.setDate(pastDate.getDate() - daysAgo);
         const dateStr = pastDate.toISOString().split('T')[0];
 
-        const pastInstances = await ensureDailyInstances(DEFAULT_PATIENT_ID, dateStr);
+        const pastInstances = await ensureDailyInstances(DEFAULT_PATIENT_ID, dateStr, { sampleSeeded: true });
 
         for (const inst of pastInstances) {
           if (inst.status !== 'pending') continue;

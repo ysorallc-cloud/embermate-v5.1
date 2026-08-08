@@ -1199,7 +1199,8 @@ let _ensureLock: Promise<DailyCareInstance[]> | null = null;
 
 export async function ensureDailyInstances(
   patientId: string = DEFAULT_PATIENT_ID,
-  date: string
+  date: string,
+  opts?: { sampleSeeded?: boolean }
 ): Promise<DailyCareInstance[]> {
   // Serialize calls — if one is in progress, wait for it then run ours.
   // This prevents the race condition where onboarding + Now screen both
@@ -1207,7 +1208,7 @@ export async function ensureDailyInstances(
   if (_ensureLock) {
     await _ensureLock;
   }
-  const work = _ensureDailyInstancesCore(patientId, date);
+  const work = _ensureDailyInstancesCore(patientId, date, opts);
   _ensureLock = work;
   try {
     return await work;
@@ -1218,7 +1219,8 @@ export async function ensureDailyInstances(
 
 async function _ensureDailyInstancesCore(
   patientId: string,
-  date: string
+  date: string,
+  opts?: { sampleSeeded?: boolean }
 ): Promise<DailyCareInstance[]> {
   // 1. Get active care plan — auto-create one if config exists with at least
   // one enabled bucket but no regimen has been provisioned yet. This keeps
@@ -1231,6 +1233,18 @@ async function _ensureDailyInstancesCore(
     }
     carePlan = await createCarePlan(patientId);
   }
+
+  // Gates origin tagging on newly-created instances for config-driven
+  // singleton items (vitals/wellness/meals/etc.), which have no per-item
+  // way to distinguish sample from real — see instanceOrigin() below.
+  // initializeSampleData() passes opts.sampleSeeded explicitly for its
+  // own mid-seed calls (SAMPLE_DATA_INITIALIZED isn't set to 'true'
+  // until the seed finishes). Every other caller (Now-screen mount,
+  // next-day lazy generation, resetSampleData's re-seed) falls back to
+  // the persisted flag — 'true' for the lifetime of an active sample
+  // account, cleared by clearSampleData().
+  const sampleSeeded = opts?.sampleSeeded ??
+    ((await safeGetItem<string | null>(StorageKeys.SAMPLE_DATA_INITIALIZED, null)) === 'true');
 
   // 1.4 Pre-sync cleanup of duplicate items
   const preSyncCleanup = await cleanupDuplicateCarePlanItems(patientId);
@@ -1350,7 +1364,7 @@ async function _ensureDailyInstancesCore(
             continue; // skip this born-past slot for a just-added item
           }
         }
-        const instance = createInstance(item, carePlan, timeWindow, date, scheduledTime);
+        const instance = createInstance(item, carePlan, timeWindow, date, scheduledTime, sampleSeeded);
         newInstances.push(instance);
       }
     }
@@ -1541,6 +1555,30 @@ function parseScheduledTime(scheduledTime: string, date: string): Date {
 // ============================================================================
 
 /**
+ * Origin tag for a newly-created DailyCareInstance, so clearSampleData's
+ * filterSampleFromArray (origin-first, then id-prefix) can identify and
+ * remove sample instances without touching real ones.
+ *
+ *   - Items with a literal 'sample-' id (seeded medications) are
+ *     per-item distinguishable: a real med the caregiver adds while
+ *     still nominally "in sample mode" gets its own non-'sample-' id
+ *     and must NOT be tagged, matching how filterSampleFromArray
+ *     already treats the CarePlanItem array itself.
+ *   - Vitals/wellness/meals/etc. are config-driven SINGLETON items
+ *     ('sync-*' ids, shared verbatim between sample and real mode —
+ *     see syncOtherBucketsWithConfig) with no per-item way to tell
+ *     seeded from real. For these, "sample" is a device-level property:
+ *     whichever config is active when the instance is generated. That's
+ *     exactly what `sample_data_seeded` already gates for
+ *     migrateSampleSeedShape's destructive wipes.
+ */
+function instanceOrigin(item: CarePlanItem, sampleSeeded: boolean): 'sample' | undefined {
+  if (item.id.startsWith('sample-')) return 'sample';
+  if (sampleSeeded && item.id.startsWith('sync-')) return 'sample';
+  return undefined;
+}
+
+/**
  * Create a new DailyCareInstance
  */
 function createInstance(
@@ -1548,7 +1586,8 @@ function createInstance(
   carePlan: CarePlan,
   window: TimeWindow,
   date: string,
-  scheduledTime: string
+  scheduledTime: string,
+  sampleSeeded: boolean
 ): DailyCareInstance {
   const now = new Date().toISOString();
 
@@ -1562,6 +1601,7 @@ function createInstance(
     windowLabel: window.label,
     windowId: window.id,
     status: 'pending',
+    origin: instanceOrigin(item, sampleSeeded),
     generatedFromVersion: carePlan.version,
 
     // Denormalized for display

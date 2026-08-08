@@ -150,7 +150,11 @@ describe('Phase 11.6 — initializeSampleData historical loop wiring', () => {
     // pastInstances per date, then iterating instances and applying the
     // helper's decision.
     expect(SRC).toMatch(/for\s*\(\s*let\s+daysAgo\s*=\s*1;\s*daysAgo\s*<=\s*14/);
-    expect(SRC).toMatch(/ensureDailyInstances\s*\(\s*DEFAULT_PATIENT_ID\s*,\s*dateStr\s*\)/);
+    // sampleSeeded:true is passed explicitly — SAMPLE_DATA_INITIALIZED
+    // isn't set to 'true' until the seed finishes, so origin-tagging
+    // (instanceOrigin in carePlanGenerator.ts) can't rely on reading it
+    // mid-seed for these historical-backfill instances.
+    expect(SRC).toMatch(/ensureDailyInstances\s*\(\s*DEFAULT_PATIENT_ID\s*,\s*dateStr\s*,\s*\{\s*sampleSeeded:\s*true\s*\}\s*\)/);
   });
 
   it('contract 5: idempotency guard at SAMPLE_DATA_INITIALIZED_KEY remains in place', () => {
