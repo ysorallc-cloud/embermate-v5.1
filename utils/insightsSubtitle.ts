@@ -28,6 +28,8 @@
 // modifies provider strings on display.
 // ============================================================================
 
+import { possessive } from './text/possessive';
+
 export interface InsightsSubtitleInputs {
   daysOfData: number;
   patientName: string;
@@ -62,7 +64,7 @@ function defaultSubtitle(daysOfData: number, patientName: string): string {
     return 'Log a few days of meds and mood, and patterns will start to surface.';
   }
   if (daysOfData < 7) {
-    return `Building ${patientName}'s picture — ${daysOfData} day${daysOfData !== 1 ? 's' : ''} in.`;
+    return `Building ${possessive(patientName)} picture — ${daysOfData} day${daysOfData !== 1 ? 's' : ''} in.`;
   }
   if (daysOfData < 30) {
     return `What the last ${daysOfData} days are showing.`;
@@ -78,7 +80,7 @@ export function computeInsightsSubtitle(inp: InsightsSubtitleInputs): string {
     isUsableName(patientName) &&
     isUsableProvider(upcomingAppointment.provider)
   ) {
-    return `For ${patientName}'s visit with ${upcomingAppointment.provider} · ${daysLabel(upcomingAppointment.daysUntil)}`;
+    return `For ${possessive(patientName)} visit with ${upcomingAppointment.provider} · ${daysLabel(upcomingAppointment.daysUntil)}`;
   }
 
   return defaultSubtitle(daysOfData, patientName);

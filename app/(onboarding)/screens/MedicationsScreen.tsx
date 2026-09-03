@@ -22,6 +22,7 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { ONBOARDING_CTA_GRADIENT } from '../../../constants/onboardingTokens';
 import { COMMON_MEDICATIONS, matchMedications, resolveMedDisplayName, TIME_SLOTS, type TimeSlot } from '../../../components/medication/medicationFormHelpers';
 import type { OnboardingMedEntry } from '../../../utils/onboardingMedsWriter';
+import { possessive } from '../../../utils/text/possessive';
 
 export interface MedicationsScreenProps {
   patientName?: string;
@@ -106,7 +107,7 @@ export const MedicationsScreen: React.FC<MedicationsScreenProps> = ({
 
   const heading = patientName ? `What does ${patientName} take?` : 'What medications?';
   const subtitle = patientName
-    ? `Add a few now so ${patientName}'s schedule's ready — you can add more anytime.`
+    ? `Add a few now so ${possessive(patientName)} schedule's ready — you can add more anytime.`
     : `Add a few now so the schedule's ready — you can add more anytime.`;
 
   return (

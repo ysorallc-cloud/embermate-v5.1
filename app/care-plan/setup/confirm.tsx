@@ -35,6 +35,7 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { Spacing, Sizing } from '../../../theme/theme-tokens';
 import { useActivePatientName } from '../../../hooks/useActivePatientName';
+import { possessive } from '../../../utils/text/possessive';
 import {
   BUCKET_TYPES,
   BUCKET_META,
@@ -200,7 +201,7 @@ export default function WizardStepConfirm() {
           </View>
           <Text style={styles.stepLabel}>{'STEP 3 OF 3'}</Text>
 
-          <Text style={styles.headerTitle}>{`Confirm ${patientName}’s plan`}</Text>
+          <Text style={styles.headerTitle}>{`Confirm ${possessive(patientName)} plan`}</Text>
           <Text style={styles.headerSubtitle}>
             {'Tap any to adjust. You can always change later.'}
           </Text>

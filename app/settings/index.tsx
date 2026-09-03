@@ -38,6 +38,7 @@ import { StorageKeys } from '../../utils/storageKeys';
 import { deleteAllUserData } from '../../utils/privacyUtils';
 import { logError } from '../../utils/devLog';
 import { getMedicalInfo } from '../../utils/medicalInfo';
+import { possessive } from '../../utils/text/possessive';
 import {
   isDevModeEnabled,
   setDevModeEnabled,
@@ -219,7 +220,7 @@ export default function SettingsScreen() {
   }, []);
 
   // ── 4-category layout ────────────────────────────────────────────────────
-  const profileTitle = patientNameRaw ? `${patientNameRaw}'s profile` : "Mom's profile";
+  const profileTitle = patientNameRaw ? `${possessive(patientNameRaw)} profile` : "Mom's profile";
 
   const categories: SettingsCategory[] = useMemo(() => [
     {

@@ -10,8 +10,9 @@ import {
   getCurrentTimeMinutes, 
   formatMinutesToTime,
   isToday,
-  isUpcomingToday 
+  isUpcomingToday
 } from './time';
+import { possessive } from './text/possessive';
 
 export interface CarePulseData {
   medications: Medication[];
@@ -155,7 +156,7 @@ export function generateCarePulse(data: CarePulseData): CarePulseResult {
     const dayText = daysUntil === 0 ? 'later today' : daysUntil === 1 ? 'tomorrow' : `in ${daysUntil} days`;
     
     return {
-      message: `${patientName}'s next appointment is ${dayText} with ${nextAppt.provider}.`,
+      message: `${possessive(patientName)} next appointment is ${dayText} with ${nextAppt.provider}.`,
       status: 'calm',
       ctaText: 'View Care Brief →',
       ctaRoute: '/care-report?scope=handoff',

@@ -62,10 +62,11 @@ describe('PatientSwitcherModal — "View Profile" link interpolates the active p
     expect(src).not.toMatch(/<Text[^>]*>View Profile<\/Text>/);
   });
 
-  it('renders "View ${activeName}\'s profile" template', () => {
-    // Either via inline template literal or via a derived variable. Look for
-    // both the leading "View " and the trailing "'s profile" phrasing.
-    expect(src).toMatch(/View \$\{[^}]+\}'s profile|View [^<]*'s profile/);
+  it('renders "View {possessive(activeName)} profile" template', () => {
+    // Either a literal "'s profile" phrasing, or (post possessive-name fix)
+    // routed through the shared possessive() helper so "James'" renders
+    // correctly instead of "James's".
+    expect(src).toMatch(/View \$\{[^}]+\}'s profile|View [^<]*'s profile|View \$\{possessive\([^)]+\)\} profile/);
   });
 
   it('uses the resolved active patient name (matches the Now-tab fallback)', () => {

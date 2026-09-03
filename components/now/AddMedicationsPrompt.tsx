@@ -27,6 +27,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, Fonts, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { navigate } from '../../lib/navigate';
+import { possessive } from '../../utils/text/possessive';
 
 export interface AddMedicationsPromptProps {
   /** config.meds.enabled — the caregiver turned on medication tracking. */
@@ -50,7 +51,7 @@ export const AddMedicationsPrompt: React.FC<AddMedicationsPromptProps> = ({
 
   const trimmedName = patientName?.trim();
   const cta = trimmedName
-    ? `Add ${trimmedName}’s medications →`
+    ? `Add ${possessive(trimmedName)} medications →`
     : 'Add medications →';
 
   const handlePress = () => {
@@ -63,7 +64,7 @@ export const AddMedicationsPrompt: React.FC<AddMedicationsPromptProps> = ({
       accessibilityRole="button"
       accessibilityLabel={
         trimmedName
-          ? `Add ${trimmedName}'s medications`
+          ? `Add ${possessive(trimmedName)} medications`
           : 'Add medications'
       }
       testID="add-medications-prompt"

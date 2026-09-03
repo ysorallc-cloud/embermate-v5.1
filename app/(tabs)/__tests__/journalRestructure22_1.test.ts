@@ -116,8 +116,10 @@ describe('Phase 22.1 — Journal restructured as handoff document', () => {
       // feedBanner style may have been renamed or extracted — accept
       // either the style ref OR the visit-prep banner JSX block. Pin
       // the BUILDING TOWARD copy text which only appears in this
-      // banner's render.
-      const buildingTowardIdx = journalCode.indexOf("'s visit prep for");
+      // banner's render. Post possessive-name fix the literal "'s" is
+      // gone from source (routed through the possessive() helper), so
+      // pin the surrounding text instead.
+      const buildingTowardIdx = journalCode.indexOf('visit prep for');
       expect(notesIdx).toBeGreaterThan(-1);
       expect(buildingTowardIdx).toBeGreaterThan(-1);
       expect(buildingTowardIdx).toBeGreaterThan(notesIdx);

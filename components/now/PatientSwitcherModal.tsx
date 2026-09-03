@@ -19,6 +19,7 @@ import { usePatient } from '../../contexts/PatientContext';
 import { checkFeatureAccess } from '../../utils/featureGate';
 import { navigate } from '../../lib/navigate';
 import { useSampleMode } from '../../hooks/useSampleMode';
+import { possessive } from '../../utils/text/possessive';
 
 interface PatientSwitcherModalProps {
   visible: boolean;
@@ -209,11 +210,11 @@ export function PatientSwitcherModal({ visible, onClose, onManageSample }: Patie
           <TouchableOpacity
             style={styles.profileRow}
             onPress={() => { onClose(); navigate('/patient'); }}
-            accessibilityLabel={`View ${activeName}'s profile`}
+            accessibilityLabel={`View ${possessive(activeName)} profile`}
             accessibilityRole="button"
           >
             <Text style={styles.profileIcon}>{'\uD83D\uDC64'}</Text>
-            <Text style={styles.profileLabel}>{`View ${activeName}'s profile`}</Text>
+            <Text style={styles.profileLabel}>{`View ${possessive(activeName)} profile`}</Text>
             <Text style={styles.profileArrow}>{'\u2192'}</Text>
           </TouchableOpacity>
 

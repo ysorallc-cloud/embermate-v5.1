@@ -53,6 +53,7 @@ import { useActivePatientNameRaw } from '../../hooks/useActivePatientName';
 import { StorageKeys } from '../../utils/storageKeys';
 import { getMedications } from '../../utils/medicationStorage';
 import { journalSubtitle } from '../../utils/journalSubtitle';
+import { possessive } from '../../utils/text/possessive';
 import { hasSampleData } from '../../utils/sampleDataManager';
 import { ReportData } from '../../utils/pdfExport';
 import { DateTabStrip } from '../../components/journal/DateTabStrip';
@@ -1202,10 +1203,10 @@ export default function JournalTab() {
                 onPress={() => navigate('/(tabs)/understand')}
                 activeOpacity={0.7}
                 accessibilityRole="button"
-                accessibilityLabel={`Your entries are building ${patientName}'s visit prep for ${upcomingAppointment.provider}, ${daysUntilAppt} days away`}
+                accessibilityLabel={`Your entries are building ${possessive(patientName)} visit prep for ${upcomingAppointment.provider}, ${daysUntilAppt} days away`}
               >
                 <Text style={s.footerLinkText}>
-                  {`Building toward ${patientName}'s visit prep for ${upcomingAppointment.provider} · ${daysUntilAppt} day${daysUntilAppt === 1 ? '' : 's'}`}
+                  {`Building toward ${possessive(patientName)} visit prep for ${upcomingAppointment.provider} · ${daysUntilAppt} day${daysUntilAppt === 1 ? '' : 's'}`}
                 </Text>
                 <Text style={s.footerLinkArrow}>{'›'}</Text>
               </TouchableOpacity>

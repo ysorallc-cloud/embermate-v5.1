@@ -12,6 +12,7 @@ import { StorageKeys } from '../../utils/storageKeys';
 import { logError } from '../../utils/devLog';
 import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
 import { writePatientName } from '../../utils/patientNameWriter';
+import { possessive } from '../../utils/text/possessive';
 import {
   getMedicalInfo,
   saveMedicalInfo,
@@ -229,7 +230,7 @@ export default function PatientScreen() {
       >
         <SubScreenHeader
           title={displayName}
-          subtitle={`${displayName}'s medical history and details.`}
+          subtitle={`${possessive(displayName)} medical history and details.`}
           rightAction={
             <View style={styles.avatarChip}>
               <Text style={styles.avatarChipText}>

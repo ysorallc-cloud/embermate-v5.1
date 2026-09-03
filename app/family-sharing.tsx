@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useActivePatientName } from '../hooks/useActivePatientName';
+import { possessive } from '../utils/text/possessive';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { useTheme } from '../contexts/ThemeContext';
 import { SubScreenHeader } from '../components/SubScreenHeader';
@@ -67,7 +68,7 @@ export default function FamilySharingScreen() {
       await loadData();
 
       // Share the code
-      const message = `Join ${patientName}'s care team on EmberMate!\n\nYour invite code: ${invite.code}\n\nThis code expires in 7 days.`;
+      const message = `Join ${possessive(patientName)} care team on EmberMate!\n\nYour invite code: ${invite.code}\n\nThis code expires in 7 days.`;
 
       Alert.alert(
         'Invite Code Created',
@@ -91,7 +92,7 @@ export default function FamilySharingScreen() {
   const handleRemoveCaregiver = (caregiver: CaregiverProfile) => {
     Alert.alert(
       'Remove Caregiver?',
-      `${caregiver.name} will lose access to ${patientName}'s care information.`,
+      `${caregiver.name} will lose access to ${possessive(patientName)} care information.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {

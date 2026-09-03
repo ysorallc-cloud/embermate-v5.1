@@ -18,6 +18,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { Spacing, Sizing, Fonts } from '../../theme/theme-tokens';
 import { useFirstRealMode } from '../../hooks/useFirstRealMode';
 import { navigate } from '../../lib/navigate';
+import { possessive } from '../../utils/text/possessive';
 
 export interface WelcomeSummary {
   /** Display name from CARE_PLAN_TEMPLATES; undefined for "Start blank". */
@@ -105,7 +106,7 @@ export function FirstTimeWelcomeCard({
       >
         <Text style={styles.title}>{greeting}</Text>
         <Text style={styles.body}>
-          {`${patientName}’s care plan is set:`}
+          {`${possessive(patientName)} care plan is set:`}
         </Text>
 
         {hasTemplate && (

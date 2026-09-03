@@ -35,6 +35,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Fonts, Spacing } from '../../theme/theme-tokens';
 import { JournalSection } from '../journal/JournalSection';
+import { possessive } from '../../utils/text/possessive';
 
 export interface InsightsEmptyStatePreviewProps {
   daysOfData: number;
@@ -103,7 +104,7 @@ export function InsightsEmptyStatePreview({
     patientName.length > 0 &&
     !PATIENT_FALLBACK_NAMES.has(patientName);
   const watchingSubtitle = usePatientName
-    ? `Once ${patientName}'s data is steady.`
+    ? `Once ${possessive(patientName)} data is steady.`
     : 'Once data is steady.';
 
   return (

@@ -38,6 +38,7 @@ import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Fonts, Spacing } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { ONBOARDING_CTA_GRADIENT } from '../../../constants/onboardingTokens';
+import { possessive } from '../../../utils/text/possessive';
 
 // Post-walk width single-sourcing fix — root style is flex:1 only.
 
@@ -89,7 +90,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
           <View style={styles.topBlock}>
             <Text style={styles.headline}>{`Meet ${name}.`}</Text>
             <Text style={styles.warm}>
-              {`${name}'s care starts here. Log what happens, when it happens — a few taps a day, in your own words.`}
+              {`${possessive(name)} care starts here. Log what happens, when it happens — a few taps a day, in your own words.`}
             </Text>
           </View>
         </View>

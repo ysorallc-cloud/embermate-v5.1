@@ -29,6 +29,7 @@ import { clearSampleData } from '../../utils/sampleDataManager';
 import { emitDataUpdate } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
 import { logError } from '../../utils/devLog';
+import { possessive } from '../../utils/text/possessive';
 
 import { Spacing } from '../../theme/theme-tokens';
 export type ManageSampleFocus = 'setup' | 'remove';
@@ -84,7 +85,7 @@ export function ManageSampleDataSheet({
       // covering registry rename + 'self' marker clear + legacy mirror +
       // event emission. See utils/setUpLovedOneFromSample.ts.
       await setUpLovedOneFromSample(trimmed);
-      setSuccessMessage(`Welcome — ${trimmed}'s profile is ready.`);
+      setSuccessMessage(`Welcome — ${possessive(trimmed)} profile is ready.`);
       setMode('success');
       // Phase 5.13.f — after the success state, hand off to the wizard
       // step 1 with the appropriate entry-source token. The sheet closes

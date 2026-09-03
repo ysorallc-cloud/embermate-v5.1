@@ -16,6 +16,7 @@
 // ============================================================================
 
 import { LOVED_ONE_FALLBACK } from './lovedOneFallback';
+import { possessive } from './text/possessive';
 
 export interface JournalSubtitleInput {
   /** Patient display name. Empty / whitespace falls back to the canonical
@@ -53,32 +54,32 @@ export function journalSubtitle(input: JournalSubtitleInput): string {
   const now = input.now ?? new Date();
   const trimmed = (input.name ?? '').trim();
   const display = trimmed.length > 0 ? trimmed : NAME_FALLBACK;
-  const possessive = `${display}'s`;
+  const displayPossessive = possessive(display);
 
   if (input.pastDate) {
     const weekday = input.pastDate.toLocaleDateString('en-US', { weekday: 'long' });
     const md = input.pastDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    return `${possessive} day · ${weekday}, ${md}`;
+    return `${displayPossessive} day · ${weekday}, ${md}`;
   }
 
   const hour = now.getHours();
 
   if (hour < 12) {
-    return `${possessive} day, in progress.`;
+    return `${displayPossessive} day, in progress.`;
   }
 
   if (hour < 18) {
-    return `${possessive} day so far.`;
+    return `${displayPossessive} day so far.`;
   }
 
   // 6 PM and later
   if (input.dayDone) {
-    return `${possessive} day · wrapping up`;
+    return `${displayPossessive} day · wrapping up`;
   }
 
   if (input.lastEventAt) {
-    return `${possessive} day so far · ${formatTimeOfDay(input.lastEventAt)}`;
+    return `${displayPossessive} day so far · ${formatTimeOfDay(input.lastEventAt)}`;
   }
 
-  return `${possessive} day so far.`;
+  return `${displayPossessive} day so far.`;
 }

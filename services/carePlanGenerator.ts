@@ -51,6 +51,7 @@ import {
   WINDOW_LABEL_TO_WELLNESS_PERIOD,
 } from '../types/wellnessSettings';
 import { StorageKeys } from '../utils/storageKeys';
+import { possessive } from '../utils/text/possessive';
 
 // Phase 34 NOT.B3 — wellness fire-time resolver. Single source of
 // truth used at all three wellness sync sites (Pass B sync-wellness
@@ -1086,7 +1087,7 @@ export async function syncOtherBucketsWithConfig(
             id: syncId,
             carePlanId,
             type: 'shift' as any,
-            name: `${sc.caregiverName}'s shift`,
+            name: `${possessive(sc.caregiverName)} shift`,
             instructions: `${sc.startTime} – ${sc.endTime}`,
             priority: 'recommended',
             active: true,
