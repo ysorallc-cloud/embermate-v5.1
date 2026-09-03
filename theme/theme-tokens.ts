@@ -273,17 +273,38 @@ const DarkColors = {
   // solid hex so the apparent color stays constant across page-bg / glass
   // / youCardSurface and contrast is deterministic. textSecondary doubles
   // as the eyebrow color and must clear 4.5:1 AA on the LIGHTEST card
-  // surface (glass #26302a — the worst case). The sage #8b958c landed at
-  // 4.40 there (under AA); nudged lighter to #949e94 → 4.92:1 on glass
-  // (also 6.37 on bg #141a16, 5.94 on sheet #19211b), still well below
+  // surface it actually renders on. The sage #8b958c landed at 4.40 on
+  // glass #26302a (under AA); nudged to #949e94 → 4.92:1 on glass (also
+  // 6.37 on bg #141a16, 5.94 on sheet #19211b). WCAG-AA-4.5 pass (2026-09)
+  // found surfaceElevated (#2e3a32) is actually LIGHTER than glass — the
+  // "glass is the worst case" premise above was wrong — and #949e94 only
+  // cleared 4.29:1 there. Nudged once more to #98a298 → 4.50 on
+  // surfaceElevated, 5.17 on glass, 6.69 on bg. Still well below
   // textPrimary so the secondary hierarchy holds.
-  textSecondary: '#949e94',
-  textTertiary: '#5e685f',
+  textSecondary: '#98a298',
+  // WCAG-AA-4.5 pass (2026-09) — #5e685f measured 3.05:1 on the page bg
+  // (#141a16) and worse on every card surface (2.05-2.84:1), well under
+  // the 4.5:1 AA floor for real text (this token backs timestamps,
+  // captions, and secondary labels across ~100 consumer files). Lightened
+  // to #89988b, same methodology as textSecondary above (clear 4.5:1 on
+  // the common card surfaces: 4.50 on glass #26302a, 5.83 on bg, 5.43 on
+  // sheet #19211b) while staying meaningfully darker than textSecondary
+  // (#98a298) so the primary/secondary/tertiary hierarchy still reads.
+  // Two rarer, lighter surfaces (surfaceElevated #2e3a32 at 3.92,
+  // warmSurface #32352b at ~4.3) remain just under 4.5 for this token —
+  // closing that gap fully would require brightening tertiary to within
+  // a hair of secondary, collapsing the hierarchy the app relies on
+  // elsewhere. Flagged, not forced; revisit if device review shows those
+  // surfaces are a common tertiary-text host, not an edge case.
+  textTertiary: '#89988b',
   textSoft: 'rgba(255, 255, 255, 0.42)',
   // Phase 33 F1a — flipped from rgba(255,255,255,0.48) to website's solid
   // `--text-muted: #5e685f`. The alpha-on-white form blended with surface
   // hue (subtly cooler on warm bg); the solid hex is hue-stable.
-  textMuted: '#5e685f',
+  // WCAG-AA-4.5 pass (2026-09) — same fix as textTertiary above (shares
+  // its hex and the same failure); both tokens back the same visual
+  // "muted" role under different names.
+  textMuted: '#89988b',
   textDisabled: 'rgba(255, 255, 255, 0.28)',
   textHalf: 'rgba(255, 255, 255, 0.42)',
   textPlaceholder: 'rgba(255, 255, 255, 0.35)',
@@ -345,13 +366,28 @@ const DarkColors = {
   // ── Warm text ──
   textWarmPrimary: '#e0e8f0',
   textWarmSecondary: '#b0b8c0',
-  textWarmMuted: '#6a7a8a',
-  textWarmHint: '#4a5a6a',
-  textWarmDim: '#3a4a5a',
+  // WCAG-AA-4.5 pass (2026-09) — textWarmMuted/Hint/Dim measured 3.10 /
+  // 1.92 / 1.50 on glass #26302a (worse on the page bg's darker
+  // surfaces are fine, but these three render on cards too — Journal
+  // status text, calendar labels, visit-prep provenance lines, wellness
+  // log labels/placeholders). All three lightened to clear 4.5:1 on
+  // glass. Three independently-legible tiers below textWarmSecondary
+  // (8.80:1) don't fit in the room available above the AA floor without
+  // brightening past it — Hint and Dim land close to Muted as a result.
+  // Most of Hint/Dim's real estate is placeholder text (lower stakes),
+  // but Dim also backs a couple of persisted labels (ReflectionPrompt's
+  // timestamp + privacy line), so it needed the same floor, not an
+  // exemption.
+  textWarmMuted: '#8397ab',
+  textWarmHint: '#7c97b2',
+  textWarmDim: '#7798b8',
   textAlertLabel: '#e0a84e',
   textAlertPrimary: '#e0d8c8',
   textAlertSecondary: '#a09880',
-  textAlertHint: '#8a7a5a',
+  // WCAG-AA-4.5 pass (2026-09) — #8a7a5a measured 3.26:1 on glass
+  // (single live consumer: JournalFlagged.tsx). Lightened to clear
+  // 4.5:1 on glass (4.52), 5.84 on bg.
+  textAlertHint: '#a6926c',
   // Phase 33 F1a — flipped to website's `--text-bright: #fff4d6`
   // (emphasis cream, slightly brighter than the #edf0ea base text).
   // Q-33.11 lock: the alpha-on-white shape was an accident of the old
@@ -598,8 +634,14 @@ export const Typography = {
     fontSize: 15,
     fontWeight: '400' as const,
   },
+  // Type-size-floor pass (2026-09) — bumped 14 → 15 to clear the body-text
+  // floor. Now identical in size to `body` above (both 15px); the two
+  // tokens differ in name only until a follow-up design pass decides
+  // whether bodySmall should retire or gain its own distinguishing
+  // treatment (weight/letter-spacing) instead of a smaller fontSize. Low
+  // blast radius — 3 direct consumers at the time of this pass.
   bodySmall: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '400' as const,
   },
 
@@ -613,14 +655,17 @@ export const Typography = {
     fontWeight: '400' as const,
   },
 
-  // Captions
+  // Captions — type-size-floor pass (2026-09): both bumped to the 12px
+  // floor (were 11 / 10). Now the same size; caption keeps its heavier
+  // weight (600) + wider letter-spacing (2) vs captionSmall (500 / 1) as
+  // the remaining distinction.
   caption: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600' as const,
     letterSpacing: 2,
   },
   captionSmall: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '500' as const,
     letterSpacing: 1,
   },

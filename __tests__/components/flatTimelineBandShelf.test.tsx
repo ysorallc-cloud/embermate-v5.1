@@ -151,12 +151,14 @@ describe('FlatTimelineFeed — shelf isolation cues', () => {
     expect(findAll(band, (n) => n?.props?.testID === 'band-rule-morning').length).toBe(1);
   });
 
-  it('band label typography is UNCHANGED — TypeScale.micro (9/1.8/700)', () => {
+  it('band label typography is UNCHANGED — TypeScale.micro (12/1.8/700)', () => {
     // Non-regression: the fix must not shrink or de-emphasize the label.
+    // fontSize bumped 9 -> 12 in the type-size-floor pass (2026-09);
+    // letterSpacing/fontWeight are the unchanged part of this pin.
     const band = findAll(tree, (n) => n?.props?.testID === 'band-morning')[0];
     const label = findAll(band, (n) => n?.type === 'Text' && textOf(n) === 'MORNING')[0];
     const s = styleOf(label);
-    expect(s.fontSize).toBe(9);
+    expect(s.fontSize).toBe(12);
     expect(s.letterSpacing).toBe(1.8);
     expect(s.fontWeight).toBe('700');
   });

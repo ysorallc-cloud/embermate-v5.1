@@ -51,23 +51,29 @@ export const ROW_V = 15;
  *  color. Brand font + theme color are owned by the consumer so a
  *  surface can render the same size on either Source Serif 4 or the
  *  system sans without re-routing through this module. */
+// Type-size-floor pass (2026-09) — body was 13px (under the 15px body-text
+// floor); secondary and micro were 11 / 9px (under the general 12px floor).
+// All three bumped: body → 15, secondary → 12, micro → 12. micro keeps its
+// strong letter-spacing + 700 weight as the thing that reads it as a
+// system label rather than body copy, now that size alone no longer does
+// that job as much.
 export const TypeScale = {
   /** Zone or screen title. 24px. */
   title: {
     fontSize: 24,
   },
-  /** Default body copy. 13px. */
+  /** Default body copy. 15px. */
   body: {
-    fontSize: 13,
+    fontSize: 15,
   },
-  /** Secondary metadata — counts, sub-rows, timestamps. 11px. */
+  /** Secondary metadata — counts, sub-rows, timestamps. 12px. */
   secondary: {
-    fontSize: 11,
+    fontSize: 12,
   },
-  /** Micro eyebrow label. 9px with strong letter-spacing + 700 weight
+  /** Micro eyebrow label. 12px with strong letter-spacing + 700 weight
    *  so it reads as a section/system label, not body copy. */
   micro: {
-    fontSize: 9,
+    fontSize: 12,
     letterSpacing: 1.8,
     fontWeight: '700' as const,
   },

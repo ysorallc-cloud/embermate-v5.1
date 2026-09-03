@@ -116,9 +116,13 @@ export type SubCardStatus = keyof typeof SubCardStatusColors;
 /**
  * Typography for sub-cards
  */
+// Type-size-floor pass (2026-09) — label (was 10) and roleLabel (was 8)
+// bumped to the 12px floor. Both now the same size as subtitle; the
+// uppercase/letter-spacing treatment on label and the badge padding on
+// roleLabel remain the visual differentiators.
 export const SubCardTypography = {
   label: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '600' as const,
     letterSpacing: 0.5,
     textTransform: 'uppercase' as const,
@@ -132,7 +136,7 @@ export const SubCardTypography = {
     fontWeight: '400' as const,
   },
   roleLabel: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '600' as const,
     letterSpacing: 0.5,
     paddingHorizontal: 4,

@@ -51,12 +51,14 @@ describe('Theme tokens — locked dark surfaces', () => {
 });
 
 describe('Theme tokens — locked text colors (solid hex for deterministic contrast)', () => {
-  it('textSecondary is the bright warm muted #949e94 (eyebrow + secondary copy)', () => {
-    expect(dark.textSecondary).toBe('#949e94');
+  // WCAG-AA-4.5 pass (2026-09) — see theme/theme-tokens.ts inline comments
+  // for the contrast math superseding these locked values.
+  it('textSecondary is the bright warm muted #98a298 (eyebrow + secondary copy)', () => {
+    expect(dark.textSecondary).toBe('#98a298');
   });
 
-  it('textTertiary is the lower-priority hint #5e685f', () => {
-    expect(dark.textTertiary).toBe('#5e685f');
+  it('textTertiary is the lower-priority hint #89988b', () => {
+    expect(dark.textTertiary).toBe('#89988b');
   });
 
   it('text colors are solid hex, not rgba — so apparent color does not shift between glass and page', () => {

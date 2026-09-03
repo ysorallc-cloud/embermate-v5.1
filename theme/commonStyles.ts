@@ -36,7 +36,7 @@ export const createCommonStyles = (c: typeof Colors) => StyleSheet.create({
   },
 
   headerLabel: {
-    fontSize: 11,
+    fontSize: 12, // type-size-floor pass (2026-09) — was 11
     color: c.textMuted,
     letterSpacing: 1,
     fontWeight: '600',
@@ -123,7 +123,7 @@ export const createCommonStyles = (c: typeof Colors) => StyleSheet.create({
 
   // SECTION HEADERS
   sectionTitle: {
-    fontSize: 11,
+    fontSize: 12, // type-size-floor pass (2026-09) — was 11
     fontWeight: '700',
     letterSpacing: 1.5,
     textTransform: 'uppercase',

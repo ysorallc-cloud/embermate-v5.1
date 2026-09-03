@@ -53,16 +53,24 @@ describe('themeTokens33 — F1a color value flips', () => {
     expect(dark.textBright).toBe('#fff4d6');
   });
 
-  it('textMuted = #5e685f (website --text-muted, solid hex)', () => {
-    expect(dark.textMuted).toBe('#5e685f');
+  // WCAG-AA-4.5 pass (2026-09) superseded the website source-of-truth
+  // value pinned here: #5e685f measured 3.05:1 against the page bg (and
+  // worse against card surfaces) — under the 4.5:1 AA floor for real
+  // text. textMuted/textTertiary lightened to #89988b; textSecondary
+  // nudged from #949e94 to #98a298 (a second, narrower gap found on
+  // surfaceElevated, which turned out lighter than the `glass` surface
+  // textSecondary was originally calibrated against). See
+  // theme/theme-tokens.ts inline comments for the full contrast math.
+  it('textMuted = #89988b (WCAG-AA-4.5 pass, 2026-09 — supersedes website --text-muted #5e685f)', () => {
+    expect(dark.textMuted).toBe('#89988b');
   });
 
-  it('textSecondary = #949e94 (website --text-secondary, unchanged pre-Phase-33)', () => {
-    expect(dark.textSecondary).toBe('#949e94');
+  it('textSecondary = #98a298 (WCAG-AA-4.5 pass, 2026-09 — supersedes website --text-secondary #949e94)', () => {
+    expect(dark.textSecondary).toBe('#98a298');
   });
 
-  it('textTertiary = #5e685f (website --text-tertiary, unchanged pre-Phase-33)', () => {
-    expect(dark.textTertiary).toBe('#5e685f');
+  it('textTertiary = #89988b (WCAG-AA-4.5 pass, 2026-09 — supersedes website --text-tertiary #5e685f)', () => {
+    expect(dark.textTertiary).toBe('#89988b');
   });
 
   it('glassStrong = rgba(255, 255, 255, 0.18) (website --border-strong RGB-aligned)', () => {
