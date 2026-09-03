@@ -4,6 +4,8 @@
 // =============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem } from '../safeStorage';
+import { isEncryptedFormat } from '../secureStorage';
 
 import {
   restoreLegacyBackup,
@@ -40,19 +42,21 @@ describe('Task 2.5: Legacy v1 backup restore', () => {
     const success = await restoreLegacyBackup(sampleBackup);
     expect(success).toBe(true);
 
-    // Verify medications were stored
-    const meds = await AsyncStorage.getItem('@embermate_medications');
-    expect(meds).not.toBeNull();
-    expect(JSON.parse(meds!)).toEqual(sampleBackup.data.medications);
+    // Medications and appointments are sensitive keys — encryption-bypass
+    // fix routes them through setSecureItem, so they're no longer raw
+    // JSON on disk. Read back via the encrypted primitive instead of raw
+    // AsyncStorage + JSON.parse (see the dedicated
+    // "Sensitive-key encryption on restore" describe block below for the
+    // on-disk ciphertext-format assertion).
+    const meds = await safeGetItem('@embermate_medications', null);
+    expect(meds).toEqual(sampleBackup.data.medications);
 
-    // Verify appointments were stored
-    const appts = await AsyncStorage.getItem('@embermate_appointments');
-    expect(appts).not.toBeNull();
-    expect(JSON.parse(appts!)).toEqual(sampleBackup.data.appointments);
+    const appts = await safeGetItem('@embermate_appointments', null);
+    expect(appts).toEqual(sampleBackup.data.appointments);
 
-    // Verify patient info keys
-    const patientName = await AsyncStorage.getItem('@embermate_patient_name');
-    expect(patientName).toBe(JSON.stringify('Alice'));
+    // Verify patient info keys (also sensitive — same as above)
+    const patientName = await safeGetItem('@embermate_patient_name', null);
+    expect(patientName).toBe('Alice');
 
     // Verify careTeam
     const team = await AsyncStorage.getItem('@embermate_care_team');
@@ -86,6 +90,84 @@ describe('Task 2.5: Legacy v1 backup restore', () => {
     };
     const success = await restoreLegacyBackup(minimal);
     expect(success).toBe(true);
+  });
+
+  // ============================================================================
+  // Encryption-bypass fix (Sept 2026 audit finding) — restoreLegacyBackup()
+  // wrote medications/appointments/patient-name back via raw
+  // AsyncStorage.multiSet, bypassing the encrypted-storage layer every other
+  // write path (including restoreEncryptedBackup, the sibling restore in
+  // this same file) uses for those exact keys.
+  // ============================================================================
+  describe('Sensitive-key encryption on restore (encryption-bypass fix)', () => {
+    const sensitiveBackup: BackupData = {
+      version: '1.0.0',
+      timestamp: '2025-06-15T12:00:00.000Z',
+      data: {
+        medications: [{ id: '1', name: 'Warfarin', dosage: '5mg' }],
+        medicationLogs: [],
+        appointments: [{ id: 'appt1', provider: 'Dr. Chen', date: '2025-07-01' }],
+        patientInfo: {
+          '@embermate_patient_name': 'Dorothy',
+        },
+        careTeam: [],
+        caregivers: [],
+        settings: {},
+      },
+    };
+
+    // NOTE on this test: secureStorage's decrypt path has a deliberate
+    // "soft passthrough" for values that are NOT recognized ciphertext (the
+    // encrypt-pii migration contract, for un-migrated bare-string
+    // plaintext) — so a sensitive key written as raw plaintext JSON is
+    // STILL readable via safeGetItem today, bug or no bug. This assertion
+    // is a real regression guard but does NOT discriminate red/green on
+    // its own; the next test (raw storage format) is the one that proves
+    // the fix, since it does not touch the read-side leniency at all.
+    it('sensitive keys are readable via the encrypted read primitive after restore', async () => {
+      const success = await restoreLegacyBackup(sensitiveBackup);
+      expect(success).toBe(true);
+
+      const meds = await safeGetItem('@embermate_medications', null);
+      expect(meds).toEqual(sensitiveBackup.data.medications);
+
+      const appts = await safeGetItem('@embermate_appointments', null);
+      expect(appts).toEqual(sensitiveBackup.data.appointments);
+
+      const patientName = await safeGetItem('@embermate_patient_name', null);
+      expect(patientName).toBe('Dorothy');
+    });
+
+    // THE discriminating test — RED before the fix (raw AsyncStorage read
+    // returns plain JSON, isEncryptedFormat === false), GREEN after (the
+    // sensitive-key branch routes through setSecureItem, so the raw bytes
+    // on disk are v3:iv:ciphertext:tag).
+    it('sensitive keys are stored as ciphertext on disk, not plaintext', async () => {
+      await restoreLegacyBackup(sensitiveBackup);
+
+      for (const key of [
+        '@embermate_medications',
+        '@embermate_appointments',
+        '@embermate_patient_name',
+      ]) {
+        const raw = await AsyncStorage.getItem(key);
+        expect(raw).not.toBeNull();
+        expect(isEncryptedFormat(raw!)).toBe(true);
+      }
+    });
+
+    it('non-sensitive keys stay plaintext on disk (unaffected by the fix)', async () => {
+      const backupWithSettings: BackupData = {
+        ...sensitiveBackup,
+        data: { ...sensitiveBackup.data, settings: { '@embermate_theme': 'dark' } },
+      };
+      await restoreLegacyBackup(backupWithSettings);
+
+      const raw = await AsyncStorage.getItem('@embermate_theme');
+      expect(raw).not.toBeNull();
+      expect(isEncryptedFormat(raw!)).toBe(false);
+      expect(JSON.parse(raw!)).toBe('dark');
+    });
   });
 
   describe('isBackupEncrypted', () => {

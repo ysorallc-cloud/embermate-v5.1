@@ -886,7 +886,17 @@ async function createLegacyBackup(): Promise<BackupData | null> {
 }
 
 /**
- * Restore data from a plain v1 BackupData object
+ * Restore data from a plain v1 BackupData object.
+ *
+ * Encryption-bypass fix (Sept 2026 audit finding): this used to write every
+ * key back via raw AsyncStorage.multiSet, bypassing the encrypted-storage
+ * layer that every other write path — including restoreEncryptedBackup
+ * just above, the sibling restore in this same file — routes sensitive
+ * keys through. A caregiver restoring a legacy backup was silently
+ * un-encrypting data (medications, appointments, patient name) that every
+ * other code path encrypts. Fixed by routing each key through the same
+ * isSensitiveKey / setSecureItem / safeSetItem pattern restoreEncryptedBackup
+ * already uses, one key at a time — no more raw AsyncStorage.multiSet.
  */
 export async function restoreLegacyBackup(backup: BackupData): Promise<boolean> {
   try {
@@ -894,57 +904,65 @@ export async function restoreLegacyBackup(backup: BackupData): Promise<boolean> 
       return false;
     }
 
-    const storageOperations: Array<[string, string]> = [];
+    const storageOperations: Array<[string, unknown]> = [];
 
     if (backup.data.medications?.length) {
       storageOperations.push([
         LEGACY_STORAGE_KEYS.medications,
-        JSON.stringify(backup.data.medications),
+        backup.data.medications,
       ]);
     }
 
     if (backup.data.medicationLogs?.length) {
       storageOperations.push([
         LEGACY_STORAGE_KEYS.medicationLogs,
-        JSON.stringify(backup.data.medicationLogs),
+        backup.data.medicationLogs,
       ]);
     }
 
     if (backup.data.appointments?.length) {
       storageOperations.push([
         LEGACY_STORAGE_KEYS.appointments,
-        JSON.stringify(backup.data.appointments),
+        backup.data.appointments,
       ]);
     }
 
     if (backup.data.patientInfo && Object.keys(backup.data.patientInfo).length > 0) {
       Object.entries(backup.data.patientInfo).forEach(([key, value]) => {
-        storageOperations.push([key, JSON.stringify(value)]);
+        storageOperations.push([key, value]);
       });
     }
 
     if (backup.data.careTeam?.length) {
       storageOperations.push([
         LEGACY_STORAGE_KEYS.careTeam,
-        JSON.stringify(backup.data.careTeam),
+        backup.data.careTeam,
       ]);
     }
 
     if (backup.data.caregivers?.length) {
       storageOperations.push([
         LEGACY_STORAGE_KEYS.caregivers,
-        JSON.stringify(backup.data.caregivers),
+        backup.data.caregivers,
       ]);
     }
 
     if (backup.data.settings && Object.keys(backup.data.settings).length > 0) {
       Object.entries(backup.data.settings).forEach(([key, value]) => {
-        storageOperations.push([key, JSON.stringify(value)]);
+        storageOperations.push([key, value]);
       });
     }
 
-    if (storageOperations.length > 0) {
-      await AsyncStorage.multiSet(storageOperations);
+    // Same pattern as restoreEncryptedBackup above: sensitive keys re-encrypt
+    // via setSecureItem, everything else goes through safeSetItem. Individual
+    // writes, not a batched multiSet — safeSetItem/setSecureItem don't have a
+    // tested batched form.
+    for (const [key, value] of storageOperations) {
+      if (isSensitiveKey(key)) {
+        await setSecureItem(key, value);
+      } else {
+        await safeSetItem(key, value);
+      }
     }
 
     return true;
