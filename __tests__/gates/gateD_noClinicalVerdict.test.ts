@@ -45,6 +45,13 @@ const SUMMARY_FILES = [
   // The now-PRIMARY provider-facing artifact is the Handoff PDF (Journal Share).
   // Guard its exported HTML renderer so a threshold verdict can't leak there.
   'services/handoffPdf.ts',
+  // careSummaryBuilder feeds the CareBrief interpretations (medications /
+  // vitals / nutrition) that the Journal status card and share flows read
+  // from — a provider-adjacent summary, not just the exported reports. Its
+  // directive-language cleanup (removed "monitor glucose closely" /
+  // "encourage more fluids" style advice in favor of neutral, factual
+  // observations) is guarded here so it can't regress unnoticed.
+  'utils/careSummaryBuilder.ts',
 ];
 
 // Verdict tokens AND the tell-tale style/flag names that drive verdict UI.

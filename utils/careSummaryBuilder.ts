@@ -954,16 +954,18 @@ export async function buildCareBrief(targetDate?: string): Promise<CareBrief> {
   }
 
   // Nutrition: flag when hydration is low, with or without a diabetes
-  // condition on record. (The former poor-appetite branches read
-  // lastMeal.appetite, a field no writer has ever populated — dead code,
-  // removed with the appetite half-feature. See
-  // project_appetite_dormant_half_feature memory.)
+  // condition on record. Neutral/observational per the Gate D stance — states
+  // the logged count and, when relevant, a general fact about the
+  // relationship to blood sugar; does not instruct the caregiver to act.
+  // (The former poor-appetite branches read lastMeal.appetite, a field no
+  // writer has ever populated — dead code, removed with the appetite
+  // half-feature. See project_appetite_dormant_half_feature memory.)
   const hasDiabetes = activeDiagnoses.some(d => d.toLowerCase().includes('diabet'));
   const lowHydration = hydration.logged && hydration.glasses != null && hydration.glasses < 4;
   if (lowHydration && hasDiabetes) {
-    interpretations.nutrition = `Only ${hydration.glasses} glasses of water logged with a diabetes diagnosis. Dehydration can affect blood sugar levels — encourage more fluids.`;
+    interpretations.nutrition = `Only ${hydration.glasses} glasses of water logged today, with a diabetes diagnosis on record. Dehydration can affect blood sugar levels.`;
   } else if (lowHydration) {
-    interpretations.nutrition = `Only ${hydration.glasses} glasses of water logged today. Encourage more fluids, especially if medications require adequate hydration.`;
+    interpretations.nutrition = `Only ${hydration.glasses} glasses of water logged today.`;
   }
 
   // --- Handoff Narrative (conversational summary for care transitions) ---
