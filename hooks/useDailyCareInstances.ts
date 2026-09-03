@@ -18,7 +18,6 @@ import {
   listDailyInstances,
   getDailySchedule,
   logInstanceCompletion,
-  updateDailyInstanceStatus,
   DEFAULT_PATIENT_ID,
 } from '../storage/carePlanRepo';
 import {
@@ -80,7 +79,6 @@ export interface UseDailyCareInstancesReturn {
     notes?: string
   ) => Promise<{ instance: DailyCareInstance; log: LogEntry } | null>;
   skipInstance: (instanceId: string, notes?: string) => Promise<void>;
-  markMissed: (instanceId: string) => Promise<void>;
 
   // Convenience
   getInstanceById: (instanceId: string) => DailyCareInstance | undefined;
@@ -381,19 +379,6 @@ export function useDailyCareInstances(
   }, [patientId, targetDate]);
 
   /**
-   * Mark an instance as missed
-   */
-  const markMissed = useCallback(async (instanceId: string) => {
-    try {
-      await updateDailyInstanceStatus(patientId, targetDate, instanceId, 'missed');
-      emitDataUpdate(EVENT.DAILY_INSTANCES);
-    } catch (err) {
-      logError('useDailyCareInstances.markMissed', err);
-      throw err;
-    }
-  }, [patientId, targetDate]);
-
-  /**
    * Get instance by ID
    */
   const getInstanceById = useCallback((instanceId: string): DailyCareInstance | undefined => {
@@ -422,7 +407,6 @@ export function useDailyCareInstances(
     refresh: loadInstances,
     completeInstance,
     skipInstance,
-    markMissed,
     getInstanceById,
     getInstancesForWindow,
     getCurrentWindowInstances,

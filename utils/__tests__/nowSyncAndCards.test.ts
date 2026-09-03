@@ -75,18 +75,10 @@ describe('S2: useDailyCareInstances emits events', () => {
 
   test('skipInstance emits EVENT.DAILY_INSTANCES', () => {
     const skipMatch = dailyInstancesSrc.match(
-      /const skipInstance[\s\S]*?(?=const markMissed)/
+      /const skipInstance[\s\S]*?(?=const getInstanceById)/
     );
     expect(skipMatch).not.toBeNull();
     expect(skipMatch![0]).toContain('emitDataUpdate(EVENT.DAILY_INSTANCES)');
-  });
-
-  test('markMissed emits EVENT.DAILY_INSTANCES', () => {
-    const missedMatch = dailyInstancesSrc.match(
-      /const markMissed[\s\S]*?(?=const getInstanceById)/
-    );
-    expect(missedMatch).not.toBeNull();
-    expect(missedMatch![0]).toContain('emitDataUpdate(EVENT.DAILY_INSTANCES)');
   });
 });
 

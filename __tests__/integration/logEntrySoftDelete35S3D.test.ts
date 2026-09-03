@@ -106,6 +106,11 @@ describe('Phase 35 Slice 3-D — LogEntry soft-delete write→read INTEGRATION r
   beforeEach(async () => {
     await clearAll();
   });
+  afterEach(() => {
+    // No-op for tests that never faked timers; restores real time for
+    // rt-4, which pins its own clock (see that test's comment).
+    jest.useRealTimers();
+  });
 
   it('rt-1 (CORE SOFT-DELETE): tombstoneLogEntry(logId) writes deletedAt onto the persisted LogEntry; raw storage RETAINS the entry (hide-not-delete)', async () => {
     // The bottom-layer primitive. After tombstoning, the entry must
@@ -319,6 +324,28 @@ describe('Phase 35 Slice 3-D — LogEntry soft-delete write→read INTEGRATION r
   });
 
   it('rt-4 (INSTANCE REVERTS): undoInstanceCompletion soft-deletes the linked LogEntry, clears instance.logId, AND reverts instance.status to "pending" — three changes, one canonical call', async () => {
+    // Pinned clock (stale-status-write-class closeout, PART A follow-up):
+    // makeInstance() bakes scheduledTime '08:00' anchored to DATE
+    // (2026-06-04), and this test previously ran on real wall-clock time
+    // with no pin. undoInstanceCompletion used to write 'pending'
+    // unconditionally — the only reason this assertion passed regardless
+    // of how long ago DATE was relative to whenever the suite ran.
+    // Post-fix, undoing this instance's first-ever act (no prior log)
+    // recomputes what it would be RIGHT NOW via getCareItemStatus (see
+    // undoRestoresPriorStatus.test.ts case 4 — deliberately "at undo
+    // time"), and a medication scheduled months in the past genuinely
+    // reads 'missed'. Pin the clock to just after the scheduled time so
+    // this test stays about the three-changes-one-call unification
+    // contract it's actually named for, not entangled with staleness.
+    jest.useFakeTimers({
+      doNotFake: [
+        'nextTick', 'queueMicrotask', 'setImmediate', 'clearImmediate',
+        'setInterval', 'clearInterval', 'setTimeout', 'clearTimeout',
+        'requestAnimationFrame', 'cancelAnimationFrame',
+        'requestIdleCallback', 'cancelIdleCallback', 'hrtime', 'performance',
+      ],
+    });
+    jest.setSystemTime(new Date(`${DATE}T08:15:00`));
     // The unification contract. Pre-3-D the codebase had TWO undo
     // paths with divergent semantics:
     //   • handleQuickLog / handleQuickSkip → undoInstanceCompletion

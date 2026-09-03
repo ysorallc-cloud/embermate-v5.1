@@ -84,6 +84,11 @@ describe('Item 2 — custom medication time persists through the generator to th
   beforeEach(async () => {
     await clearAll();
   });
+  afterEach(() => {
+    // No-op for tests that never faked timers; restores real time for
+    // rt-2, which pins its own clock (see that test's comment).
+    jest.useRealTimers();
+  });
 
   it('rt-1 (CREATE honors custom time — control): a NEW med with scheduledTimeHHmm 08:37 schedules the instance at 08:37', async () => {
     await seedMedsOnly();
@@ -108,6 +113,32 @@ describe('Item 2 — custom medication time persists through the generator to th
   });
 
   it('rt-2 (EDIT — THE BUG): changing an existing med from 08:00 to custom 08:37 re-times the daily instance', async () => {
+    // Pinned clock (NOT.B3 missed-clobber fix follow-up): this test's DATE
+    // (2026-07-02) is a fixed past date with no clock control, so real
+    // wall-clock "now" is always long past both the 08:00 and 08:37
+    // exact+grace(120min) cutoffs. Pre-fix, the second ensureDailyInstances
+    // call's missed-check and staleness-refresh BOTH fired — the refresh's
+    // stale-'pending' spread clobbered the missed-check's write, which is
+    // the only reason the instance ended up 'pending' at the fresh 08:37
+    // time. Post-fix, a genuinely-past-grace instance correctly resolves
+    // to 'missed' and (correctly) skips the now-moot time refresh — this
+    // test's actual subject (does an edit's time reconcile to the
+    // instance) needs a clock that keeps the instance inside its grace
+    // window so it isn't entangled with missed-check timing.
+    jest.useFakeTimers({
+      doNotFake: [
+        'nextTick', 'queueMicrotask', 'setImmediate', 'clearImmediate',
+        'setInterval', 'clearInterval', 'setTimeout', 'clearTimeout',
+        'requestAnimationFrame', 'cancelAnimationFrame',
+        'requestIdleCallback', 'cancelIdleCallback', 'hrtime', 'performance',
+      ],
+    });
+    // Before BOTH scheduled times (08:00, 08:37) — also keeps the
+    // born-overdue guard's createdAt-vs-scheduled check from skipping the
+    // first (create) generation, since DATE now equals "today" once the
+    // clock is pinned onto it.
+    jest.setSystemTime(new Date(`${DATE}T07:00:00`));
+
     await seedMedsOnly();
     const med = await addMedicationToPlan(DEFAULT_PATIENT_ID, {
       name: 'Atorvastatin',

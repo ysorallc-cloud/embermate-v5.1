@@ -265,6 +265,12 @@ beforeEach(async () => {
   });
 });
 
+afterEach(() => {
+  // No-op for tests that never faked timers; restores real time for
+  // contract 6, which pins its own clock (see that test's comment).
+  jest.useRealTimers();
+});
+
 describe('Phase 34 NOT.B3 — wellness fire-time wiring (sync ladder reads wellnessSettings.time)', () => {
   it('contract 1 (PRIMARY device-facing): morning.time set → wellness Notifications.scheduleNotificationAsync trigger.date matches morning.time (B1 + B3 composed)', async () => {
     // RED today: Pass C creates item with at:TIME_OF_DAY_DEFAULTS.morning
@@ -449,6 +455,32 @@ describe('Phase 34 NOT.B3 — wellness fire-time wiring (sync ladder reads welln
     // windowId is skipped on regeneration (carePlanGenerator.ts:1194).
     // Today's instance keeps its stale scheduledTime. Post-B3:
     // instance is refreshed when the item's time changes.
+    //
+    // Pinned clock (NOT.B3 missed-clobber fix follow-up): this test seeds
+    // a PENDING wellness instance for TODAY and previously ran on real
+    // wall-clock time. A 'morning'-labeled wellness item's missed cutoff
+    // is windowEnd(10:00)+grace(120min)=12:00 regardless of the specific
+    // `at` value — so whenever this suite happened to run after noon
+    // local time, the seeded instance was ALREADY genuinely past-grace by
+    // the time ensureDailyInstances ran. Pre-fix, the staleness-refresh
+    // blindly overwrote status back to 'pending' with a fresh time
+    // regardless of missed-eligibility (the exact NOT.B3 clobber bug),
+    // which is the only reason this assertion passed at any time of day.
+    // Post-fix, an instance that's genuinely missed this pass correctly
+    // skips the refresh (see notB3MissedClobber.test.ts) — there's no
+    // more "fire at the old time" to protect against. Pin the clock to a
+    // time inside the grace window so THIS test stays about the refresh
+    // mechanism in isolation, not entangled with time-of-day.
+    jest.useFakeTimers({
+      doNotFake: [
+        'nextTick', 'queueMicrotask', 'setImmediate', 'clearImmediate',
+        'setInterval', 'clearInterval', 'setTimeout', 'clearTimeout',
+        'requestAnimationFrame', 'cancelAnimationFrame',
+        'requestIdleCallback', 'cancelIdleCallback', 'hrtime', 'performance',
+      ],
+    });
+    jest.setSystemTime(new Date(`${TODAY}T09:00:00`));
+
     await setWellnessSettings({
       morning: {
         enabled: true,

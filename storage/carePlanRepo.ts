@@ -9,6 +9,17 @@ import { generateUniqueId } from '../utils/idGenerator';
 import { emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
 import { withKeyLock } from '../utils/keyLock';
+import { logWarning } from '../utils/devLog';
+// getCareItemStatus previously created a real circular import
+// (carePlanRepo -> careItemStatus -> carePlanGenerator -> carePlanRepo,
+// since careItemStatus pulled MISSED_GRACE_PERIOD_MINUTES/getDefaultWindowEnd
+// from carePlanGenerator). Closed by extracting those two into the leaf
+// module utils/careWindowRules.ts (no imports from carePlanGenerator or
+// carePlanRepo) — careItemStatus now imports from there instead. Reused
+// deliberately per the "derivation over more persisted state" preference —
+// recomputes the missed-vs-pending boundary from the SAME rule Now/Journal
+// already use, instead of introducing a second, driftable source of truth.
+import { getCareItemStatus } from '../utils/careItemStatus';
 import {
   CarePlan,
   CarePlanItem,
@@ -250,13 +261,103 @@ export async function getDailyInstance(
   return instances.find(i => i.id === instanceId) || null;
 }
 
+// ============================================================================
+// STALE-STATUS-WRITE-CLASS CLOSEOUT — PART B write-boundary guard.
+//
+// NOT.B3 (carePlanGenerator.ts) was the 4th manifestation of one root
+// cause: a write decided from a stale snapshot clobbers a fresher acted
+// status back to 'pending'. That fix closed ONE caller. This guard closes
+// the CLASS, at the only two primitives that can overwrite status on an
+// existing instance ID — updateDailyInstanceStatus and upsertDailyInstances
+// — so a future caller can't reintroduce the same bug shape undetected.
+//
+// INVARIANT: no write may transition an instance from an acted status
+// (completed | skipped | partial | missed) back to 'pending', except via
+// an explicitly authorized undo path ({ reason: 'undo' } — a narrow,
+// intentional opt-in, not a boolean bypass or an ambient flag a future
+// caller could accidentally inherit).
+//
+// FAILURE SEMANTICS — both, deliberately:
+//   - Auto-correct: preserve the acted status (+ its logId/skipReason,
+//     which are semantically PART of that status, not independent
+//     fields), while still applying every OTHER field the write intended
+//     (scheduledTime, etc.) — mirrors what the NOT.B3 fix already does
+//     deliberately in carePlanGenerator.ts. A caregiver must never lose
+//     a legitimate field update to this guard, only the illegal part of
+//     the write.
+//   - Loud: logWarning always (dev console + Sentry in production), and
+//     throw when __DEV__ so the offending caller surfaces in tests/dev
+//     immediately, instead of a silent auto-correct reaching production
+//     unnoticed — which is exactly how this class reached NOT.B3 (a 4th
+//     occurrence nobody caught until a caregiver-visible symptom).
+// ============================================================================
+
+const ACTED_STATUSES: ReadonlySet<DailyCareInstance['status']> = new Set([
+  'completed', 'skipped', 'partial', 'missed',
+]);
+
+interface GuardResult {
+  value: DailyCareInstance;
+  blockedStatus: DailyCareInstance['status'] | null;
+}
+
+/**
+ * Applies the write-boundary guard to a single instance write. `current` is
+ * the freshly-read persisted record (read under the same lock as the write,
+ * per PART C); `next` is the fully-formed object the caller wants to
+ * persist. Returns the object that should actually be written — `next`
+ * unchanged when the write is legitimate, or `next` with the status triad
+ * reset to `current`'s values when it isn't — PLUS whether it was blocked,
+ * so the caller can persist first and throw only after the write succeeds
+ * (never skip a legitimate write in the same batch to raise the alarm).
+ */
+function guardPendingRegression(
+  current: DailyCareInstance,
+  next: DailyCareInstance,
+  opts?: { reason?: 'undo' },
+): GuardResult {
+  const isUnauthorizedPendingRegression =
+    opts?.reason !== 'undo' &&
+    ACTED_STATUSES.has(current.status) &&
+    next.status === 'pending';
+
+  if (!isUnauthorizedPendingRegression) return { value: next, blockedStatus: null };
+
+  const corrected: DailyCareInstance = {
+    ...next,
+    status: current.status,
+    logId: current.logId,
+    skipReason: current.skipReason,
+  };
+
+  logWarning(
+    'carePlanRepo.guardPendingRegression',
+    `Blocked an unauthorized ${current.status} -> pending write on instance ${current.id}. Status preserved; other fields in the write still applied.`,
+  );
+
+  return { value: corrected, blockedStatus: current.status };
+}
+
+/** Throws in dev/test once the guarded write has actually persisted —
+ *  never before, so a blocked field never costs the batch its legitimate
+ *  writes. Both effects always happen together: data is safe either way;
+ *  __DEV__ additionally surfaces the offending caller immediately. */
+function throwIfBlockedInDev(blockedStatus: DailyCareInstance['status'] | null, instanceId: string): void {
+  if (blockedStatus && __DEV__) {
+    throw new Error(
+      `carePlanRepo: blocked an unauthorized ${blockedStatus} -> pending write on instance ${instanceId} (pass { reason: 'undo' } if this is a genuine undo)`,
+    );
+  }
+}
+
 /**
  * Bulk upsert daily instances
  */
 export async function upsertDailyInstances(
   patientId: string,
   date: string,
-  instances: DailyCareInstance[]
+  instances: DailyCareInstance[],
+  opts?: { reason?: 'undo' },
 ): Promise<DailyCareInstance[]> {
   const lockKey = KEYS.DAILY_INSTANCES(patientId, date);
   return withKeyLock(lockKey, async () => {
@@ -270,14 +371,25 @@ export async function upsertDailyInstances(
     const existingMap = new Map(existing.map(i => [i.id, i]));
 
     const result: DailyCareInstance[] = [];
+    // First blocked write in this batch, if any — thrown AFTER the batch
+    // persists (see throwIfBlockedInDev), so one bad item in a bulk call
+    // never costs its siblings their legitimate writes.
+    let firstBlocked: { status: DailyCareInstance['status']; id: string } | null = null;
 
     for (const instance of instances) {
       const existingInstance = existingMap.get(instance.id);
-      const updatedInstance: DailyCareInstance = {
+      let updatedInstance: DailyCareInstance = {
         ...instance,
         updatedAt: now,
         createdAt: existingInstance?.createdAt || now,
       };
+      if (existingInstance) {
+        const guarded = guardPendingRegression(existingInstance, updatedInstance, opts);
+        updatedInstance = guarded.value;
+        if (guarded.blockedStatus && !firstBlocked) {
+          firstBlocked = { status: guarded.blockedStatus, id: instance.id };
+        }
+      }
       existingMap.set(instance.id, updatedInstance);
       result.push(updatedInstance);
     }
@@ -289,7 +401,57 @@ export async function upsertDailyInstances(
     await updateInstanceIndex(patientId, date);
 
     emitDataUpdate(EVENT.DAILY_INSTANCES);
+    if (firstBlocked) throwIfBlockedInDev(firstBlocked.status, firstBlocked.id);
     return result;
+  });
+}
+
+/**
+ * PART C of the stale-status-write-class closeout. Read-decide-write for a
+ * SINGLE existing instance, entirely inside the key lock.
+ *
+ * ensureDailyInstances's per-window loop used to read existingInstances
+ * ONCE at the top of the function, then decide a status (missed-check /
+ * staleness-refresh) and write per instance further down. withKeyLock
+ * serialized the physical writes, but not the DECISION — it was made from
+ * a snapshot taken before any lock was ever held. A caregiver write
+ * (logInstanceCompletion) landing against the same instance after that
+ * snapshot but before the pass's write could be stomped by a decision that
+ * never saw it (triage-A: discards the caregiver's own logged action).
+ *
+ * `reviser` receives the FRESHLY re-read current record — read inside this
+ * function's own lock, not the caller's stale copy — and returns the
+ * fields to change, or `null` for "no change, skip the write" (keeps the
+ * NOT.B3 property: one decision, one write per instance per pass, never
+ * a write when nothing actually changed).
+ */
+export async function reviseDailyInstance(
+  patientId: string,
+  date: string,
+  instanceId: string,
+  reviser: (current: DailyCareInstance) => Partial<DailyCareInstance> | null,
+): Promise<DailyCareInstance | null> {
+  const lockKey = KEYS.DAILY_INSTANCES(patientId, date);
+  return withKeyLock(lockKey, async () => {
+    const instances = await listDailyInstances(patientId, date, { includeDeactivated: true });
+    const index = instances.findIndex(i => i.id === instanceId);
+    if (index === -1) return null;
+
+    const current = instances[index];
+    const changes = reviser(current);
+    if (!changes) return current;
+
+    const now = new Date().toISOString();
+    let next: DailyCareInstance = { ...current, ...changes, updatedAt: now };
+
+    const guarded = guardPendingRegression(current, next);
+    next = guarded.value;
+    instances[index] = next;
+
+    const ok = await safeSetItem(KEYS.DAILY_INSTANCES(patientId, date), instances);
+    if (ok) emitDataUpdate(EVENT.DAILY_INSTANCES);
+    if (guarded.blockedStatus) throwIfBlockedInDev(guarded.blockedStatus, instanceId);
+    return instances[index];
   });
 }
 
@@ -303,6 +465,7 @@ export async function updateDailyInstanceStatus(
   status: DailyCareInstance['status'],
   logId?: string,
   skipReason?: DailyCareInstance['skipReason'],
+  opts?: { reason?: 'undo' },
 ): Promise<DailyCareInstance | null> {
   const lockKey = KEYS.DAILY_INSTANCES(patientId, date);
   return withKeyLock(lockKey, async () => {
@@ -323,7 +486,7 @@ export async function updateDailyInstanceStatus(
     if (index === -1) return null;
 
     const now = new Date().toISOString();
-    const next: DailyCareInstance = {
+    let next: DailyCareInstance = {
       ...instances[index],
       status,
       logId,
@@ -336,10 +499,14 @@ export async function updateDailyInstanceStatus(
     } else {
       delete next.skipReason;
     }
+
+    const guarded = guardPendingRegression(instances[index], next, opts);
+    next = guarded.value;
     instances[index] = next;
 
     const ok = await safeSetItem(KEYS.DAILY_INSTANCES(patientId, date), instances);
     if (ok) emitDataUpdate(EVENT.DAILY_INSTANCES);
+    if (guarded.blockedStatus) throwIfBlockedInDev(guarded.blockedStatus, instanceId);
     return instances[index];
   });
 }
@@ -623,6 +790,17 @@ async function updateLogIndex(patientId: string, date: string): Promise<void> {
 // COMBINED OPERATIONS
 // ============================================================================
 
+/** Shared LogOutcome -> DailyCareInstance.status mapping. Used by
+ *  logInstanceCompletion, resurrectLogEntry, and undoInstanceCompletion's
+ *  prior-log restoration — one map, not three independent copies. */
+const LOG_OUTCOME_TO_INSTANCE_STATUS: Record<LogOutcome, DailyCareInstance['status']> = {
+  taken: 'completed',
+  completed: 'completed',
+  skipped: 'skipped',
+  partial: 'partial',
+  missed: 'missed',
+};
+
 /**
  * Log completion of a daily instance
  */
@@ -662,19 +840,11 @@ export async function logInstanceCompletion(
   });
 
   // Update the instance
-  const statusMap: Record<LogOutcome, DailyCareInstance['status']> = {
-    taken: 'completed',
-    completed: 'completed',
-    skipped: 'skipped',
-    partial: 'partial',
-    missed: 'missed',
-  };
-
   const updatedInstance = await updateDailyInstanceStatus(
     patientId,
     date,
     instanceId,
-    statusMap[outcome],
+    LOG_OUTCOME_TO_INSTANCE_STATUS[outcome],
     log.id,
     skipReason,
   );
@@ -691,10 +861,30 @@ export async function logInstanceCompletion(
  *   1. Soft-delete (tombstone) the linked LogEntry via tombstoneLogEntry
  *      — hide-not-delete preserved; audit trail accessible via
  *      `{ includeDeleted: true }` opt-in on the bottom-layer reads.
- *   2. Clear instance.logId (the chevron / View-Note affordance reads
- *      naturally drop the now-tombstoned log).
- *   3. Revert instance.status to 'pending' (the Now-tab row returns
- *      to its pre-confirm state, eligible for re-confirm).
+ *   2. Restore instance.logId / .status / .skipReason to the PRIOR TRUTH —
+ *      not a blanket reset to 'pending'.
+ *
+ * PRODUCT RULING (stale-status-write-class closeout, PART A): undo restores
+ * the prior truth; it does not erase it. An instance that was MISSED before
+ * a late completion reverts to missed, not pending. Two sources for "prior
+ * truth", tried in order:
+ *
+ *   a) A PRIOR non-deleted LogEntry for this same instance (dailyInstanceId),
+ *      older than the one being undone — e.g. the caregiver skipped it, then
+ *      later re-logged a completion over that skip; undoing the completion
+ *      restores the skip (status + skipReason) via that earlier log, not a
+ *      fresh derivation. This is the only way 'skipped' can be restored —
+ *      it isn't time-derivable the way missed/pending are.
+ *   b) No prior log exists (this was the very first action ever taken on
+ *      the instance — completed straight from 'pending' or from a
+ *      SYSTEM-marked 'missed', which never creates a LogEntry). Recompute
+ *      what the instance's status would be RIGHT NOW via getCareItemStatus
+ *      — the same rule Now/Journal already use to derive missed-vs-pending
+ *      — rather than persisting a separate priorStatus field. Deliberately
+ *      evaluated AT UNDO TIME, not at the moment the completion happened:
+ *      an on-time completion undone days later must read missed now (the
+ *      window is long gone), not resurrect as a stale 'pending' that the
+ *      very next generation pass would just re-mark missed anyway.
  *
  * Pre-3-D this fn HARD-deleted the LogEntry via deleteLogEntry and
  * the Now-tab handleQuickConfirm path used a separate flow (Phase-1D
@@ -718,17 +908,59 @@ export async function undoInstanceCompletion(
   if (!instance) return null;
 
   const logId = instance.logId;
+
+  // Look for an earlier log on this same instance BEFORE tombstoning the
+  // current one, so the read isn't entangled with the write it's about to
+  // affect. `!log.deletedAt` default filter is correct here — an
+  // already-tombstoned older log (e.g. from a prior undo cycle) isn't a
+  // valid "prior truth" to restore.
+  const priorLog = (await listLogsByDate(patientId, date))
+    .filter((l) => l.dailyInstanceId === instanceId && l.id !== logId)
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp))[0];
+
   if (logId) {
     await tombstoneLogEntry(patientId, date, logId);
   }
 
+  let targetStatus: DailyCareInstance['status'];
+  let targetLogId: string | undefined;
+  let targetSkipReason: DailyCareInstance['skipReason'];
+
+  if (priorLog) {
+    targetStatus = LOG_OUTCOME_TO_INSTANCE_STATUS[priorLog.outcome];
+    targetLogId = priorLog.id;
+    targetSkipReason = priorLog.outcome === 'skipped' ? priorLog.skipReason : undefined;
+  } else {
+    // status omitted deliberately below — getCareItemStatus short-circuits
+    // on a caregiver-acted status (the CURRENT 'completed'/'skipped' we're
+    // in the middle of undoing); omitting it forces the live-derive branch.
+    const derived = getCareItemStatus(
+      {
+        scheduledTime: instance.scheduledTime,
+        itemType: instance.itemType,
+        windowLabel: instance.windowLabel,
+        date: instance.date,
+      },
+      new Date(),
+    );
+    targetStatus = derived === 'overdue' ? 'missed' : 'pending';
+    targetLogId = undefined;
+    targetSkipReason = undefined;
+  }
+
+  // Authorized undo path — PART B's write-boundary guard would otherwise
+  // block this exact write whenever targetStatus resolves to 'pending'
+  // over a currently-acted status. This is the ONLY caller entitled to
+  // pass { reason: 'undo' }, and only with the status THIS function just
+  // computed above (case a/b) — never an arbitrary caller-supplied value.
   const reverted = await updateDailyInstanceStatus(
     patientId,
     date,
     instanceId,
-    'pending',
-    undefined,
-    undefined,
+    targetStatus,
+    targetLogId,
+    targetSkipReason,
+    { reason: 'undo' },
   );
 
   return reverted;
@@ -793,14 +1025,7 @@ export async function resurrectLogEntry(
   if (!restored.log) return null;
 
   const log = restored.log;
-  const statusMap: Record<LogOutcome, DailyCareInstance['status']> = {
-    taken: 'completed',
-    completed: 'completed',
-    skipped: 'skipped',
-    partial: 'partial',
-    missed: 'missed',
-  };
-  const restoredStatus = statusMap[log.outcome];
+  const restoredStatus = LOG_OUTCOME_TO_INSTANCE_STATUS[log.outcome];
 
   const updatedInstance = log.dailyInstanceId
     ? await updateDailyInstanceStatus(

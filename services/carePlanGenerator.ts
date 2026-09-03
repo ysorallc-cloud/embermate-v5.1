@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { devLog, logError } from '../utils/devLog';
+import { MISSED_GRACE_PERIOD_MINUTES, getDefaultWindowEnd } from '../utils/careWindowRules';
 import {
   CarePlan,
   CarePlanItem,
@@ -18,7 +19,7 @@ import {
   listCarePlanItems,
   listDailyInstances,
   upsertDailyInstances,
-  updateDailyInstanceStatus,
+  reviseDailyInstance,
   removeStaleInstances,
   removeStaleWindowInstances,
   upsertCarePlanItem,
@@ -77,15 +78,6 @@ function resolveWellnessTime(
   }
   return TIME_OF_DAY_DEFAULTS[tod] || '08:00';
 }
-
-// ============================================================================
-// CONFIGURATION
-// ============================================================================
-
-// Grace period in minutes before marking as missed (after the window END).
-// Exported so the shared status helper (utils/careItemStatus.ts) derives the
-// SAME windowed boundary live — no parallel threshold.
-export const MISSED_GRACE_PERIOD_MINUTES = 120; // 2 hours
 
 // ============================================================================
 // CARE PLAN CONFIG SYNC
@@ -1296,45 +1288,72 @@ async function _ensureDailyInstancesCore(
       const existing = existingMap.get(key);
 
       if (existing) {
-        // Instance exists - check if we need to mark it as missed
-        if (existing.status === 'pending' && !existing.logId) {
-          const instanceTime = parseScheduledTime(existing.scheduledTime, date);
-          const endTime = getWindowEndTime(timeWindow, date, item.type);
+        // Stale-status-write-class closeout, PART C — decide AND write
+        // inside reviseDailyInstance's lock, against a FRESHLY re-read
+        // current record, not this loop's top-of-function `existing`
+        // snapshot. Pre-C, a caregiver write (logInstanceCompletion /
+        // undo / resurrect) landing against this same instance between
+        // the top-of-function read and this loop reaching it could be
+        // stomped by a decision that never saw it — the decision was
+        // made before any lock was ever held; withKeyLock only
+        // serialized the physical writes, not the read the decision was
+        // based on. `existing` above is now used ONLY to look up the key
+        // match (does an instance for this item+window exist at all) —
+        // never to decide what to write; `current` inside the reviser is
+        // the only source of truth for that.
+        //
+        // PART B (write-boundary guard) still applies inside
+        // reviseDailyInstance — this reviser never sets status:'pending'
+        // over an existing record, so it's not expected to trip, but the
+        // guard is the backstop if that ever changes.
+        //
+        // Phase 34 NOT.B3 fix (preserved) — the missed-check and the
+        // staleness-refresh decide into ONE local variable and return a
+        // SINGLE combined change set, so no second write can contradict
+        // the first within this one decision.
+        await reviseDailyInstance(patientId, date, existing.id, (current) => {
+          let currentStatus = current.status;
 
-          // Check if past grace period
-          const graceEnd = new Date(endTime.getTime() + MISSED_GRACE_PERIOD_MINUTES * 60 * 1000);
-          if (now > graceEnd) {
-            await updateDailyInstanceStatus(patientId, date, existing.id, 'missed');
+          // Check if we need to mark it as missed.
+          if (currentStatus === 'pending' && !current.logId) {
+            const endTime = getWindowEndTime(timeWindow, date, item.type);
+
+            // Check if past grace period
+            const graceEnd = new Date(endTime.getTime() + MISSED_GRACE_PERIOD_MINUTES * 60 * 1000);
+            if (now > graceEnd) {
+              currentStatus = 'missed';
+            }
           }
-        }
-        // Phase 34 NOT.B3 — instance-time staleness refresh.
-        // The existing-instance match keyed by ${itemId}:${windowId}
-        // skips regeneration when windowId is unchanged. But when the
-        // window's `at` changes (a wellnessSettings time edit, OR a
-        // medication time edit reconciled by syncMedicationItemsWithConfig
-        // — Jul 2 brief item 2), the instance's baked scheduledTime stays
-        // stale and the scheduler / overdue logic fires at the old time.
-        // Refresh wellness + medication instances (both edit their window
-        // `at` in place, preserving windowId); vitals / meals change their
-        // window SET (add/remove), handled by the stale-window pass below.
-        // Only fires when the time actually drifted, to avoid spurious
-        // writes (and the corresponding emit churn). Only refresh PENDING
-        // instances; caregiver-acted statuses (completed/skipped/partial)
-        // preserve the time they actually happened at.
-        if (
-          (item.type === 'wellness' || item.type === 'medication') &&
-          existing.status === 'pending'
-        ) {
-          const freshScheduledTime = computeScheduledTime(timeWindow, date);
-          if (existing.scheduledTime !== freshScheduledTime) {
-            const refreshed: DailyCareInstance = {
-              ...existing,
-              scheduledTime: freshScheduledTime,
-              updatedAt: new Date().toISOString(),
-            };
-            await upsertDailyInstances(patientId, date, [refreshed]);
+
+          // Instance-time staleness refresh. The existing-instance match
+          // keyed by ${itemId}:${windowId} skips regeneration when windowId
+          // is unchanged. But when the window's `at` changes (a
+          // wellnessSettings time edit, OR a medication time edit reconciled
+          // by syncMedicationItemsWithConfig — Jul 2 brief item 2), the
+          // instance's baked scheduledTime stays stale and the scheduler /
+          // overdue logic fires at the old time. Refresh wellness +
+          // medication instances (both edit their window `at` in place,
+          // preserving windowId); vitals / meals change their window SET
+          // (add/remove), handled by the stale-window pass below. Gated on
+          // currentStatus (the POST-missed-check value): an instance that
+          // just went missed this same pass is resolved — there's no more
+          // "fire the scheduler at the old time" to protect against, and
+          // refreshing its time would be the clobber. Caregiver-acted
+          // statuses (completed/skipped/partial) preserve the time they
+          // actually happened at, same as before.
+          let freshScheduledTime = current.scheduledTime;
+          if (
+            (item.type === 'wellness' || item.type === 'medication') &&
+            currentStatus === 'pending'
+          ) {
+            freshScheduledTime = computeScheduledTime(timeWindow, date);
           }
-        }
+
+          if (currentStatus === current.status && freshScheduledTime === current.scheduledTime) {
+            return null; // nothing changed — no write
+          }
+          return { status: currentStatus, scheduledTime: freshScheduledTime };
+        });
       } else {
         // Create new instance
         const scheduledTime = computeScheduledTime(timeWindow, date);
@@ -1524,30 +1543,6 @@ function getDefaultWindowStart(label: TimeWindowLabel): string {
     case 'night': return DEFAULT_TIME_WINDOWS.night.start;
     default: return '09:00';
   }
-}
-
-/**
- * Get default end time for a window label
- */
-export function getDefaultWindowEnd(label: TimeWindowLabel): string {
-  switch (label) {
-    case 'morning': return DEFAULT_TIME_WINDOWS.morning.end;
-    case 'afternoon': return DEFAULT_TIME_WINDOWS.afternoon.end;
-    case 'evening': return DEFAULT_TIME_WINDOWS.evening.end;
-    case 'night': return DEFAULT_TIME_WINDOWS.night.end;
-    default: return '17:00';
-  }
-}
-
-/**
- * Parse a scheduled time string to Date
- */
-function parseScheduledTime(scheduledTime: string, date: string): Date {
-  if (scheduledTime.includes('T')) {
-    return new Date(scheduledTime);
-  }
-  // Assume HH:mm format
-  return new Date(`${date}T${scheduledTime}:00`);
 }
 
 // ============================================================================

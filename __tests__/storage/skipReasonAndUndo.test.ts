@@ -158,6 +158,32 @@ describe('logInstanceCompletion — skipReason propagation', () => {
 });
 
 describe('undoInstanceCompletion', () => {
+  // Pinned clock (stale-status-write-class closeout, PART A follow-up):
+  // seedInstance() bakes scheduledTime to DATE (2026-04-29) T08:00, and
+  // these two tests previously ran on real wall-clock time with no pin.
+  // undoInstanceCompletion used to write 'pending' unconditionally — the
+  // only reason these assertions passed regardless of how long ago DATE
+  // was relative to whenever the suite happened to run. Post-fix, undoing
+  // an instance's first-ever act (no prior log) recomputes what it would
+  // be RIGHT NOW via getCareItemStatus (see undoRestoresPriorStatus.test.ts
+  // case 4 — deliberately "at undo time", not "at completion time"), and a
+  // medication scheduled months in the past genuinely reads 'missed'. Pin
+  // the clock to just after the scheduled time so these two stay about
+  // undo's own mechanics (log removal / logId+skipReason clearing), not
+  // entangled with how stale a fixed test date has become.
+  beforeEach(() => {
+    jest.useFakeTimers({
+      doNotFake: [
+        'nextTick', 'queueMicrotask', 'setImmediate', 'clearImmediate',
+        'setInterval', 'clearInterval', 'setTimeout', 'clearTimeout',
+        'requestAnimationFrame', 'cancelAnimationFrame',
+        'requestIdleCallback', 'cancelIdleCallback', 'hrtime', 'performance',
+      ],
+    });
+    jest.setSystemTime(new Date(`${DATE}T08:15:00`));
+  });
+  afterEach(() => { jest.useRealTimers(); });
+
   it('reverts the instance to pending and removes the log entry', async () => {
     await seedInstance();
 

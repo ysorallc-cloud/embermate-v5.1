@@ -24,7 +24,7 @@
 
 import type { DailyCareInstance, DailyInstanceStatus } from '../types/carePlan';
 import { OVERDUE_GRACE_MINUTES } from './nowHelpers';
-import { MISSED_GRACE_PERIOD_MINUTES, getDefaultWindowEnd } from '../services/carePlanGenerator';
+import { MISSED_GRACE_PERIOD_MINUTES, getDefaultWindowEnd } from './careWindowRules';
 
 export type CareItemStatus = 'upcoming' | 'due' | 'overdue' | 'done' | 'skipped';
 
