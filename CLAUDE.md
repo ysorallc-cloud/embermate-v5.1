@@ -71,6 +71,12 @@ utils/                # Utility functions (80+ files)
 
 ## Critical Rules
 
+### Git Safety (STANDING RULE — every session, every time)
+No destructive git commands against an uncommitted working tree.
+No `git checkout -- <file>`, no `git reset --hard`, no `git clean`.
+Before any temporary or benchmark edit: stash or WIP-commit first,
+restore from that.
+
 ### Input Validity (STANDING RULE — every caregiver input, every time)
 Every caregiver input must be verified end-to-end: **persisted → encrypted (if health/personal) → surfaced where expected → survives reload.** Input without persistence is a trust violation; notes and care-history especially. When adding or changing ANY input surface, trace it all the way: onChange → save handler → `safeSetItem(key)` → confirm the key is read back somewhere visible → confirm the read path loads on mount. A control that writes nowhere, writes to a key nothing reads, or silently drops on reload is the same class of bug as a lost note. This applies to all new inputs going forward, not just retroactively.
 - Encryption routing lives in `utils/safeStorage.ts` (`SENSITIVE_KEY_PREFIXES`). A key is encrypted to SecureStore iff it starts with a listed prefix. Health/personal inputs must land on a sensitive-prefixed key.
