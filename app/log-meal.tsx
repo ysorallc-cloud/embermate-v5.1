@@ -493,8 +493,15 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     justifyContent: 'space-between',
   },
   pillSelected: {
+    // Selected-state contrast fix — accentBorder's ~0.2 alpha read as
+    // barely-there against surfaceElevated. Solid c.accent border
+    // matches the selected treatment used elsewhere (medication-form's
+    // timeSlotButtonActive, VitalsDrawer's chipSelected) instead of
+    // relying on the faint background tint alone. Label color stays at
+    // textPrimary (selectionListContrast audit) — the checkmark carries
+    // the accent tint.
     backgroundColor: c.accentLight,
-    borderColor: c.accentBorder,
+    borderColor: c.accent,
   },
   pillLabel: {
     fontSize: 14,
@@ -502,9 +509,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textPrimary,
   },
   pillLabelSelected: {
-    // Phase 9.3 — selected state keeps label color at textPrimary
-    // (selectionListContrast audit). Selection conveyed by the pill's
-    // accentLight background + accentBorder + the trailing checkmark.
+    // selectionListContrast audit: keep label at textPrimary; selection
+    // is carried by the pill's border + background + checkmark, not a
+    // label-color tint.
     fontWeight: '600',
   },
   pillCheck: {
@@ -530,7 +537,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   quickFoodSelected: {
     backgroundColor: c.accentLight,
-    borderColor: c.accentBorder,
+    borderColor: c.accent,
   },
   quickFoodLabel: {
     fontSize: 13,
@@ -538,7 +545,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   quickFoodLabelSelected: {
     // selectionListContrast audit: keep label at textPrimary; selection
-    // is carried by the pill background change.
+    // is carried by the pill's border + background change.
     fontWeight: '500',
   },
   expander: {
@@ -597,7 +604,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   timePillSelected: {
     backgroundColor: c.accentLight,
-    borderColor: c.accentBorder,
+    borderColor: c.accent,
   },
   timePillText: {
     fontSize: 12,
