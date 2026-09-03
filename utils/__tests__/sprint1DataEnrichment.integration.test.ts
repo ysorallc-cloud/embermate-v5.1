@@ -147,7 +147,6 @@ describe('Sprint 1 Data Enrichment — Integration Tests', () => {
       // Log a meal with all enrichment fields
       const loggedEvent = await logMeal('Breakfast', {
         description: 'Oatmeal and fruit',
-        appetite: 'good',
         amountConsumed: 'most',
         assistanceLevel: 'independent',
         audit: {
@@ -166,7 +165,6 @@ describe('Sprint 1 Data Enrichment — Integration Tests', () => {
 
       expect(storedMeal).toBeDefined();
       expect(storedMeal.mealType).toBe('Breakfast');
-      expect(storedMeal.appetite).toBe('good');
       expect(storedMeal.amountConsumed).toBe('most');
       expect(storedMeal.assistanceLevel).toBe('independent');
       expect(storedMeal.description).toBe('Oatmeal and fruit');
@@ -175,12 +173,10 @@ describe('Sprint 1 Data Enrichment — Integration Tests', () => {
 
     it('should handle a full day of meals with varying enrichment', async () => {
       await logMeal('Breakfast', {
-        appetite: 'good',
         amountConsumed: 'all',
         assistanceLevel: 'independent',
       });
       await logMeal('Lunch', {
-        appetite: 'fair',
         amountConsumed: 'half',
         assistanceLevel: 'verbal',
       });
@@ -189,7 +185,6 @@ describe('Sprint 1 Data Enrichment — Integration Tests', () => {
         description: 'Crackers',
       });
       await logMeal('Dinner', {
-        appetite: 'poor',
         amountConsumed: 'little',
         assistanceLevel: 'partial',
       });
@@ -201,18 +196,15 @@ describe('Sprint 1 Data Enrichment — Integration Tests', () => {
 
       // Verify each meal retained its specific values
       const breakfast = meals.find(m => m.mealType === 'Breakfast')!;
-      expect(breakfast.appetite).toBe('good');
       expect(breakfast.amountConsumed).toBe('all');
 
       const lunch = meals.find(m => m.mealType === 'Lunch')!;
-      expect(lunch.appetite).toBe('fair');
       expect(lunch.assistanceLevel).toBe('verbal');
 
       const snack = meals.find(m => m.mealType === 'Snack')!;
-      expect(snack.appetite).toBeUndefined();
+      expect(snack.amountConsumed).toBeUndefined();
 
       const dinner = meals.find(m => m.mealType === 'Dinner')!;
-      expect(dinner.appetite).toBe('poor');
       expect(dinner.amountConsumed).toBe('little');
     });
   });

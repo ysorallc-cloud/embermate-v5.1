@@ -1,18 +1,26 @@
 // ============================================================================
-// functionalIssueExtraction — pulls 3-5 functional issues (mood, energy,
-// appetite, mobility) from the daily reflection store + event log over the
-// Visit Prep period.
+// functionalIssueExtraction — pulls up to 5 functional issues (mood, energy,
+// mobility) from the daily reflection store + the live symptom store (via
+// the symptomEvents adapter) over the Visit Prep period.
+//
+// Appetite-half-feature removal — appetiteIssue() and its eventRepo read
+// were removed (metadata.appetite was never populated by any writer, so the
+// branch always returned null). See project_appetite_dormant_half_feature
+// memory. Mobility no longer needs eventRepo either — it reads exclusively
+// via the symptomEvents adapter (symptom_reported is never written to
+// eventRepo), so the mock below targets that adapter directly instead of
+// eventRepo.
 // ============================================================================
 
 const mockGetRangeWithMissingDays = jest.fn();
-const mockGetEventsByDateRange = jest.fn();
+const mockGetSymptomEventsInRange = jest.fn();
 
 jest.mock('../../storage/dailyReflectionRepo', () => ({
   getRangeWithMissingDays: (...args: any[]) => mockGetRangeWithMissingDays(...args),
 }));
 
-jest.mock('../../storage/eventRepo', () => ({
-  getEventsByDateRange: (...args: any[]) => mockGetEventsByDateRange(...args),
+jest.mock('../../utils/symptomEvents', () => ({
+  getSymptomEventsInRange: (...args: any[]) => mockGetSymptomEventsInRange(...args),
 }));
 
 jest.mock('../../utils/devLog', () => ({ logError: jest.fn() }));
@@ -26,25 +34,25 @@ const reflectionPoint = (date: string, mood?: number, energy?: number) => ({
   reflection: { date, mood, energyLevel: energy } as any,
 });
 
-const event = (date: string, type: string, metadata: any = {}) => ({
-  id: `evt-${date}-${type}`,
-  type,
+const symptomEvent = (date: string, symptomName: string) => ({
+  id: `sym-${date}-${symptomName}`,
+  type: 'symptom_reported',
   timestamp: `${date}T10:00:00`,
   patientId: PATIENT,
-  metadata,
-  source: 'quick_log',
+  metadata: { symptomName },
+  source: 'dedicated_screen',
   createdAt: `${date}T10:00:00`,
 });
 
 beforeEach(() => {
   mockGetRangeWithMissingDays.mockReset();
-  mockGetEventsByDateRange.mockReset();
+  mockGetSymptomEventsInRange.mockReset();
 });
 
 describe('extractFunctionalIssues — empty data', () => {
-  it('returns an empty list when there is no reflection or event data', async () => {
+  it('returns an empty list when there is no reflection or symptom data', async () => {
     mockGetRangeWithMissingDays.mockResolvedValue([]);
-    mockGetEventsByDateRange.mockResolvedValue([]);
+    mockGetSymptomEventsInRange.mockResolvedValue([]);
     const result = await extractFunctionalIssues(PATIENT, {
       start: '2026-04-01',
       end: '2026-04-14',
@@ -61,7 +69,7 @@ describe('extractFunctionalIssues — mood issue', () => {
       reflectionPoint('2026-04-09', 2, 3),
       reflectionPoint('2026-04-10', 1, 2),
     ]);
-    mockGetEventsByDateRange.mockResolvedValue([]);
+    mockGetSymptomEventsInRange.mockResolvedValue([]);
     const result = await extractFunctionalIssues(PATIENT, {
       start: '2026-04-01',
       end: '2026-04-14',
@@ -81,7 +89,7 @@ describe('extractFunctionalIssues — energy issue', () => {
       reflectionPoint('2026-04-08', 3, 1),
       reflectionPoint('2026-04-10', 3, 2),
     ]);
-    mockGetEventsByDateRange.mockResolvedValue([]);
+    mockGetSymptomEventsInRange.mockResolvedValue([]);
     const result = await extractFunctionalIssues(PATIENT, {
       start: '2026-04-01',
       end: '2026-04-14',
@@ -92,32 +100,13 @@ describe('extractFunctionalIssues — energy issue', () => {
   });
 });
 
-describe('extractFunctionalIssues — appetite issue', () => {
-  it('flags poor / refused appetite from meal events', async () => {
-    mockGetRangeWithMissingDays.mockResolvedValue([]);
-    mockGetEventsByDateRange.mockResolvedValue([
-      event('2026-04-08', 'meal_logged', { appetite: 'poor' }),
-      event('2026-04-09', 'meal_logged', { appetite: 'refused' }),
-      event('2026-04-10', 'meal_logged', { appetite: 'poor' }),
-      event('2026-04-11', 'meal_logged', { appetite: 'good' }),
-    ]);
-    const result = await extractFunctionalIssues(PATIENT, {
-      start: '2026-04-01',
-      end: '2026-04-14',
-    });
-    const appetiteIssue = result.find((i) => i.category === 'appetite');
-    expect(appetiteIssue).toBeDefined();
-    expect(appetiteIssue!.observation.toLowerCase()).toContain('appetite');
-  });
-});
-
 describe('extractFunctionalIssues — mobility issue', () => {
   it('flags repeated mobility-related events (falls, transfer issues)', async () => {
     mockGetRangeWithMissingDays.mockResolvedValue([]);
-    mockGetEventsByDateRange.mockResolvedValue([
-      event('2026-04-04', 'symptom_reported', { symptomName: 'fall' }),
-      event('2026-04-08', 'symptom_reported', { symptomName: 'fall' }),
-      event('2026-04-12', 'symptom_reported', { symptomName: 'unsteady gait' }),
+    mockGetSymptomEventsInRange.mockResolvedValue([
+      symptomEvent('2026-04-04', 'fall'),
+      symptomEvent('2026-04-08', 'fall'),
+      symptomEvent('2026-04-12', 'unsteady gait'),
     ]);
     const result = await extractFunctionalIssues(PATIENT, {
       start: '2026-04-01',
@@ -136,11 +125,9 @@ describe('extractFunctionalIssues — output shape', () => {
       reflectionPoint('2026-04-09', 1, 1),
       reflectionPoint('2026-04-10', 1, 1),
     ]);
-    mockGetEventsByDateRange.mockResolvedValue([
-      event('2026-04-08', 'meal_logged', { appetite: 'refused' }),
-      event('2026-04-09', 'meal_logged', { appetite: 'refused' }),
-      event('2026-04-04', 'symptom_reported', { symptomName: 'fall' }),
-      event('2026-04-08', 'symptom_reported', { symptomName: 'fall' }),
+    mockGetSymptomEventsInRange.mockResolvedValue([
+      symptomEvent('2026-04-04', 'fall'),
+      symptomEvent('2026-04-08', 'fall'),
     ]);
     const result = await extractFunctionalIssues(PATIENT, {
       start: '2026-04-01',
@@ -154,7 +141,7 @@ describe('extractFunctionalIssues — output shape', () => {
       reflectionPoint('2026-04-08', 2, 2),
       reflectionPoint('2026-04-09', 2, 2),
     ]);
-    mockGetEventsByDateRange.mockResolvedValue([]);
+    mockGetSymptomEventsInRange.mockResolvedValue([]);
     const result = await extractFunctionalIssues(PATIENT, {
       start: '2026-04-01',
       end: '2026-04-14',

@@ -79,11 +79,6 @@ describe('handoffDataFlow — integration', () => {
       { id: '4', itemType: 'medication', itemName: 'Warfarin', status: 'pending', scheduledTime: '2025-01-15T08:00:00.000Z' },
     ]);
 
-    // Meal with poor appetite from centralStorage
-    mockGetMealsLogs.mockResolvedValue([
-      { id: '1', timestamp: '2025-01-15T12:00:00.000Z', meals: ['Lunch'], appetite: 'poor' },
-    ]);
-
     const summary = await buildTodaySummary();
 
     // Verify all fields populated
@@ -91,14 +86,12 @@ describe('handoffDataFlow — integration', () => {
     expect(summary.orientation).toBe('Confused but Responsive');
     expect(summary.painLevel).toBe('Severe');
     expect(summary.alertness).toBe('Confused');
-    expect(summary.appetite).toBe('Poor');
 
-    // Verify all 4 flags
-    expect(summary.flaggedItems).toHaveLength(4);
+    // Verify all 3 flags
+    expect(summary.flaggedItems).toHaveLength(3);
     expect(summary.flaggedItems).toContain('2 meds not logged');
     expect(summary.flaggedItems).toContain('Confused but Responsive');
     expect(summary.flaggedItems).toContain('Severe pain reported');
-    expect(summary.flaggedItems).toContain('Poor appetite');
   });
 
   // ==========================================================================
@@ -123,11 +116,6 @@ describe('handoffDataFlow — integration', () => {
     };
     await saveMorningWellness('2025-01-15', morningData);
 
-    // Good meal
-    mockGetMealsLogs.mockResolvedValue([
-      { id: '1', timestamp: '2025-01-15T12:00:00.000Z', meals: ['Lunch'], appetite: 'good' },
-    ]);
-
     // Normal evening
     const eveningData: EveningWellnessData = {
       mood: 4,
@@ -144,7 +132,6 @@ describe('handoffDataFlow — integration', () => {
     expect(summary.flaggedItems).toEqual([]);
     expect(summary.orientation).toBe('Alert & Oriented');
     expect(summary.painLevel).toBe('None');
-    expect(summary.appetite).toBe('Good');
   });
 
   // ==========================================================================
@@ -158,7 +145,6 @@ describe('handoffDataFlow — integration', () => {
     expect(summary.orientation).toBeNull();
     expect(summary.painLevel).toBeNull();
     expect(summary.alertness).toBeNull();
-    expect(summary.appetite).toBeNull();
     expect(summary.nextAppointment).toBeNull();
     expect(summary.flaggedItems).toEqual([]);
   });

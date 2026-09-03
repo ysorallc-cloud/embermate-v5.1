@@ -475,7 +475,7 @@ export function TimelineSection({
                     accessibilityHint={
                       instance.itemType === 'medication'
                         ? 'Long press to add notes or skip'
-                        : 'Long press to add appetite or food details'
+                        : 'Long press for details'
                     }
                   >
                     <Text style={styles.confirmButtonText}>

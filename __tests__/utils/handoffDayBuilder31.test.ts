@@ -480,8 +480,8 @@ describe('Phase 35 Slice 3-C — payload.hasLoggedContent (P2 PDF-content predic
   });
 
   it('p2-10 (SCOPE — updated): ROUTINE meals + mood/hydration/sleep do NOT count toward hasLoggedContent', async () => {
-    // Meals were widened onto the PDF, but only NOTABLE ones (note / flaggable
-    // appetite / miss-skip). A day of routine "all meals completed, no note" +
+    // Meals were widened onto the PDF, but only NOTABLE ones (note /
+    // miss-skip). A day of routine "all meals completed, no note" +
     // mood/hydration/sleep (still PDF-excluded) has nothing recipient-facing →
     // refusing share is truthful.
     seedBriefForEmptyDay();

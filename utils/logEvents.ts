@@ -102,7 +102,6 @@ export interface MealEvent extends BaseLogEvent {
   type: 'meal';
   mealType: string;  // Breakfast, Lunch, Dinner, Snack
   description?: string;
-  appetite?: 'good' | 'fair' | 'poor' | 'refused';
   amountConsumed?: 'all' | 'most' | 'half' | 'little' | 'none';
   assistanceLevel?: 'independent' | 'verbal' | 'partial' | 'full';
 }
@@ -363,7 +362,6 @@ export async function logMeal(
   mealType: string,
   options?: {
     description?: string;
-    appetite?: 'good' | 'fair' | 'poor' | 'refused';
     amountConsumed?: 'all' | 'most' | 'half' | 'little' | 'none';
     assistanceLevel?: 'independent' | 'verbal' | 'partial' | 'full';
     carePlanTaskId?: string;
@@ -376,7 +374,6 @@ export async function logMeal(
     timestamp: new Date().toISOString(),
     mealType,
     description: options?.description,
-    appetite: options?.appetite,
     amountConsumed: options?.amountConsumed,
     assistanceLevel: options?.assistanceLevel,
     carePlanTaskId: options?.carePlanTaskId,

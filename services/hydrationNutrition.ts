@@ -3,13 +3,19 @@
 //
 // Aggregates hydration cup totals (from hydrationRepo) and nutrition
 // instance status (from listDailyInstancesRange filtered by itemType
-// 'nutrition') across the visit-prep window. Meal quality detail comes
-// from meal_logged events for the appetite summary line.
+// 'nutrition') across the visit-prep window.
 //
 // Returns null when both arms have no data — caller omits the section
 // entirely. Hydration target hardcoded to 8 cups/day for now; the
 // Patient type will gain a hydrationTarget field in a Phase 8 audit
 // follow-up.
+//
+// Appetite-half-feature removal — the appetite summary line was removed
+// (buildAppetiteSummary bucketed on CareEvent.metadata.quality, a field no
+// writer has ever populated; it silently returned the same "Mixed
+// appetite — 0 of N meals eaten well" line for every non-empty window,
+// which is worse than no data — it looked like a real, if unflattering,
+// reading). See project_appetite_dormant_half_feature memory.
 // ============================================================================
 
 import { getHistory as getHydrationHistory } from '../storage/hydrationRepo';
@@ -17,8 +23,6 @@ import { getHistory as getHydrationHistory } from '../storage/hydrationRepo';
 // instance reader (logged = completed||skipped; expected = plan-defined slots),
 // the single source shared with the Insights tile + visit chip.
 import { getCanonicalMealInstancesInRange } from '../utils/mealsCanonical';
-import { getEventsByDateRange } from '../storage/eventRepo';
-import type { CareEvent } from '../types/event';
 import { logError } from '../utils/devLog';
 
 // TODO Phase 8: lift to Patient.hydrationTarget. 8 cups/day is the broad
@@ -41,7 +45,6 @@ export interface MealsSummary {
 export interface HydrationNutritionSummary {
   hydration: HydrationSummary | null;
   meals: MealsSummary | null;
-  appetiteSummary: string | null;
 }
 
 export interface BuildHydrationNutritionInput {
@@ -124,56 +127,16 @@ async function buildMeals(
   }
 }
 
-async function buildAppetiteSummary(
-  patientId: string,
-  start: string,
-  end: string,
-): Promise<string | null> {
-  try {
-    const events = await getEventsByDateRange(start, end, patientId);
-    const meals = events.filter((e: CareEvent) => e.type === 'meal_logged');
-    if (meals.length === 0) return null;
-    const buckets = { good: 0, most: 0, some: 0, refused: 0, other: 0 };
-    type QualityBucket = 'good' | 'most' | 'some' | 'refused';
-    for (const e of meals) {
-      // metadata is loosely-typed CareEvent payload; narrow via the
-      // explicit literal guard so the bucket index stays type-safe.
-      const q: unknown = (e.metadata as { quality?: unknown } | undefined)?.quality;
-      if (q === 'good' || q === 'most' || q === 'some' || q === 'refused') {
-        buckets[q as QualityBucket] += 1;
-      } else {
-        buckets.other += 1;
-      }
-    }
-    const total = meals.length;
-    const goodLike = buckets.good + buckets.most;
-    if (goodLike >= Math.ceil(total * 0.7)) {
-      return `Appetite consistent — ate well on ${goodLike} of ${total} logged meals.`;
-    }
-    if (buckets.refused >= 2) {
-      return `Appetite waning — ${buckets.refused} refused meals across the window.`;
-    }
-    if (buckets.some + buckets.refused >= Math.ceil(total * 0.4)) {
-      return `Mixed appetite — ${goodLike} of ${total} meals eaten well.`;
-    }
-    return `Mixed appetite — ${goodLike} of ${total} meals eaten well.`;
-  } catch (err) {
-    logError('hydrationNutrition.buildAppetiteSummary', err);
-    return null;
-  }
-}
-
 export async function buildHydrationNutrition(
   input: BuildHydrationNutritionInput,
 ): Promise<HydrationNutritionSummary | null> {
   const { patientId, dateRange } = input;
-  const [hydration, meals, appetiteSummary] = await Promise.all([
+  const [hydration, meals] = await Promise.all([
     buildHydration(patientId, dateRange.start, dateRange.end),
     buildMeals(patientId, dateRange.start, dateRange.end),
-    buildAppetiteSummary(patientId, dateRange.start, dateRange.end),
   ]);
-  if (hydration === null && meals === null && appetiteSummary === null) {
+  if (hydration === null && meals === null) {
     return null;
   }
-  return { hydration, meals, appetiteSummary };
+  return { hydration, meals };
 }

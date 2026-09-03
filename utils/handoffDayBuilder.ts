@@ -61,7 +61,7 @@ export interface HandoffDayPayload {
    *  reading recorded; consumers skip the vitals block in that case. */
   vitals: VitalsDetail | null;
   /** Section 2 — logged meals with their caregiver-entered substance
-   *  (appetite + note/description). Widened into the PDF so the doctor sees
+   *  (note/description). Widened into the PDF so the doctor sees
    *  what the caregiver recorded; the PDF renderer surfaces non-pending meals
    *  only. (Meals still do NOT count toward hasLoggedContent — the shareability
    *  gate stays as the Q-C scope lock; this carries CONTENT, not the gate.) */
@@ -145,10 +145,10 @@ export async function buildHandoffDay(
     const flaggedMoments = moments?.moments ?? [];
     const hasFlagging = flaggedMoments.length > 0;
     // Meals now render on the PDF, so they must also count toward shareability —
-    // but ONLY notable meals (note / flaggable appetite / miss-skip), the same
-    // predicate the renderer uses. A routine "all meals Good" day still doesn't
-    // unblock share (content ⟺ gate; no divergence). Mood / hydration / sleep
-    // remain PDF-excluded (still not rendered → still don't count).
+    // but ONLY notable meals (note / miss-skip), the same predicate the
+    // renderer uses. A routine "all meals completed, no note" day still
+    // doesn't unblock share (content ⟺ gate; no divergence). Mood / hydration
+    // / sleep remain PDF-excluded (still not rendered → still don't count).
     const hasNotableMeals = (brief.meals?.meals ?? []).some(isNotableMeal);
     const hasLoggedContent =
       hasLoggedMeds || hasRecordedVitals || hasNonEmptyNotes || hasFlagging || hasNotableMeals;

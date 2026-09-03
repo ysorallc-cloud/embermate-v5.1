@@ -26,7 +26,6 @@ export interface TodaySummary {
   medsAdherence: { taken: number; total: number };
   orientation: string | null;
   painLevel: string | null;
-  appetite: string | null;
   alertness: string | null;
   bowelMovement: string | null;
   bathingStatus: string | null;
@@ -57,13 +56,6 @@ const PAIN_LABELS: Record<string, string> = {
   severe: 'Severe',
 };
 
-const APPETITE_LABELS: Record<string, string> = {
-  good: 'Good',
-  fair: 'Fair',
-  poor: 'Poor',
-  refused: 'Refused',
-};
-
 const ALERTNESS_LABELS: Record<string, string> = {
   alert: 'Alert',
   confused: 'Confused',
@@ -88,12 +80,11 @@ export async function buildTodaySummary(): Promise<TodaySummary> {
 
   // Use ensureDailyInstances for deduplicated instances (same pipeline as Now page)
   const instances = await ensureDailyInstances(DEFAULT_PATIENT_ID, today);
-  const [morningWellness, eveningWellness, todayVitals, mealsLogs, upcomingAppointments] =
+  const [morningWellness, eveningWellness, todayVitals, upcomingAppointments] =
     await Promise.all([
       getMorningWellness(today),
       getEveningWellness(today),
       getTodayVitalsLog(),
-      getMealsLogs(),
       getUpcomingAppointments(),
     ]);
 
@@ -134,7 +125,7 @@ export async function buildTodaySummary(): Promise<TodaySummary> {
     if (parts.length > 0) vitalsReading = parts.join(' \u00B7 ');
   }
 
-  // Meals status from instances + centralStorage for appetite
+  // Meals status from instances
   const mealInstances = instances.filter(i => i.itemType === 'nutrition');
   const mealsCompleted = mealInstances.filter(i => i.status === 'completed').length;
   const now = new Date();
@@ -142,14 +133,6 @@ export async function buildTodaySummary(): Promise<TodaySummary> {
   // Missed-vs-pending lives solely in getCareItemStatus now.
   const mealsStatus = mealInstances.length > 0
     ? { logged: mealsCompleted, total: mealInstances.length }
-    : null;
-
-  // Appetite from most recent centralStorage meals log today
-  const todayStr = new Date().toDateString();
-  const todayMeals = mealsLogs.filter(m => new Date(m.timestamp).toDateString() === todayStr);
-  const lastMeal = todayMeals.length > 0 ? todayMeals[0] : null; // logs are unshifted (newest first)
-  const appetite = lastMeal?.appetite
-    ? APPETITE_LABELS[lastMeal.appetite] ?? lastMeal.appetite
     : null;
 
   // Mood arc from wellness checks
@@ -197,15 +180,10 @@ export async function buildTodaySummary(): Promise<TodaySummary> {
     flaggedItems.push('Severe pain reported');
   }
 
-  if (lastMeal?.appetite && ['poor', 'refused'].includes(lastMeal.appetite)) {
-    flaggedItems.push('Poor appetite');
-  }
-
   return {
     medsAdherence: { taken: medsTaken, total: medsTotal },
     orientation,
     painLevel,
-    appetite,
     alertness,
     bowelMovement,
     bathingStatus,
@@ -271,23 +249,18 @@ export interface MealsDetail {
   meals: {
     name: string;
     status: 'completed' | 'pending' | 'skipped' | 'missed';
-    appetite?: string;
     /** The caregiver's meal note ("ate half the eggs") from the meals log. */
     description?: string;
     scheduledTime?: string;
   }[];
 }
 
-// Appetite labels that are worth flagging to a clinician ("hasn't eaten well").
-// good / fair read as routine; poor / refused are the concern signal.
-const FLAGGABLE_APPETITE = new Set(['poor', 'refused']);
-
 /**
  * Is this meal worth surfacing on the doctor-facing handoff? True when it carries
- * caregiver substance or a deviation — a note, a flaggable appetite (poor/refused),
- * or it wasn't eaten (missed/skipped). A routine completed meal (normal appetite,
- * no note) is NOT notable → kept off the handoff and out of the shareability gate,
- * so the PDF isn't cluttered with "Breakfast Good · Lunch Good · Dinner Good".
+ * caregiver substance or a deviation — a note, or it wasn't eaten (missed/skipped).
+ * A routine completed meal with no note is NOT notable → kept off the handoff and
+ * out of the shareability gate, so the PDF isn't cluttered with
+ * "Breakfast · Lunch · Dinner".
  *
  * SINGLE source for both the handoff PDF renderer (what shows) AND the
  * hasLoggedContent share gate (what counts) — so content and gate can't diverge.
@@ -295,7 +268,6 @@ const FLAGGABLE_APPETITE = new Set(['poor', 'refused']);
 export function isNotableMeal(m: MealsDetail['meals'][number]): boolean {
   if (m.status === 'missed' || m.status === 'skipped') return true;
   if (m.description && m.description.trim().length > 0) return true;
-  if (m.appetite && FLAGGABLE_APPETITE.has(m.appetite.trim().toLowerCase())) return true;
   return false;
 }
 
@@ -415,7 +387,7 @@ export async function buildShiftReport(): Promise<ShiftReport> {
       // into `meals: string[]` (e.g. ['Breakfast']) and NOT `mealType`, so match
       // on that array first; keep the legacy `mealType` scalar as a fallback for
       // any other writer. (Pre-fix this only checked mealType → never matched →
-      // appetite AND description were both silently dropped.)
+      // description was silently dropped.)
       const matchedMeal = todayMeals.find((m: any) =>
         (Array.isArray(m.meals) && m.meals.some((x: string) => x?.toLowerCase() === inst.itemName.toLowerCase()))
         || m.mealType?.toLowerCase() === inst.itemName.toLowerCase()
@@ -432,9 +404,6 @@ export async function buildShiftReport(): Promise<ShiftReport> {
       return {
         name: inst.itemName,
         status: displayStatus,
-        appetite: matchedMeal?.appetite
-          ? APPETITE_LABELS[matchedMeal.appetite] ?? matchedMeal.appetite
-          : undefined,
         description: matchedMeal?.description?.trim() || undefined,
         scheduledTime: inst.scheduledTime,
       };
@@ -472,15 +441,6 @@ export async function buildShiftReport(): Promise<ShiftReport> {
     attentionItems.push({
       text: 'Severe pain reported',
       detail: 'from evening wellness check',
-    });
-  }
-
-  // Poor appetite
-  const lastMeal = todayMeals.length > 0 ? todayMeals[0] : null;
-  if (lastMeal?.appetite && ['poor', 'refused'].includes(lastMeal.appetite)) {
-    attentionItems.push({
-      text: 'Poor appetite',
-      detail: `${lastMeal.mealType || 'Meal'} — ${APPETITE_LABELS[lastMeal.appetite] ?? lastMeal.appetite}`,
     });
   }
 
@@ -801,7 +761,7 @@ export async function buildCareBrief(targetDate?: string): Promise<CareBrief> {
       // into `meals: string[]` (e.g. ['Breakfast']) and NOT `mealType`, so match
       // on that array first; keep the legacy `mealType` scalar as a fallback for
       // any other writer. (Pre-fix this only checked mealType → never matched →
-      // appetite AND description were both silently dropped.)
+      // description was silently dropped.)
       const matchedMeal = todayMeals.find((m: any) =>
         (Array.isArray(m.meals) && m.meals.some((x: string) => x?.toLowerCase() === inst.itemName.toLowerCase()))
         || m.mealType?.toLowerCase() === inst.itemName.toLowerCase()
@@ -818,9 +778,6 @@ export async function buildCareBrief(targetDate?: string): Promise<CareBrief> {
       return {
         name: inst.itemName,
         status: displayStatus,
-        appetite: matchedMeal?.appetite
-          ? APPETITE_LABELS[matchedMeal.appetite] ?? matchedMeal.appetite
-          : undefined,
         description: matchedMeal?.description?.trim() || undefined,
         scheduledTime: inst.scheduledTime,
       };
@@ -840,10 +797,6 @@ export async function buildCareBrief(targetDate?: string): Promise<CareBrief> {
   }
   if (eveningWellness?.painLevel === 'severe') {
     attentionItems.push({ text: 'Severe pain reported', detail: 'from evening wellness check' });
-  }
-  const lastMeal = todayMeals.length > 0 ? todayMeals[0] : null;
-  if (lastMeal?.appetite && ['poor', 'refused'].includes(lastMeal.appetite)) {
-    attentionItems.push({ text: 'Poor appetite', detail: `${lastMeal.mealType || 'Meal'} — ${APPETITE_LABELS[lastMeal.appetite] ?? lastMeal.appetite}` });
   }
   if (!eveningWellness && now.getHours() >= 20) {
     attentionItems.push({ text: 'Evening wellness check not completed' });
@@ -1000,18 +953,17 @@ export async function buildCareBrief(targetDate?: string): Promise<CareBrief> {
     }
   }
 
-  // Nutrition: flag when hydration low + diabetes condition, or poor appetite
+  // Nutrition: flag when hydration is low, with or without a diabetes
+  // condition on record. (The former poor-appetite branches read
+  // lastMeal.appetite, a field no writer has ever populated — dead code,
+  // removed with the appetite half-feature. See
+  // project_appetite_dormant_half_feature memory.)
   const hasDiabetes = activeDiagnoses.some(d => d.toLowerCase().includes('diabet'));
   const lowHydration = hydration.logged && hydration.glasses != null && hydration.glasses < 4;
-  const poorAppetite = lastMeal?.appetite && ['poor', 'refused'].includes(lastMeal.appetite);
   if (lowHydration && hasDiabetes) {
     interpretations.nutrition = `Only ${hydration.glasses} glasses of water logged with a diabetes diagnosis. Dehydration can affect blood sugar levels — encourage more fluids.`;
-  } else if (poorAppetite && hasDiabetes) {
-    interpretations.nutrition = `Poor appetite today with a diabetes diagnosis. Reduced food intake can affect blood sugar — monitor glucose closely.`;
   } else if (lowHydration) {
     interpretations.nutrition = `Only ${hydration.glasses} glasses of water logged today. Encourage more fluids, especially if medications require adequate hydration.`;
-  } else if (poorAppetite) {
-    interpretations.nutrition = `Appetite was poor today. If this continues, it may be worth discussing at the next appointment.`;
   }
 
   // --- Handoff Narrative (conversational summary for care transitions) ---
@@ -1155,15 +1107,6 @@ export function buildStatusNarrative(input: NarrativeInput): string {
     if (r.glucose != null) vParts.push(`Glucose ${r.glucose}`);
     if (vParts.length > 0) {
       parts.push(`${vParts.join(', ')}.`);
-    }
-  }
-
-  // Meals/appetite
-  const completedMeals = input.meals.meals.filter(m => m.status === 'completed');
-  if (completedMeals.length > 0) {
-    const lastCompleted = completedMeals[completedMeals.length - 1];
-    if (lastCompleted.appetite) {
-      parts.push(`Appetite ${lastCompleted.appetite.toLowerCase()} at ${lastCompleted.name.toLowerCase()}.`);
     }
   }
 

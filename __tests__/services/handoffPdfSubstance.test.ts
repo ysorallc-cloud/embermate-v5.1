@@ -6,8 +6,10 @@
 // reached the document:
 //   • med SIDE-EFFECTS — data was in payload.medications[].sideEffects but the med
 //     table rendered name/dose/scheduled/status only.
-//   • MEALS with their appetite + note/description — meals weren't in the payload
-//     or the PDF at all.
+//   • MEALS with their note/description — meals weren't in the payload or
+//     the PDF at all. (Appetite was also part of this originally; the field
+//     was removed as a dormant half-feature — no writer ever captured it.
+//     See project_appetite_dormant_half_feature memory.)
 // This drives __testing.buildHtml with the REAL data shapes and asserts the
 // document contains them.
 // ============================================================================
@@ -60,20 +62,19 @@ describe('handoff PDF — med side-effects', () => {
   });
 });
 
-describe('handoff PDF — meals with appetite + note', () => {
-  it('renders logged meals with their note and appetite', () => {
+describe('handoff PDF — meals with note', () => {
+  it('renders logged meals with their note', () => {
     const html = wrap(payload({
       meals: {
         total: 2,
         meals: [
-          { name: 'Breakfast', status: 'completed', appetite: 'Good', description: 'ate half the eggs' },
+          { name: 'Breakfast', status: 'completed', description: 'ate half the eggs' },
           { name: 'Lunch', status: 'missed' },
         ],
       },
     }));
     expect(html).toContain('Breakfast');
     expect(html).toContain('ate half the eggs'); // the caregiver note
-    expect(html).toContain('Good');              // appetite
     expect(html).toContain('Lunch');             // a missed meal still surfaces
   });
 
@@ -85,14 +86,14 @@ describe('handoff PDF — meals with appetite + note', () => {
     expect(html).not.toContain('Dinner');
   });
 
-  it('OMITS routine meals (completed, normal appetite, no note) — no clutter', () => {
+  it('OMITS routine meals (completed, no note) — no clutter', () => {
     const html = wrap(payload({
       meals: {
         total: 3,
         meals: [
-          { name: 'Breakfast', status: 'completed', appetite: 'Good' },
+          { name: 'Breakfast', status: 'completed' },
           { name: 'Lunch', status: 'completed' },
-          { name: 'Dinner', status: 'completed', appetite: 'Fair' },
+          { name: 'Dinner', status: 'completed' },
         ],
       },
     }));
@@ -100,13 +101,5 @@ describe('handoff PDF — meals with appetite + note', () => {
     expect(html).not.toContain('Breakfast');
     expect(html).not.toContain('Lunch');
     expect(html).not.toContain('Dinner');
-  });
-
-  it('surfaces a POOR-appetite meal even without a note (worth flagging)', () => {
-    const html = wrap(payload({
-      meals: { total: 1, meals: [{ name: 'Lunch', status: 'completed', appetite: 'Poor' }] },
-    }));
-    expect(html).toContain('Lunch');
-    expect(html).toContain('Poor');
   });
 });

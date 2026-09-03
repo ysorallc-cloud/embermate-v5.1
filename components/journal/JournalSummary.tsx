@@ -99,7 +99,7 @@ export function JournalSummary({ brief, selectedDate, enabledBuckets }: JournalS
         const t = meal.scheduledTime || '';
         events.push({
           time: t || '\u2014',
-          text: `Ate ${meal.name.toLowerCase()}${meal.appetite ? ' (' + meal.appetite + ')' : ''}`,
+          text: `Ate ${meal.name.toLowerCase()}`,
           sortKey: t ? parseInt(t.replace(':', ''), 10) || 1 : 1,
         });
       }

@@ -117,24 +117,28 @@ const EVENT_ONLY_READERS_DOCUMENTED = [
   // 11.7.4. Fix shape: mirror computeDataCoverage's union pattern.
   'hooks/useNearbyDaysWithRecords.ts',
 
-  // Visit Prep hydration/nutrition section — reads meal_logged
-  // events. Sample-data meals go through the instance pipeline
-  // (itemType === 'nutrition'), so this section is empty in
-  // sample-data mode. Fix shape: union with itemType === 'nutrition'
-  // completed instances.
-  'services/hydrationNutrition.ts',
-
   // (services/symptomChangeDetection.ts REMOVED: it was documented here as an
   //  event reader on the false premise that "symptoms are stored as events via
   //  saveSymptom + emit" — saveSymptom writes symptomStorage (SYMPTOMS key), NOT
   //  events, so the event stream was always empty and symptom progression never
   //  fired. Repointed to symptomStorage; it's no longer an event-pipeline reader.)
 
-  // Visit Prep functional issues — reads multiple event types for
-  // accessibility/mobility cues. Most of those event types do not
-  // have an instance counterpart, so this is largely
-  // event-pipeline-correct. Listed for completeness.
-  'services/functionalIssueExtraction.ts',
+  // (services/hydrationNutrition.ts REMOVED: its only getEventsByDateRange
+  //  call was buildAppetiteSummary(), which bucketed on
+  //  CareEvent.metadata.quality — a field no writer has ever populated. It
+  //  silently returned the same "Mixed appetite — 0 of N meals eaten well"
+  //  line for every non-empty window regardless of real data. Removed as
+  //  part of the appetite-half-feature cleanup, not migrated — there was no
+  //  live signal here to fix. See project_appetite_dormant_half_feature.)
+
+  // (services/functionalIssueExtraction.ts REMOVED: its getEventsByDateRange
+  //  call fed two readers — appetiteIssue() (metadata.appetite, never
+  //  populated by any writer — dead) and mobilityIssue() (symptom_reported,
+  //  never written to eventRepo at all — already read live via the
+  //  symptomEvents adapter instead). Once appetiteIssue was removed as a
+  //  dormant half-feature, the eventRepo call had no remaining live
+  //  contribution and was removed with it. See
+  //  project_appetite_dormant_half_feature.)
 
   // Journal "What changed today" — reads events for day-level
   // change detection. Event-level deltas are the conceptual unit

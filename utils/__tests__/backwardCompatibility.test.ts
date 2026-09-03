@@ -112,7 +112,7 @@ describe('backwardCompatibility', () => {
   // ==========================================================================
 
   describe('old meal event data', () => {
-    it('should read old meal without appetite/amountConsumed/assistanceLevel', async () => {
+    it('should read old meal without amountConsumed/assistanceLevel', async () => {
       const oldEvents = [
         {
           id: 'old-meal-1',
@@ -131,7 +131,6 @@ describe('backwardCompatibility', () => {
       expect(meal.type).toBe('meal');
       expect(meal.mealType).toBe('Breakfast');
       expect(meal.description).toBe('Oatmeal with fruit');
-      expect(meal.appetite).toBeUndefined();
       expect(meal.amountConsumed).toBeUndefined();
       expect(meal.assistanceLevel).toBeUndefined();
     });

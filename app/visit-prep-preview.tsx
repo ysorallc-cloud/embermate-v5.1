@@ -378,9 +378,6 @@ export default function VisitPrepPreviewScreen() {
                           {`Meals: ${data.hydrationNutrition.meals.fullMealDays} full days, ${data.hydrationNutrition.meals.partialMealDays} partial. ${data.hydrationNutrition.meals.refusedMeals.length} refused.`}
                         </Text>
                       )}
-                      {data.hydrationNutrition.appetiteSummary && (
-                        <Text style={styles.calloutBody}>{data.hydrationNutrition.appetiteSummary}</Text>
-                      )}
                     </>
                   ) : (
                     <Text style={styles.calloutBody}>

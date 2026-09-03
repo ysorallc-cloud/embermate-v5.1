@@ -82,15 +82,7 @@ describe('useRecentEntries — pure functions', () => {
       expect(extractDetail(event)).toBe('Vitals logged');
     });
 
-    it('should format meal with appetite', () => {
-      const event: MealEvent = {
-        id: '5', type: 'meal', timestamp: '2025-01-15T10:00:00.000Z', date: '2025-01-15',
-        mealType: 'Breakfast', appetite: 'good',
-      };
-      expect(extractDetail(event)).toBe('Breakfast \u00B7 Appetite: good');
-    });
-
-    it('should format meal without appetite', () => {
+    it('should format meal by meal type', () => {
       const event: MealEvent = {
         id: '5b', type: 'meal', timestamp: '2025-01-15T10:00:00.000Z', date: '2025-01-15',
         mealType: 'Lunch',

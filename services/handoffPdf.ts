@@ -144,9 +144,9 @@ function renderVitals(v: VitalsDetail | null): string {
 }
 
 function renderMeals(meals: MealsDetail): string {
-  // Only NOTABLE meals reach the doctor — a note, a flaggable appetite, or a
-  // miss/skip. Routine "completed, normal appetite, no note" meals are omitted so
-  // the handoff isn't cluttered with "Breakfast Good · Lunch Good · Dinner Good".
+  // Only NOTABLE meals reach the doctor — a caregiver note, or a miss/skip.
+  // Routine "completed, no note" meals are omitted so the handoff isn't
+  // cluttered with "Breakfast · Lunch · Dinner".
   // Same predicate as the shareability gate (isNotableMeal) — content ⟺ gate.
   const logged = meals.meals.filter(isNotableMeal);
   if (logged.length === 0) return '';
@@ -154,7 +154,6 @@ function renderMeals(meals: MealsDetail): string {
     let line = `<strong>${escapeHtml(m.name)}</strong>`;
     if (m.status === 'completed') {
       const extras: string[] = [];
-      if (m.appetite) extras.push(escapeHtml(m.appetite));
       if (m.description) extras.push(escapeHtml(m.description));
       if (extras.length) line += ` — ${extras.join(' · ')}`;
     } else {

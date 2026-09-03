@@ -282,7 +282,6 @@ export interface NutritionLogData {
   type: 'nutrition';
   mealType: string;
   description?: string;
-  appetite?: 'good' | 'fair' | 'poor' | 'refused';
   amountConsumed?: 'all' | 'most' | 'half' | 'little' | 'none';
   assistanceLevel?: 'independent' | 'verbal' | 'partial' | 'full';
 }

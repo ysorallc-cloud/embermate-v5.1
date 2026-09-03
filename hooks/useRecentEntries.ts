@@ -116,9 +116,7 @@ export function extractDetail(event: LogEvent): string {
     }
     case 'meal': {
       const e = event as MealEvent;
-      let detail = e.mealType;
-      if (e.appetite) detail += ` \u00B7 Appetite: ${e.appetite}`;
-      return detail;
+      return e.mealType;
     }
     case 'hydration': {
       const e = event as HydrationEvent;
@@ -241,8 +239,7 @@ function mapVitalsLogToEntry(log: VitalsLog, dateGroup: 'Today' | 'Yesterday'): 
 }
 
 function mapMealsLogToEntry(log: MealsLog, dateGroup: 'Today' | 'Yesterday'): RecentEntry {
-  let detail = log.meals.join(', ');
-  if (log.appetite) detail += ` \u00B7 Appetite: ${log.appetite}`;
+  const detail = log.meals.join(', ');
   return makeEntry(`meal-${log.id}`, 'meal', detail, log.timestamp, dateGroup);
 }
 

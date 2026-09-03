@@ -87,7 +87,6 @@ export interface MealsLog {
   meals: string[]; // 'Breakfast', 'Lunch', 'Dinner', 'Snack'
   description?: string;
   mealType?: string;
-  appetite?: string;
   amountConsumed?: string;
   assistanceLevel?: string;
 }

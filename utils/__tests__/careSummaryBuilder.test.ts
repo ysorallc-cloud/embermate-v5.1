@@ -89,7 +89,7 @@ describe('careSummaryBuilder — buildTodaySummary', () => {
   });
 
   // ==========================================================================
-  // ORIENTATION / PAIN / ALERTNESS / APPETITE
+  // ORIENTATION / PAIN / ALERTNESS
   // ==========================================================================
 
   describe('orientation from morning wellness', () => {
@@ -132,23 +132,6 @@ describe('careSummaryBuilder — buildTodaySummary', () => {
 
       const summary = await buildTodaySummary();
       expect(summary.alertness).toBe('Drowsy');
-    });
-  });
-
-  describe('appetite from last centralStorage meal', () => {
-    it('should use appetite from the most recent meal log today', async () => {
-      mockGetMealsLogs.mockResolvedValue([
-        { id: '1', timestamp: '2025-01-15T12:00:00.000Z', meals: ['Lunch'], appetite: 'poor' },
-        { id: '2', timestamp: '2025-01-15T08:00:00.000Z', meals: ['Breakfast'], appetite: 'good' },
-      ]);
-
-      const summary = await buildTodaySummary();
-      expect(summary.appetite).toBe('Poor'); // first in list (newest first)
-    });
-
-    it('should return null when no meals logged', async () => {
-      const summary = await buildTodaySummary();
-      expect(summary.appetite).toBeNull();
     });
   });
 
@@ -211,15 +194,6 @@ describe('careSummaryBuilder — buildTodaySummary', () => {
       expect(summary.flaggedItems).toContain('Severe pain reported');
     });
 
-    it('should flag poor or refused appetite', async () => {
-      mockGetMealsLogs.mockResolvedValue([
-        { id: '1', timestamp: '2025-01-15T12:00:00.000Z', meals: ['Lunch'], appetite: 'refused' },
-      ]);
-
-      const summary = await buildTodaySummary();
-      expect(summary.flaggedItems).toContain('Poor appetite');
-    });
-
     it('should flag all issues when all are present', async () => {
       mockEnsureDailyInstances.mockResolvedValue([
         { id: '1', itemType: 'medication', itemName: 'Aspirin', status: 'pending', scheduledTime: '2025-01-15T08:00:00.000Z' },
@@ -230,16 +204,12 @@ describe('careSummaryBuilder — buildTodaySummary', () => {
       mockGetEveningWellness.mockResolvedValue({
         painLevel: 'severe',
       });
-      mockGetMealsLogs.mockResolvedValue([
-        { id: '1', timestamp: '2025-01-15T12:00:00.000Z', meals: ['Lunch'], appetite: 'poor' },
-      ]);
 
       const summary = await buildTodaySummary();
-      expect(summary.flaggedItems).toHaveLength(4);
+      expect(summary.flaggedItems).toHaveLength(3);
       expect(summary.flaggedItems).toContain('1 med not logged');
       expect(summary.flaggedItems).toContain('Confused but Responsive');
       expect(summary.flaggedItems).toContain('Severe pain reported');
-      expect(summary.flaggedItems).toContain('Poor appetite');
     });
 
     it('should have empty flaggedItems when everything is normal', async () => {
@@ -252,9 +222,6 @@ describe('careSummaryBuilder — buildTodaySummary', () => {
       mockGetEveningWellness.mockResolvedValue({
         painLevel: 'mild',
       });
-      mockGetMealsLogs.mockResolvedValue([
-        { id: '1', timestamp: '2025-01-15T12:00:00.000Z', meals: ['Lunch'], appetite: 'good' },
-      ]);
 
       const summary = await buildTodaySummary();
       expect(summary.flaggedItems).toEqual([]);

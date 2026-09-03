@@ -1,6 +1,11 @@
 // ============================================================================
 // MEAL FLOW INTEGRATION — TESTS
 // Cross-system data consistency between logEvents and centralStorage
+//
+// Appetite-half-feature removal — appetite dropped from both MealEvent and
+// MealsLog (no writer/UI ever set it in the live app). See
+// project_appetite_dormant_half_feature memory. amountConsumed and
+// assistanceLevel are unaffected.
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -23,7 +28,6 @@ describe('mealFlowIntegration — cross-system consistency', () => {
 
   it('should store enrichment fields via logMeal (logEvents system)', async () => {
     const event = await logMeal('Lunch', {
-      appetite: 'fair',
       amountConsumed: 'half',
       assistanceLevel: 'verbal',
       description: 'Soup and bread',
@@ -32,7 +36,6 @@ describe('mealFlowIntegration — cross-system consistency', () => {
     const events = await getLogEvents();
     const meal = events[0] as MealEvent;
 
-    expect(meal.appetite).toBe('fair');
     expect(meal.amountConsumed).toBe('half');
     expect(meal.assistanceLevel).toBe('verbal');
     expect(meal.description).toBe('Soup and bread');
@@ -42,7 +45,6 @@ describe('mealFlowIntegration — cross-system consistency', () => {
     await saveMealsLog({
       timestamp: new Date().toISOString(),
       meals: ['Lunch'],
-      appetite: 'fair',
       amountConsumed: 'half',
       assistanceLevel: 'verbal',
       description: 'Soup and bread',
@@ -50,7 +52,6 @@ describe('mealFlowIntegration — cross-system consistency', () => {
 
     const logs = await getMealsLogs();
     expect(logs).toHaveLength(1);
-    expect(logs[0].appetite).toBe('fair');
     expect(logs[0].amountConsumed).toBe('half');
     expect(logs[0].assistanceLevel).toBe('verbal');
     expect(logs[0].description).toBe('Soup and bread');
@@ -59,7 +60,6 @@ describe('mealFlowIntegration — cross-system consistency', () => {
   it('should have matching enrichment field types across both systems', async () => {
     // Log via logEvents
     const event = await logMeal('Dinner', {
-      appetite: 'poor',
       amountConsumed: 'little',
       assistanceLevel: 'full',
     });
@@ -68,7 +68,6 @@ describe('mealFlowIntegration — cross-system consistency', () => {
     await saveMealsLog({
       timestamp: new Date().toISOString(),
       meals: ['Dinner'],
-      appetite: 'poor',
       amountConsumed: 'little',
       assistanceLevel: 'full',
     });
@@ -77,7 +76,6 @@ describe('mealFlowIntegration — cross-system consistency', () => {
     const centralLog = (await getMealsLogs())[0];
 
     // Both systems should store the same values
-    expect(logEvent.appetite).toBe(centralLog.appetite);
     expect(logEvent.amountConsumed).toBe(centralLog.amountConsumed);
     expect(logEvent.assistanceLevel).toBe(centralLog.assistanceLevel);
   });
@@ -87,8 +85,8 @@ describe('mealFlowIntegration — cross-system consistency', () => {
   // ==========================================================================
 
   it('should count meals correctly in getTodayLogSummary despite enrichment fields', async () => {
-    await logMeal('Breakfast', { appetite: 'good', amountConsumed: 'all' });
-    await logMeal('Lunch', { appetite: 'fair', amountConsumed: 'most' });
+    await logMeal('Breakfast', { amountConsumed: 'all' });
+    await logMeal('Lunch', { amountConsumed: 'most' });
     await logMeal('Dinner');
 
     const summary = await getTodayLogSummary();
@@ -101,7 +99,6 @@ describe('mealFlowIntegration — cross-system consistency', () => {
 
     // New-style meal (with enrichment)
     await logMeal('Lunch', {
-      appetite: 'good',
       amountConsumed: 'all',
       assistanceLevel: 'independent',
     });
@@ -110,8 +107,8 @@ describe('mealFlowIntegration — cross-system consistency', () => {
     const meals = events.filter(e => e.type === 'meal') as MealEvent[];
 
     expect(meals).toHaveLength(2);
-    expect(meals[0].appetite).toBeUndefined();
-    expect(meals[1].appetite).toBe('good');
+    expect(meals[0].amountConsumed).toBeUndefined();
+    expect(meals[1].amountConsumed).toBe('all');
   });
 
   it('should store meals in centralStorage without enrichment (backward compat)', async () => {
@@ -123,7 +120,6 @@ describe('mealFlowIntegration — cross-system consistency', () => {
     const logs = await getMealsLogs();
     expect(logs).toHaveLength(1);
     expect(logs[0].meals).toEqual(['Snack']);
-    expect(logs[0].appetite).toBeUndefined();
     expect(logs[0].amountConsumed).toBeUndefined();
     expect(logs[0].assistanceLevel).toBeUndefined();
   });

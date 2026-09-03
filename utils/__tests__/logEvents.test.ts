@@ -212,7 +212,7 @@ describe('logEvents — base CRUD', () => {
       expect(events[0].audit?.source).toBe('record');
     });
 
-    it('should read old meal event without appetite field', async () => {
+    it('should read old meal event without amountConsumed/assistanceLevel fields', async () => {
       const oldEvent = {
         id: 'old-2',
         type: 'meal',
@@ -227,7 +227,6 @@ describe('logEvents — base CRUD', () => {
       const meal = events[0] as MealEvent;
       expect(meal.mealType).toBe('Dinner');
       expect(meal.description).toBe('Pasta and salad');
-      expect(meal.appetite).toBeUndefined();
       expect(meal.amountConsumed).toBeUndefined();
       expect(meal.assistanceLevel).toBeUndefined();
     });

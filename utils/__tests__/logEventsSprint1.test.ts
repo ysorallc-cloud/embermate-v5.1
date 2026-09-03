@@ -1,6 +1,14 @@
 // ============================================================================
 // LOG EVENTS — SPRINT 1 TESTS
-// Tests for MealEvent enrichment fields (appetite, amountConsumed, assistanceLevel)
+// Tests for MealEvent enrichment fields (amountConsumed, assistanceLevel)
+//
+// Appetite-half-feature removal — the appetite enrichment field (and its
+// dedicated "appetite option values" coverage) was removed: no writer/UI
+// ever set it in the live app (logMeal itself has zero live callers), and
+// every reader of it across the app was dead weight. See
+// project_appetite_dormant_half_feature memory. amountConsumed and
+// assistanceLevel are unaffected — same dormant status, but out of scope
+// for this removal.
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -20,15 +28,6 @@ describe('logEvents — Sprint 1 MealEvent enrichment', () => {
   // ==========================================================================
 
   describe('logMeal with enrichment fields', () => {
-    it('should log a meal with appetite field', async () => {
-      const event = await logMeal('Breakfast', {
-        appetite: 'good',
-      });
-      expect(event.type).toBe('meal');
-      expect(event.mealType).toBe('Breakfast');
-      expect(event.appetite).toBe('good');
-    });
-
     it('should log a meal with amountConsumed field', async () => {
       const event = await logMeal('Lunch', {
         amountConsumed: 'half',
@@ -46,11 +45,9 @@ describe('logEvents — Sprint 1 MealEvent enrichment', () => {
     it('should log a meal with all enrichment fields together', async () => {
       const event = await logMeal('Lunch', {
         description: 'Grilled chicken and rice',
-        appetite: 'fair',
         amountConsumed: 'most',
         assistanceLevel: 'independent',
       });
-      expect(event.appetite).toBe('fair');
       expect(event.amountConsumed).toBe('most');
       expect(event.assistanceLevel).toBe('independent');
       expect(event.description).toBe('Grilled chicken and rice');
@@ -60,7 +57,6 @@ describe('logEvents — Sprint 1 MealEvent enrichment', () => {
       const event = await logMeal('Snack', {
         description: 'Apple slices',
       });
-      expect(event.appetite).toBeUndefined();
       expect(event.amountConsumed).toBeUndefined();
       expect(event.assistanceLevel).toBeUndefined();
       expect(event.description).toBe('Apple slices');
@@ -82,7 +78,6 @@ describe('logEvents — Sprint 1 MealEvent enrichment', () => {
   describe('persistence of enrichment fields', () => {
     it('should persist and retrieve enrichment fields from storage', async () => {
       await logMeal('Dinner', {
-        appetite: 'poor',
         amountConsumed: 'little',
         assistanceLevel: 'full',
       });
@@ -92,40 +87,22 @@ describe('logEvents — Sprint 1 MealEvent enrichment', () => {
 
       const meal = events[0] as MealEvent;
       expect(meal.type).toBe('meal');
-      expect(meal.appetite).toBe('poor');
       expect(meal.amountConsumed).toBe('little');
       expect(meal.assistanceLevel).toBe('full');
     });
 
     it('should persist multiple meals with different enrichment values', async () => {
-      await logMeal('Breakfast', { appetite: 'good', amountConsumed: 'all' });
-      await logMeal('Lunch', { appetite: 'fair', amountConsumed: 'half' });
-      await logMeal('Dinner', { appetite: 'refused', amountConsumed: 'none' });
+      await logMeal('Breakfast', { amountConsumed: 'all' });
+      await logMeal('Lunch', { amountConsumed: 'half' });
+      await logMeal('Dinner', { amountConsumed: 'none' });
 
       const events = await getLogEvents();
       const meals = events.filter(e => e.type === 'meal') as MealEvent[];
       expect(meals.length).toBe(3);
 
-      expect(meals[0].appetite).toBe('good');
-      expect(meals[1].appetite).toBe('fair');
-      expect(meals[2].appetite).toBe('refused');
-    });
-  });
-
-  // ==========================================================================
-  // Appetite option values
-  // ==========================================================================
-
-  describe('appetite option values', () => {
-    const appetiteValues: Array<'good' | 'fair' | 'poor' | 'refused'> = [
-      'good', 'fair', 'poor', 'refused',
-    ];
-
-    appetiteValues.forEach(value => {
-      it(`should accept appetite value: ${value}`, async () => {
-        const event = await logMeal('Lunch', { appetite: value });
-        expect(event.appetite).toBe(value);
-      });
+      expect(meals[0].amountConsumed).toBe('all');
+      expect(meals[1].amountConsumed).toBe('half');
+      expect(meals[2].amountConsumed).toBe('none');
     });
   });
 
@@ -170,7 +147,6 @@ describe('logEvents — Sprint 1 MealEvent enrichment', () => {
   describe('audit trail with enrichment fields', () => {
     it('should preserve audit metadata alongside enrichment fields', async () => {
       const event = await logMeal('Lunch', {
-        appetite: 'good',
         amountConsumed: 'all',
         assistanceLevel: 'independent',
         audit: {
@@ -179,7 +155,7 @@ describe('logEvents — Sprint 1 MealEvent enrichment', () => {
         },
       });
 
-      expect(event.appetite).toBe('good');
+      expect(event.amountConsumed).toBe('all');
       expect(event.audit?.source).toBe('record');
       expect(event.audit?.action).toBe('direct_tap');
     });

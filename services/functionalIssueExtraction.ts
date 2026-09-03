@@ -3,27 +3,34 @@
 //
 // Surfaces the 3-5 most caregiver-actionable functional issues over the Visit
 // Prep period. Pulls from the daily reflection store (mood + energy) and the
-// event log (appetite from meal logs, mobility from symptom events).
+// live symptom store (mobility, via the symptomEvents adapter — eventRepo
+// itself never receives symptom_reported writes).
 //
 // Severity heuristics:
 //   • urgent     — direct safety signal (≥2 falls in the period; mood ≤ 2 avg
 //                  with steady decline)
-//   • concerning — sustained low signal (mood/energy avg < 3; appetite poor
-//                  in ≥40% of meals)
+//   • concerning — sustained low signal (mood/energy avg < 3)
 //   • watch      — softer signal, included for caregiver awareness
 //
 // All severity calls are conservative — the PDF is meant to support a clinic
 // conversation, not pre-diagnose. Where data is sparse, the issue is omitted
 // rather than asserted with low confidence.
+//
+// Appetite-half-feature removal — appetiteIssue() read meal_logged events'
+// metadata.appetite, a field no writer has ever populated (log-meal.tsx has
+// no appetite capture UI); the branch always returned null. Removed along
+// with it: the now-unnecessary eventRepo range read (its only OTHER
+// consumer here, mobilityIssue, reads symptom_reported exclusively via the
+// symptomEvents adapter — eventRepo itself never carries that type). See
+// project_appetite_dormant_half_feature memory.
 // ============================================================================
 
 import { getRangeWithMissingDays, type DailyReflectionPoint } from '../storage/dailyReflectionRepo';
-import { getEventsByDateRange } from '../storage/eventRepo';
 import { getSymptomEventsInRange } from '../utils/symptomEvents';
 import type { CareEvent } from '../types/event';
 import { logError } from '../utils/devLog';
 
-export type FunctionalCategory = 'mood' | 'energy' | 'appetite' | 'mobility';
+export type FunctionalCategory = 'mood' | 'energy' | 'mobility';
 export type FunctionalSeverity = 'watch' | 'concerning' | 'urgent';
 
 export interface FunctionalIssue {
@@ -40,7 +47,6 @@ export interface DateRange {
 const MAX_RESULTS = 5;
 const MOOD_LOW_THRESHOLD = 3;
 const ENERGY_LOW_THRESHOLD = 3;
-const APPETITE_POOR_RATIO = 0.4;
 const FALL_URGENT_COUNT = 2;
 const MOBILITY_KEYWORDS = ['fall', 'unsteady', 'gait', 'balance', 'weakness'];
 
@@ -79,25 +85,6 @@ function energyIssue(points: DailyReflectionPoint[]): FunctionalIssue | null {
     observation:
       `Energy averaged ${mean.toFixed(1)}/5 across ${energies.length} reflections — ` +
       `low energy across the period.`,
-    severity,
-  };
-}
-
-function appetiteIssue(events: CareEvent[]): FunctionalIssue | null {
-  const meals = events.filter((e) => e.type === 'meal_logged');
-  if (meals.length < 3) return null;
-  const poor = meals.filter((e) => {
-    const a = (e.metadata as any)?.appetite;
-    return a === 'poor' || a === 'refused';
-  }).length;
-  const ratio = poor / meals.length;
-  if (ratio < APPETITE_POOR_RATIO) return null;
-  const severity: FunctionalSeverity = ratio >= 0.6 ? 'concerning' : 'watch';
-  return {
-    category: 'appetite',
-    observation:
-      `${poor} of ${meals.length} meals logged with poor or refused appetite ` +
-      `(${Math.round(ratio * 100)}%).`,
     severity,
   };
 }
@@ -141,19 +128,12 @@ export async function extractFunctionalIssues(
     logError('functionalIssueExtraction.reflections', err);
   }
 
-  try {
-    events = await getEventsByDateRange(range.start, range.end, patientId);
-  } catch (err) {
-    logError('functionalIssueExtraction.events', err);
-  }
-
   // symptom_reported is NEVER written to eventRepo (symptoms live in
-  // symptomStorage) — merge the live symptom store in so mobilityIssue sees real
-  // data. (appetiteIssue still reads meal_logged.appetite, which is dormant — no
-  // writer captures appetite; left as-is per the appetite-capture bank.)
+  // symptomStorage) — read the live symptom store directly via the adapter.
+  // (eventRepo itself is no longer queried here — its only other would-be
+  // contribution, meal_logged.appetite, was removed with appetiteIssue.)
   try {
-    const symptomEvents = await getSymptomEventsInRange(patientId, range.start, range.end);
-    events = [...events, ...symptomEvents];
+    events = await getSymptomEventsInRange(patientId, range.start, range.end);
   } catch (err) {
     logError('functionalIssueExtraction.symptoms', err);
   }
@@ -165,9 +145,6 @@ export async function extractFunctionalIssues(
 
   const e = energyIssue(reflectionPoints);
   if (e) issues.push(e);
-
-  const a = appetiteIssue(events);
-  if (a) issues.push(a);
 
   const mob = mobilityIssue(events);
   if (mob) issues.push(mob);

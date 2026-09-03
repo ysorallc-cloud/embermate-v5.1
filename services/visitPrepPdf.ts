@@ -370,8 +370,7 @@ export async function assembleVisitPrepData(config: VisitPrepConfig): Promise<Vi
   }
 
   // Phase 5.10.a — Hydration & Nutrition. Cup totals + meal full/partial/
-  // refused counts + appetite summary. Returns null when both arms are
-  // empty.
+  // refused counts. Returns null when both arms are empty.
   // Phase 5.10.d — gated by includeHydrationNutrition (default true).
   // When toggle is OFF, the renderer omits the section entirely.
   // When toggle is ON but data is null, the renderer surfaces a
@@ -469,7 +468,7 @@ export async function assembleVisitPrepData(config: VisitPrepConfig): Promise<Vi
     logError('visitPrepPdf.symptomChanges', err);
   }
 
-  // Functional issues — mood / energy / appetite / mobility.
+  // Functional issues — mood / energy / mobility.
   let functionalIssues: FunctionalIssue[] = [];
   try {
     functionalIssues = await extractFunctionalIssues(
@@ -714,8 +713,6 @@ function buildHtml(data: VisitPrepData): string {
         ? `${hn.meals.refusedMeals.length} refused meal${hn.meals.refusedMeals.length === 1 ? '' : 's'}.`
         : '')
     : '';
-  const appetiteLine = hn?.appetiteSummary ?? '';
-
   // Phase 5.10.a — Sleep, Energy & Mood Patterns body lines.
   const wp = data.wellnessPatterns;
   const sleepLine = wp.sleep
@@ -846,7 +843,6 @@ function buildHtml(data: VisitPrepData): string {
     <h2>Hydration &amp; Nutrition</h2>
     ${hydrationLine ? `<p>${hydrationLine}</p>` : ''}
     ${mealsLine ? `<p>${mealsLine}</p>` : ''}
-    ${appetiteLine ? `<p>${appetiteLine}</p>` : ''}
   </div>
   ` : `
   <div class="callout callout-hydration">
